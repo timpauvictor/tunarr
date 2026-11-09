@@ -80,6 +80,89 @@ async function buildApp(serverCtx: unknown) {
   return app;
 }
 
+describe('POST /media-sources/foreignstatus', () => {
+  test('passes a five-second per-call deadline only to Plex and keeps response shape', async () => {
+    const checkServerStatus = vi.fn(async () => ({
+      healthy: false,
+      status: 'timeout',
+    }));
+    const getPlexApiClient = vi.fn(async () => ({ checkServerStatus }));
+    const app = await buildApp({ mediaSourceApiFactory: { getPlexApiClient } });
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/media-sources/foreignstatus',
+        payload: {
+          type: 'plex',
+          name: 'Test',
+          accessToken: 'FAKE_SECRET',
+          uri: 'http://127.0.0.1:32400',
+        },
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ healthy: false, status: 'timeout' });
+      expect(checkServerStatus).toHaveBeenCalledExactlyOnceWith({
+        timeout: 5_000,
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  test('retains outbound rejection before creating a client', async () => {
+    const getPlexApiClient = vi.fn();
+    const app = await buildApp({ mediaSourceApiFactory: { getPlexApiClient } });
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/media-sources/foreignstatus',
+        payload: {
+          type: 'plex',
+          accessToken: 'FAKE_SECRET',
+          uri: 'http://169.254.169.254/latest/meta-data',
+        },
+      });
+      expect(response.json()).toEqual({
+        healthy: false,
+        status: 'unreachable',
+      });
+      expect(getPlexApiClient).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  test('leaves non-Plex probes unchanged', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const ping = vi.fn(async () => ({ healthy: true }));
+    const app = await buildApp({
+      mediaSourceApiFactory: {
+        getJellyfinApiClient: async () => ({ ping }),
+        getEmbyApiClient: async () => ({ ping }),
+      },
+    });
+    try {
+      for (const type of ['jellyfin', 'emby']) {
+        const response = await app.inject({
+          method: 'POST',
+          url: '/media-sources/foreignstatus',
+          payload: {
+            type,
+            accessToken: 'FAKE_SECRET',
+            uri: 'http://127.0.0.1:8096',
+          },
+        });
+        expect(response.json()).toEqual({ healthy: true });
+      }
+      expect(ping.mock.calls).toEqual([[], []]);
+    } finally {
+      await app.close();
+      vi.clearAllTimers();
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe('PUT /media-sources/:id removing a local path', () => {
   test('sends the trashed programs and groupings to the search index', async () => {
     const ctx = makeContext(

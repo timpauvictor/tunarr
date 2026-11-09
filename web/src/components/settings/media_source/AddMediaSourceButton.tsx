@@ -34,7 +34,7 @@ export function AddMediaSourceButton({ ButtonProps }: Props) {
   const [jellyfinEditDialogOpen, setJellyfinEditDialogOpen] = useState(false);
   const [embyEditDialogOpen, setEmbyEditDialogOpen] = useState(false);
   const [localEditDialogOpen, setLocalEditDialogOpen] = useState(false);
-  const discoverPlexServers = usePlexLogin();
+  const { startDiscovery, isPending } = usePlexLogin();
 
   const open = !isNull(manualAddPopoverRef);
 
@@ -49,7 +49,7 @@ export function AddMediaSourceButton({ ButtonProps }: Props) {
   };
 
   const handleDiscoverPlexServers = () => {
-    discoverPlexServers();
+    startDiscovery();
     closeManualAddButtonMenu();
   };
 
@@ -96,14 +96,21 @@ export function AddMediaSourceButton({ ButtonProps }: Props) {
           },
         }}
       >
-        <MenuItem onClick={() => handleDiscoverPlexServers()}>
+        <MenuItem
+          disabled={isPending}
+          onClick={() => handleDiscoverPlexServers()}
+        >
           <ListItemIcon>
             <SvgIcon>
               <PlexIcon />
             </SvgIcon>
           </ListItemIcon>
           <ListItemText>
-            <Trans>Plex (Auto)</Trans>
+            {isPending ? (
+              <Trans>Adding Plex servers…</Trans>
+            ) : (
+              <Trans>Plex (Auto)</Trans>
+            )}
           </ListItemText>
         </MenuItem>
         <MenuItem onClick={() => handleOpenMediaSourceDialog('plex')}>

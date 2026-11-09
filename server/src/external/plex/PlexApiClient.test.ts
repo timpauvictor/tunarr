@@ -1,4 +1,7 @@
 import { faker } from '@faker-js/faker';
+import { createServer } from 'node:http';
+import { once } from 'node:events';
+import { AxiosError } from 'axios';
 import { describe, expect, it, vi } from 'vitest';
 import { Result } from '@/types/result.js';
 import { PlexMovieSchema } from '@tunarr/types/plex';
@@ -25,7 +28,7 @@ vi.mock('@/util/version.js', () => ({
   getTunarrVersion: () => '1.0.0-test',
 }));
 
-function makeMinimalPlexClient() {
+function makeMinimalPlexClient(uri = 'http://localhost:32400') {
   const mediaSourceId = faker.string.uuid();
   const libraryId = faker.string.uuid();
   const externalLibraryKey = '1';
@@ -40,7 +43,7 @@ function makeMinimalPlexClient() {
       uuid: mediaSourceId,
       name: 'Test Plex' as never,
       type: 'plex',
-      uri: 'http://localhost:32400',
+      uri,
       accessToken: 'test-token',
       libraries: [
         {
@@ -56,6 +59,83 @@ function makeMinimalPlexClient() {
 
   return { client, mediaSourceId, libraryId, externalLibraryKey };
 }
+
+describe('Plex status request deadlines', () => {
+  it('terminates a hanging real request at five seconds without changing defaults', async () => {
+    let closed = false;
+    const server = createServer((_req, res) => {
+      res.on('close', () => {
+        closed = true;
+      });
+    }).listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    if (!address || typeof address === 'string')
+      throw new Error('Missing port');
+    const { client } = makeMinimalPlexClient(
+      `http://127.0.0.1:${address.port}`,
+    );
+    const request = vi.spyOn(client, 'doGet');
+    try {
+      const start = performance.now();
+      expect(await client.checkServerStatus({ timeout: 5_000 })).toEqual({
+        healthy: false,
+        status: 'timeout',
+      });
+      expect(performance.now() - start).toBeLessThan(6_000);
+      await vi.waitFor(() => expect(closed).toBe(true));
+      expect(request.mock.calls[0]?.[0]).toMatchObject({ timeout: 5_000 });
+      request.mockResolvedValue({ MediaContainer: {} });
+      expect(await client.checkServerStatus()).toEqual({ healthy: true });
+      expect(request.mock.calls[1]?.[0]).not.toHaveProperty('timeout');
+      expect(JSON.stringify(fakeLogger.error.mock.calls)).not.toContain(
+        'test-token',
+      );
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  }, 10_000);
+
+  it('classifies invalid responses, auth failures and cancellation and clears timers', async () => {
+    const { client } = makeMinimalPlexClient();
+    const request = vi
+      .spyOn(client, 'doGet')
+      .mockResolvedValue({ notPlex: true });
+    expect(await client.checkServerStatus()).toEqual({
+      healthy: false,
+      status: 'bad_response',
+    });
+    request.mockRejectedValue(
+      new AxiosError('denied', 'ERR_BAD_REQUEST', undefined, undefined, {
+        status: 401,
+        data: '',
+        statusText: '',
+        headers: {},
+        config: { headers: {} } as never,
+      }),
+    );
+    expect(await client.checkServerStatus()).toEqual({
+      healthy: false,
+      status: 'auth',
+    });
+    vi.useFakeTimers();
+    try {
+      const controller = new AbortController();
+      controller.abort();
+      request.mockRejectedValue(new Error('cancelled'));
+      expect(
+        await client.checkServerStatus({
+          timeout: 5_000,
+          signal: controller.signal,
+        }),
+      ).toEqual({ healthy: false, status: 'timeout' });
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
 
 function makePlexMovieMetadata(ratingKey: string, librarySectionID: number) {
   return {

@@ -1,12 +1,9 @@
-import { isNonEmptyString } from '@tunarr/shared/util';
 import type {
   PlexPinsResponse,
   PlexResourcesResponse,
 } from '@tunarr/types/plex';
-import { compact, isError, isString, partition } from 'lodash-es';
-import { postApiMediaSourcesForeignstatus } from '../generated/sdk.gen.ts';
+import { isError, isString } from 'lodash-es';
 import { AsyncInterval } from './AsyncInterval.ts';
-import { sequentialPromises } from './util.ts';
 
 // From Plex: The Client Identifier identifies the specific instance of your app.
 // A random string or UUID is sufficient here. There are no hard requirements for
@@ -84,7 +81,6 @@ export const plexLoginFlow = async () => {
         }
       } catch (e) {
         interval.stop();
-        console.error(e);
         reject(
           isError(e)
             ? e
@@ -111,40 +107,4 @@ export const plexLoginFlow = async () => {
   ).then((res) => res.json() as Promise<PlexResourcesResponse>);
 
   return serversResponse.filter((server) => server.provides.includes('server'));
-};
-
-export const checkNewPlexServers = async (servers: PlexResourcesResponse) => {
-  return sequentialPromises(servers, async (server) => {
-    const [localConnections, remoteConnections] = partition(
-      server.connections,
-      (c) => c.local,
-    );
-
-    for (const connection of [...localConnections, ...remoteConnections]) {
-      if (!isNonEmptyString(server.accessToken)) {
-        console.warn(
-          `Server at URL ${connection.uri} did not return an access token`,
-        );
-        continue;
-      }
-
-      const { healthy } = await postApiMediaSourcesForeignstatus({
-        body: {
-          name: server.name,
-          accessToken: server.accessToken,
-          uri: connection.uri,
-          type: 'plex',
-        },
-        throwOnError: true,
-      }).then(({ data }) => data);
-
-      if (healthy) {
-        return { server, connection };
-      } else {
-        console.warn(
-          `Unable to reach Plex server "${server.name}" via ${connection.uri}`,
-        );
-      }
-    }
-  }).then(compact);
 };

@@ -556,12 +556,21 @@ msgstr "Add TV Shows or Movies to filler"
 msgid "Add TV Shows or Movies to programming list."
 msgstr "Add TV Shows or Movies to programming list."
 
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Added"
+msgstr "Added"
+
 #. placeholder {0}: data.added
 #. placeholder {1}: data.added
 #. placeholder {2}: data.updated
 #: src/hooks/useBulkAssignFillers.tsx
 msgid "Added {0} {1, plural, one {assignment} other {assignments}}, updated {2}."
 msgstr "Added {0} {1, plural, one {assignment} other {assignments}}, updated {2}."
+
+#: src/components/settings/AddPlexServer.tsx
+#: src/components/settings/media_source/AddMediaSourceButton.tsx
+msgid "Adding Plex servers…"
+msgstr "Adding Plex servers…"
 
 #: src/components/channel_config/AddProgrammingButton.tsx
 msgid "Adds a channel redirect. During this period of time, the channel will redirect to another channel."
@@ -696,6 +705,10 @@ msgstr "Alphabetical"
 #: src/components/custom-shows/CustomShowSortToolsMenu.tsx
 msgid "Alphabetically"
 msgstr "Alphabetically"
+
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Already present"
+msgstr "Already present"
 
 #: src/components/programming_controls/AddBlockShuffleModal.tsx
 #~ msgid "Alternate programs in blocks. You can pick the number of programs in each block, whether episodes play in order, and whether shows take turns or come up at random."
@@ -1082,6 +1095,10 @@ msgstr "Calculating Slots..."
 msgid "Cancel"
 msgstr "Cancel"
 
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Cancelled"
+msgstr "Cancelled"
+
 #: src/components/settings/media_source/EmbyServerEditDialog.tsx
 #: src/components/settings/media_source/JelllyfinServerEditDialog.tsx
 #: src/components/settings/media_source/PlexServerEditDialog.tsx
@@ -1217,6 +1234,10 @@ msgstr "Check"
 #: src/pages/welcome/WelcomePage.tsx
 msgid "Check FFmpeg"
 msgstr "Check FFmpeg"
+
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Checking Plex servers; reachable servers will appear as they are saved…"
+msgstr "Checking Plex servers; reachable servers will appear as they are saved…"
 
 #: src/components/channel_config/ChannelTranscodingConfig.tsx
 msgid "Choose the transcode configuration to use for this channel. Configure transcode configurations on the <0>FFmpeg settings page</0>."
@@ -1358,6 +1379,10 @@ msgstr "Connect Media Source"
 #~ msgid "Connect Sources"
 #~ msgstr "Connect Sources"
 
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Connection check failed; check access and network"
+msgstr "Connection check failed; check access and network"
+
 #: src/pages/settings/FfmpegSettingsPage.tsx
 msgid "Console"
 msgstr "Console"
@@ -1471,6 +1496,10 @@ msgstr "Could not cancel emptying the trash."
 #: src/components/search/SearchFilterBuilder.tsx
 msgid "Could not parse this filter expression. Check the <0>documentation</0> for information about filter expressions."
 msgstr "Could not parse this filter expression. Check the <0>documentation</0> for information about filter expressions."
+
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Could not refresh saved sources. No servers were added; retry when the server is reachable."
+msgstr "Could not refresh saved sources. No servers were added; retry when the server is reachable."
 
 #: src/pages/welcome/WelcomePage.tsx
 msgid "Could not save setup progress. {message}"
@@ -3565,6 +3594,10 @@ msgstr "No Media Sources detected."
 msgid "No pages or lists match."
 msgstr "No pages or lists match."
 
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "No Plex servers were returned. Try manual setup."
+msgstr "No Plex servers were returned. Try manual setup."
+
 #: src/components/profiles/StreamSelectionRuleEditor.tsx
 msgid "No preference"
 msgstr "No preference"
@@ -3946,6 +3979,18 @@ msgstr "Plex (Auto)"
 #: src/components/settings/media_source/AddMediaSourceButton.tsx
 msgid "Plex (Manual)"
 msgstr "Plex (Manual)"
+
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Plex discovery failed. Saved sources are preserved; refresh before retrying."
+msgstr "Plex discovery failed. Saved sources are preserved; refresh before retrying."
+
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Plex sign-in failed or was cancelled. Please try again."
+msgstr "Plex sign-in failed or was cancelled. Please try again."
+
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Plex: {added} added, {present} already present, {skipped} skipped, {failed} failed."
+msgstr "Plex: {added} added, {present} already present, {skipped} skipped, {failed} failed."
 
 #: src/components/channel_config/ChannelTranscodingConfig.tsx
 #: src/components/channel_config/ChannelTranscodingConfig.tsx
@@ -4534,6 +4579,10 @@ msgstr "Save as new collection…"
 msgid "Save as Smart Collection"
 msgstr "Save as Smart Collection"
 
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Save failed or response lost; refresh before retrying"
+msgstr "Save failed or response lost; refresh before retrying"
+
 #: src/components/smart_collections/CreateSmartCollectionDialog.tsx
 msgid "Save Smart Collection"
 msgstr "Save Smart Collection"
@@ -4848,6 +4897,10 @@ msgstr "Shuffle Programming"
 msgid "Shuffle programming in a channel, optionally grouping programs by certain criteria."
 msgstr "Shuffle programming in a channel, optionally grouping programs by certain criteria."
 
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Signing in to Plex…"
+msgstr "Signing in to Plex…"
+
 #: src/components/slot_scheduler/MidRollConfigPanel.tsx
 msgid "Skip mid-roll for programs shorter than this"
 msgstr "Skip mid-roll for programs shorter than this"
@@ -4855,6 +4908,14 @@ msgstr "Skip mid-roll for programs shorter than this"
 #: src/pages/welcome/WelcomePage.tsx
 msgid "Skip Setup"
 msgstr "Skip Setup"
+
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Skipped: missing server identity; use manual setup"
+msgstr "Skipped: missing server identity; use manual setup"
+
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Skipped: no access token"
+msgstr "Skipped: no access token"
 
 #: src/hooks/useRouteName.ts
 msgid "Slot Editor"
@@ -5720,6 +5781,10 @@ msgstr "Unlink"
 #: src/components/slot_scheduler/SlotLinkingControl.tsx
 #~ msgid "Unlink from group"
 #~ msgstr "Unlink from group"
+
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Unreachable; check the server address and network"
+msgstr "Unreachable; check the server address and network"
 
 #: src/components/settings/media_source/EmbyServerEditDialog.tsx
 #: src/components/settings/media_source/JelllyfinServerEditDialog.tsx

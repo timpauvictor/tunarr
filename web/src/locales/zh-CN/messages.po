@@ -556,11 +556,20 @@ msgstr "向垫片添加剧集或电影"
 msgid "Add TV Shows or Movies to programming list."
 msgstr "向节目列表添加剧集或电影。"
 
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Added"
+msgstr ""
+
 #. placeholder {0}: data.added
 #. placeholder {1}: data.added
 #. placeholder {2}: data.updated
 #: src/hooks/useBulkAssignFillers.tsx
 msgid "Added {0} {1, plural, one {assignment} other {assignments}}, updated {2}."
+msgstr ""
+
+#: src/components/settings/AddPlexServer.tsx
+#: src/components/settings/media_source/AddMediaSourceButton.tsx
+msgid "Adding Plex servers…"
 msgstr ""
 
 #: src/components/channel_config/AddProgrammingButton.tsx
@@ -696,6 +705,10 @@ msgstr "按字母顺序"
 #: src/components/custom-shows/CustomShowSortToolsMenu.tsx
 msgid "Alphabetically"
 msgstr "按字母顺序"
+
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Already present"
+msgstr ""
 
 #: src/components/programming_controls/AddBlockShuffleModal.tsx
 #~ msgid "Alternate programs in blocks. You can pick the number of programs in each block, whether episodes play in order, and whether shows take turns or come up at random."
@@ -1082,6 +1095,10 @@ msgstr "正在计算时段…"
 msgid "Cancel"
 msgstr "取消"
 
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Cancelled"
+msgstr ""
+
 #: src/components/settings/media_source/EmbyServerEditDialog.tsx
 #: src/components/settings/media_source/JelllyfinServerEditDialog.tsx
 #: src/components/settings/media_source/PlexServerEditDialog.tsx
@@ -1216,6 +1233,10 @@ msgstr "检查"
 
 #: src/pages/welcome/WelcomePage.tsx
 msgid "Check FFmpeg"
+msgstr ""
+
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Checking Plex servers; reachable servers will appear as they are saved…"
 msgstr ""
 
 #: src/components/channel_config/ChannelTranscodingConfig.tsx
@@ -1358,6 +1379,10 @@ msgstr "连接媒体源"
 #~ msgid "Connect Sources"
 #~ msgstr "连接媒体源"
 
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Connection check failed; check access and network"
+msgstr ""
+
 #: src/pages/settings/FfmpegSettingsPage.tsx
 msgid "Console"
 msgstr "控制台"
@@ -1471,6 +1496,10 @@ msgstr ""
 #: src/components/search/SearchFilterBuilder.tsx
 msgid "Could not parse this filter expression. Check the <0>documentation</0> for information about filter expressions."
 msgstr "无法解析此筛选表达式。请查看<0>文档</0>了解筛选表达式的用法。"
+
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Could not refresh saved sources. No servers were added; retry when the server is reachable."
+msgstr ""
 
 #: src/pages/welcome/WelcomePage.tsx
 msgid "Could not save setup progress. {message}"
@@ -3565,6 +3594,10 @@ msgstr "未检测到媒体源。"
 msgid "No pages or lists match."
 msgstr ""
 
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "No Plex servers were returned. Try manual setup."
+msgstr ""
+
 #: src/components/profiles/StreamSelectionRuleEditor.tsx
 msgid "No preference"
 msgstr ""
@@ -3946,6 +3979,18 @@ msgstr "Plex（自动）"
 #: src/components/settings/media_source/AddMediaSourceButton.tsx
 msgid "Plex (Manual)"
 msgstr "Plex（手动）"
+
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Plex discovery failed. Saved sources are preserved; refresh before retrying."
+msgstr ""
+
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Plex sign-in failed or was cancelled. Please try again."
+msgstr ""
+
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Plex: {added} added, {present} already present, {skipped} skipped, {failed} failed."
+msgstr ""
 
 #: src/components/channel_config/ChannelTranscodingConfig.tsx
 #: src/components/channel_config/ChannelTranscodingConfig.tsx
@@ -4534,6 +4579,10 @@ msgstr "另存为新合集…"
 msgid "Save as Smart Collection"
 msgstr "另存为智能合集"
 
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Save failed or response lost; refresh before retrying"
+msgstr ""
+
 #: src/components/smart_collections/CreateSmartCollectionDialog.tsx
 msgid "Save Smart Collection"
 msgstr "保存智能合集"
@@ -4848,12 +4897,24 @@ msgstr "随机打乱节目"
 msgid "Shuffle programming in a channel, optionally grouping programs by certain criteria."
 msgstr "随机打乱频道中的节目，可选择按特定条件对节目分组。"
 
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Signing in to Plex…"
+msgstr ""
+
 #: src/components/slot_scheduler/MidRollConfigPanel.tsx
 msgid "Skip mid-roll for programs shorter than this"
 msgstr "时长短于此值的节目跳过中插广告"
 
 #: src/pages/welcome/WelcomePage.tsx
 msgid "Skip Setup"
+msgstr ""
+
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Skipped: missing server identity; use manual setup"
+msgstr ""
+
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Skipped: no access token"
 msgstr ""
 
 #: src/hooks/useRouteName.ts
@@ -5720,6 +5781,10 @@ msgstr "解除关联"
 #: src/components/slot_scheduler/SlotLinkingControl.tsx
 #~ msgid "Unlink from group"
 #~ msgstr "Unlink from group"
+
+#: src/hooks/plex/usePlexLogin.tsx
+msgid "Unreachable; check the server address and network"
+msgstr ""
 
 #: src/components/settings/media_source/EmbyServerEditDialog.tsx
 #: src/components/settings/media_source/JelllyfinServerEditDialog.tsx

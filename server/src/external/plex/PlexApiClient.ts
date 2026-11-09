@@ -1134,31 +1134,46 @@ export class PlexApiClient extends MediaSourceApiClient<PlexTypes> {
     }
   }
 
-  async checkServerStatus(): Promise<MediaSourceStatus> {
+  async checkServerStatus(
+    options: { timeout?: number; signal?: AbortSignal } = {},
+  ): Promise<MediaSourceStatus> {
+    const controller = new AbortController();
+    const signal = options.signal
+      ? AbortSignal.any([controller.signal, options.signal])
+      : controller.signal;
+    const timer = options.timeout
+      ? setTimeout(() => controller.abort(), options.timeout)
+      : undefined;
     try {
-      const result = await this.doTypeCheckedGet(
-        '/',
-        PlexGenericMediaContainerResponseSchema,
-      );
-
-      if (result.isFailure()) {
-        throw result.error;
-      } else if (isUndefined(result)) {
-        // Parse error - indicates that the URL is probably not a Plex server
-        return {
-          healthy: false,
-          status: 'bad_response',
-        };
-      }
-
-      return {
-        healthy: true,
-      };
+      // Keep transport errors intact: doTypeCheckedGet wraps away Axios codes.
+      const response = await this.doGet<unknown>({
+        url: '/',
+        ...options,
+        signal,
+      });
+      return PlexGenericMediaContainerResponseSchema.safeParse(response).success
+        ? { healthy: true }
+        : { healthy: false, status: 'bad_response' };
     } catch (err) {
+      if (
+        signal.aborted ||
+        (isAxiosError(err) &&
+          ['ECONNABORTED', 'ETIMEDOUT', 'ERR_CANCELED'].includes(
+            err.code ?? '',
+          ))
+      ) {
+        return { healthy: false, status: 'timeout' };
+      }
       return {
         healthy: false,
-        status: this.getHealthStatus(err),
-      } satisfies MediaSourceStatus;
+        status: isAxiosError(err)
+          ? err.response?.status === 401 || err.response?.status === 403
+            ? 'auth'
+            : 'unreachable'
+          : this.getHealthStatus(err),
+      };
+    } finally {
+      clearTimeout(timer);
     }
   }
 

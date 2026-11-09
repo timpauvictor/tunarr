@@ -675,8 +675,8 @@ export const mediaSourceRouter: RouterPluginAsyncCallback = async (
               },
             });
 
-          healthyPromise = plex.checkServerStatus();
-          break;
+          // Bound the actual transport, not just the response Promise.race below.
+          return res.send(await plex.checkServerStatus({ timeout: 5_000 }));
         }
         case 'jellyfin': {
           const jellyfin =

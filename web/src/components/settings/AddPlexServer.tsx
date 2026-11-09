@@ -16,17 +16,18 @@ export default function AddPlexServer({
   ...restProps
 }: AddPlexServer) {
   const IconComponent = restProps.icon ?? AddCircle;
-  const addPlexServer = usePlexLogin();
+  const { startDiscovery, isPending } = usePlexLogin();
 
   return (
     <Button
       color="inherit"
-      onClick={addPlexServer}
+      onClick={startDiscovery}
+      disabled={isPending}
       variant={variant}
       startIcon={<IconComponent />}
       {...restProps}
     >
-      {title}
+      {isPending ? t`Adding Plex servers…` : title}
     </Button>
   );
 }

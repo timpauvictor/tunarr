@@ -73,6 +73,15 @@ The maintainer cannot approve their own PRs on GitHub, so review agents record t
 - To check a single package directly, run its own script (`pnpm typecheck` / `pnpm build` inside the package). These use `tsc -p tsconfig.build.json`. Never run a bare `tsc` without `-p tsconfig.build.json`, because the default `tsconfig.json` pulls in test files the build excludes.
 - Neither `pnpm typecheck` nor `tsconfig.json` covers `server/tests/`. Only `tsconfig.test.json` does, so typecheck changes there with `pnpm exec tsc --noEmit -p tsconfig.test.json` inside `server`.
 
+### Bounded verification
+
+- Inspect the current package scripts before selecting checks. In `web`, both `build` and `typecheck` currently run `tsc -p tsconfig.build.json --noEmit`; running both repeats the same check. Use `pnpm --dir web bundle` for the Vite production bundle. Read the scripts again if they change.
+- Build changed `types`/`shared` dependencies before checking consumers. Run focused tests and the relevant package typechecks sequentially in a memory-limited container; do not run the full suite as an automatic completion gate.
+- The broad server test configuration can include binary MPEG transport-stream fixtures named `*.ts` and other test-code diagnostics. Do not reinterpret compiler diagnostics as failing runtime tests. If broad checking is blocked, retain the failed receipt and use a scoped test configuration that includes affected tests and `src/types/**/*.d.ts`. Exclude binary fixtures, retain normal type checks, and disable declaration emission only for the no-emit test check. Do not claim a whole-repo pass or fix unrelated tests.
+- Node 22.16 native TypeScript launchers were observed to lose environment variables through `process.execve(file, args)` when no environment argument was supplied. Verify that resource limits reach the actual compiler. Use a command-local workaround if needed, not an installed-package or global configuration change. In the 5 GiB validation container, monitored `--singleThreaded` checks with inherited limits passed. SSH became unresponsive during unbounded validation attempts; do not assume that timing alone proves an OOM.
+- Give every long check a separate log and exit receipt. Bound the owned remote process, not just the local SSH client. Keep fixture ports, data directories and PIDs separate from the running instance. See the project Librarian lesson titled **Plex ratings delivery postmortem and execution lessons** for verified commands, failure evidence and fixture details.
+- Match checks to the diff. Documentation-only changes need formatting, links and policy checks, not application builds. Generated output must come from its owner, and generators must not overwrite unrelated work.
+
 ```bash
 # Install dependencies
 pnpm i

@@ -9,6 +9,17 @@ Instructions for AI coding agents working in this repository. Project convention
 - Preserve unrelated work and run the relevant focused checks before delivery. Do not include secrets, local runtime data or unrelated changes in commits.
 - This standing Git permission does not authorize deployment, releases, destructive history changes or protected-primary integration. Those actions retain their separate approval requirements.
 
+## Execution discipline
+
+- Start coupled work with one representative path through the real producer, storage, API and UI. Make that path work before expanding its variants. For user-visible changes, run a small real-consumer acceptance test early, not only at the end.
+- Inspect the exact package script, SDK signature and existing fixture before using them. Do not guess request shapes, return fields, scheduler prerequisites or command meanings.
+- Keep a change-to-check map. Rerun checks affected by later edits; reuse valid results for unchanged code. Do not repeat the same typecheck under both `build` and `typecheck`, or rebuild a test harness without identifying the failed assumption.
+- Before a third attempt at the same failing setup or check, inspect its actual contract and report the cause and next bounded change. Do not stack guessed fixes or broaden the investigation into unrelated cleanup.
+- Keep required verification separate from optional hardening. Pursue an edge case when the accepted contract, an actual caller or observed evidence requires it; do not let speculative race analysis delay the working path.
+- In a constrained container, run heavy checks sequentially with inherited resource limits. Stream each command to its own log, retain its exit status and track its owned process group. A local SSH timeout does not prove the remote job stopped. Never restart the running app or kill unrelated processes to recover a check.
+- Report progress after a working slice and when an environment failure changes the next step. Separate implementation, verification and delivery status. Do not claim there is no remaining bug before real-consumer acceptance, or call diagnostics pre-existing without baseline evidence.
+- Finish with scoped checks and delivery. Do not add another general review loop, duplicate progress ledger or full-repository cleanup. Record reusable project lessons in Librarian and keep the actionable rules here and in `CLAUDE.md`.
+
 ## Contribution policy
 
 Tunarr accepts AI-assisted contributions under the "Pull Request Policy" and "AI Use" sections of `docs/dev/contributing.md`. Follow it on the user's behalf.

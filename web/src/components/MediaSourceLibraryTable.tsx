@@ -70,7 +70,7 @@ function YouTubeLibraryImportAction({
           setOpen(true);
         }}
       >
-        <Trans>Import YouTube video</Trans>
+        <Trans>Import YouTube links</Trans>
       </Button>
       <YouTubeImportDialog
         open={open}
@@ -83,7 +83,10 @@ function YouTubeLibraryImportAction({
 
 const MediaSourceLibraryTableActionCell = (props: ActionCellProps) =>
   props.mediaSource.type === 'youtube' ? (
-    <YouTubeLibraryImportAction source={props.mediaSource} />
+    <>
+      <YouTubeLibraryImportAction source={props.mediaSource} />
+      <ScannableLibraryActionCell {...props} />
+    </>
   ) : (
     <ScannableLibraryActionCell {...props} />
   );

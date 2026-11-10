@@ -16,6 +16,8 @@ import type { FfprobeMediaInfo } from '../../types/ffmpeg.ts';
 const ExtractorVersion = '2026.10.26';
 const VideoId = /^[A-Za-z0-9_-]{11}$/;
 const MaxOutputBytes = 8 * 1024 * 1024;
+const IncompleteEnumeration =
+  /incomplete data received|detected youtube feed looping|repeated.*continuation|same.*continuation|skipping the rest/i;
 
 export type YouTubeErrorCode =
   | 'INVALID_URL'
@@ -35,7 +37,9 @@ export type YouTubeErrorCode =
   | 'NETWORK'
   | 'INVALID_METADATA'
   | 'UNSUPPORTED_VIDEO'
-  | 'NO_PLAYABLE_FORMAT';
+  | 'NO_PLAYABLE_FORMAT'
+  | 'PENDING_METADATA'
+  | 'SAFETY_LIMIT';
 
 export class YouTubeError extends Error {
   constructor(
@@ -96,7 +100,7 @@ export function normalizeYouTubeVideoUrl(
         ? url.searchParams.getAll('v').length === 1
           ? (url.searchParams.get('v') ?? '')
           : ''
-        : /^\/shorts\/[^/]+\/?$/.test(url.pathname)
+        : /^\/(shorts|embed)\/[^/]+\/?$/.test(url.pathname)
           ? (url.pathname.split('/')[2] ?? '')
           : '';
   assertVideoId(videoId);
@@ -105,6 +109,148 @@ export function normalizeYouTubeVideoUrl(
     canonicalUrl: `https://www.youtube.com/watch?v=${videoId}`,
   };
 }
+
+export type YouTubeInput =
+  | { kind: 'video'; id: string; canonicalUrl: string }
+  | { kind: 'playlist'; id: string; canonicalUrl: string }
+  | { kind: 'creator'; id: string; canonicalUrl: string };
+
+export function normalizeYouTubeUrl(
+  raw: string,
+  intent?: 'video' | 'playlist',
+): YouTubeInput {
+  const url = raw.length <= 4096 ? URL.parse(raw) : null;
+  if (
+    !url ||
+    url.protocol !== 'https:' ||
+    url.username ||
+    url.password ||
+    url.port ||
+    !['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be'].includes(
+      url.hostname,
+    )
+  ) {
+    throw new YouTubeError(
+      'INVALID_URL',
+      'Use an HTTPS YouTube video, playlist or creator URL.',
+    );
+  }
+  const videoPath =
+    url.hostname === 'youtu.be' ||
+    url.pathname === '/watch' ||
+    /^\/(shorts|embed)\/[^/]+\/?$/.test(url.pathname);
+  const lists = url.searchParams.getAll('list');
+  if (videoPath && lists.length && !intent) {
+    throw new YouTubeError(
+      'AMBIGUOUS_URL',
+      'Choose video or playlist for a link containing both.',
+    );
+  }
+  if (url.pathname === '/playlist' || (videoPath && intent === 'playlist')) {
+    const id = lists.length === 1 ? lists[0] : '';
+    if (!id || !/^[A-Za-z0-9_-]{2,128}$/.test(id)) {
+      throw new YouTubeError('INVALID_URL', 'Invalid YouTube playlist ID.');
+    }
+    return {
+      kind: 'playlist',
+      id,
+      canonicalUrl: `https://www.youtube.com/playlist?list=${id}`,
+    };
+  }
+  if (videoPath) {
+    const { videoId, canonicalUrl } = normalizeYouTubeVideoUrl(raw, 'video');
+    return { kind: 'video', id: videoId, canonicalUrl };
+  }
+  const segments = url.pathname
+    .split('/')
+    .filter(Boolean)
+    .map((segment) => {
+      try {
+        return decodeURIComponent(segment);
+      } catch {
+        throw new YouTubeError('INVALID_URL', 'Invalid creator URL.');
+      }
+    });
+  let creatorPath: string | undefined;
+  if (
+    segments[0]?.startsWith('@') &&
+    /^@[\p{L}\p{N}_.·-]{1,30}$/u.test(segments[0]) &&
+    segments.length <= 2 &&
+    (!segments[1] || ['videos', 'shorts', 'streams'].includes(segments[1]))
+  ) {
+    creatorPath = `/@${encodeURIComponent(segments[0].slice(1))}`;
+  } else if (
+    ['channel', 'c', 'user'].includes(segments[0] ?? '') &&
+    segments[1] &&
+    /^[\p{L}\p{N}_.-]{1,100}$/u.test(segments[1]) &&
+    segments.length <= 3 &&
+    (!segments[2] || ['videos', 'shorts', 'streams'].includes(segments[2]))
+  ) {
+    if (
+      segments[0] === 'channel' &&
+      !/^UC[A-Za-z0-9_-]{22}$/.test(segments[1])
+    ) {
+      throw new YouTubeError(
+        'INVALID_URL',
+        'Invalid canonical YouTube channel ID.',
+      );
+    }
+    creatorPath = `/${segments[0]}/${encodeURIComponent(segments[1])}`;
+  }
+  if (!creatorPath) {
+    throw new YouTubeError(
+      'INVALID_URL',
+      'Use a video, playlist, handle or channel URL.',
+    );
+  }
+  return {
+    kind: 'creator',
+    id: creatorPath,
+    canonicalUrl: `https://www.youtube.com${creatorPath}/videos`,
+  };
+}
+
+export function youtubeCollectionLimit(): number {
+  const value = Number(
+    process.env.TUNARR_YOUTUBE_MAX_COLLECTION_ENTRIES ?? 1000,
+  );
+  if (!Number.isSafeInteger(value) || value < 1 || value > 10000) {
+    throw new YouTubeError(
+      'SAFETY_LIMIT',
+      'Configure TUNARR_YOUTUBE_MAX_COLLECTION_ENTRIES between 1 and 10000.',
+    );
+  }
+  return value;
+}
+
+export type YouTubeListing = {
+  kind: 'playlist' | 'creator_uploads';
+  id: string;
+  title: string;
+  entries: Array<{
+    videoId: string | null;
+    title: string;
+    unavailable: boolean;
+  }>;
+};
+const ListingSchema = z.object({
+  _type: z.literal('playlist'),
+  id: z.string().min(1).max(256),
+  title: z.string().min(1).max(1024),
+  channel_id: z.string().nullish(),
+  playlist_count: z.number().int().nonnegative().nullish(),
+  entries: z
+    .array(
+      z
+        .object({
+          id: z.string().nullish(),
+          title: z.string().max(1024).nullish(),
+          availability: z.string().max(64).nullish(),
+        })
+        .nullable(),
+    )
+    .max(10001),
+});
 
 /** No shell or raw diagnostics. Settlement waits for owned process closure. */
 export function runYouTubeProcess(
@@ -147,6 +293,7 @@ export function runYouTubeProcess(
     const chunks: Buffer[] = [];
     let bytes = 0;
     let diagnostic = '';
+    let incompleteEnumeration = false;
     let failure: YouTubeError | undefined;
     let escalation: ReturnType<typeof setTimeout> | undefined;
     let treeKill: Promise<void> | undefined;
@@ -234,6 +381,7 @@ export function runYouTubeProcess(
     const stderr = (chunk: Buffer) => {
       collect(chunk, false);
       diagnostic = (diagnostic + chunk.toString('utf8')).slice(-8192);
+      incompleteEnumeration ||= IncompleteEnumeration.test(diagnostic);
     };
     child.stdout.on('data', stdout);
     child.stderr.on('data', stderr);
@@ -303,6 +451,13 @@ export function runYouTubeProcess(
               ),
             );
           }
+        } else if (incompleteEnumeration) {
+          reject(
+            new YouTubeError(
+              'NETWORK',
+              'YouTube enumeration was incomplete. The previous collection snapshot was retained.',
+            ),
+          );
         } else {
           resolve(Buffer.concat(chunks).toString('utf8'));
         }
@@ -368,8 +523,9 @@ const MetadataSchema = z.object({
   duration: z
     .number()
     .finite()
-    .positive()
-    .max(Number.MAX_SAFE_INTEGER / 1000),
+    .nonnegative()
+    .max(Number.MAX_SAFE_INTEGER / 1000)
+    .nullish(),
   description: optionalText(65536),
   thumbnail: optionalText(4096),
   channel_id: optionalText(256),
@@ -390,7 +546,7 @@ const MetadataSchema = z.object({
   formats: z.array(FormatSchema).max(2048).optional(),
   http_headers: HeadersSchema.optional(),
 });
-type ExtractedVideo = z.infer<typeof MetadataSchema>;
+type ExtractedVideo = z.infer<typeof MetadataSchema> & { duration: number };
 type Format = z.infer<typeof FormatSchema>;
 
 function parseVideo(json: string, videoId: string): ExtractedVideo {
@@ -428,7 +584,13 @@ function parseVideo(json: string, videoId: string): ExtractedVideo {
       'Only accessible finite recorded videos without payment, login or DRM are supported.',
     );
   }
-  return video;
+  if (!video.duration) {
+    throw new YouTubeError(
+      'PENDING_METADATA',
+      'A finite positive duration is still missing. This entry cannot be scheduled.',
+    );
+  }
+  return { ...video, duration: video.duration };
 }
 
 function thumbnailUrl(raw: string | null | undefined): string | undefined {
@@ -564,6 +726,103 @@ export class YouTubeAdapter {
         uploadDate: video.upload_date ?? undefined,
         tags: [...(video.tags ?? [])],
         categories: video.categories ? [...video.categories] : undefined,
+      };
+    });
+  }
+
+  async listing(
+    input: Exclude<YouTubeInput, { kind: 'video' }>,
+    signal: AbortSignal,
+  ): Promise<YouTubeListing> {
+    return this.job(signal, 0, async (owner) => {
+      this.assertVersion(await this.version(owner));
+      const runtime = await this.runtime(owner);
+      const read = async (url: string, limit: number) => {
+        const json = await runYouTubeProcess(
+          this.executable(),
+          [
+            ...this.extractorArguments(runtime),
+            '--flat-playlist',
+            '--yes-playlist',
+            '--abort-on-error',
+            // The pinned extractor reports a repeated feed only at debug
+            // level, then returns success. Capture privately to reject it.
+            '--verbose',
+            '--playlist-end',
+            String(limit),
+            '--',
+            url,
+          ],
+          owner,
+          25_000,
+          MaxOutputBytes,
+        );
+        try {
+          return ListingSchema.parse(JSON.parse(json));
+        } catch {
+          throw new YouTubeError(
+            'INVALID_METADATA',
+            'YouTube returned invalid collection metadata.',
+          );
+        }
+      };
+      let channelId: string | undefined;
+      let playlistId = input.id;
+      if (input.kind === 'creator') {
+        const canonical = /^\/channel\/(UC[A-Za-z0-9_-]{22})$/.exec(input.id);
+        channelId =
+          canonical?.[1] ??
+          (await read(input.canonicalUrl, 1)).channel_id ??
+          undefined;
+        if (!channelId || !/^UC[A-Za-z0-9_-]{22}$/.test(channelId)) {
+          throw new YouTubeError(
+            'INVALID_METADATA',
+            'Could not resolve a canonical creator channel ID.',
+          );
+        }
+        // The UU playlist is all uploads, not only the creator videos tab.
+        playlistId = `UU${channelId.slice(2)}`;
+      }
+      const limit = youtubeCollectionLimit();
+      const listing = await read(
+        `https://www.youtube.com/playlist?list=${playlistId}`,
+        limit + 1,
+      );
+      if (listing.id !== playlistId) {
+        throw new YouTubeError(
+          'INVALID_METADATA',
+          'YouTube returned a different collection.',
+        );
+      }
+      if (
+        listing.entries.length > limit ||
+        (listing.playlist_count ?? 0) > limit
+      ) {
+        throw new YouTubeError(
+          'SAFETY_LIMIT',
+          `Collection exceeds the configured ${limit}-entry limit. No truncated snapshot was published.`,
+        );
+      }
+      if (
+        listing.playlist_count != null &&
+        listing.playlist_count !== listing.entries.length
+      ) {
+        throw new YouTubeError(
+          'NETWORK',
+          'YouTube did not enumerate the complete collection. The previous snapshot was retained.',
+        );
+      }
+      return {
+        kind: input.kind === 'creator' ? 'creator_uploads' : 'playlist',
+        id: channelId ?? playlistId,
+        title: listing.title,
+        entries: listing.entries.map((entry) => ({
+          videoId: entry?.id && VideoId.test(entry.id) ? entry.id : null,
+          title: entry?.title ?? 'Unidentified entry',
+          unavailable:
+            !!entry?.availability &&
+            !['public', 'unlisted'].includes(entry.availability),
+        })),
       };
     });
   }
@@ -813,6 +1072,31 @@ export class YouTubeAdapter {
     return executable;
   }
 
+  private extractorArguments(runtime: string): string[] {
+    return [
+      '--ignore-config',
+      '--no-plugin-dirs',
+      '--no-remote-components',
+      '--no-js-runtimes',
+      '--js-runtimes',
+      `node:${runtime}`,
+      '--no-cookies',
+      '--no-cookies-from-browser',
+      '--no-cache-dir',
+      '--proxy',
+      '',
+      '--skip-download',
+      '--dump-single-json',
+      '--no-progress',
+      '--retries',
+      '0',
+      '--extractor-retries',
+      '0',
+      '--socket-timeout',
+      '10',
+    ];
+  }
+
   private async extract(
     videoId: string,
     signal: AbortSignal,
@@ -822,28 +1106,8 @@ export class YouTubeAdapter {
     const json = await runYouTubeProcess(
       this.executable(),
       [
-        '--ignore-config',
-        '--no-plugin-dirs',
-        '--no-remote-components',
-        '--no-js-runtimes',
-        '--js-runtimes',
-        `node:${runtime}`,
-        // --ignore-config plus no --netrc keeps netrc authentication disabled.
-        '--no-cookies',
-        '--no-cookies-from-browser',
-        '--no-cache-dir',
-        '--proxy',
-        '',
+        ...this.extractorArguments(runtime),
         '--no-playlist',
-        '--skip-download',
-        '--dump-single-json',
-        '--no-progress',
-        '--retries',
-        '0',
-        '--extractor-retries',
-        '0',
-        '--socket-timeout',
-        '10',
         '--',
         `https://www.youtube.com/watch?v=${videoId}`,
       ],

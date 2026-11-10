@@ -23,7 +23,7 @@ test('YouTube migration preserves all legacy rows, ratings and media versions', 
       (await connection.pendingDatabaseMigrations()).map(
         (migration) => migration.name,
       ),
-    ).toEqual(['migration1794315861']);
+    ).toEqual(['migration1794315861', 'migration1794347877']);
     const sqlite = connection.sqlite;
     const snapshot = JSON.stringify({
       version: 1,
@@ -185,6 +185,28 @@ test('YouTube migration preserves all legacy rows, ratings and media versions', 
         table.name,
       ).toEqual(table.rows);
     expect(migrated.sqlite.pragma('foreign_key_check')).toEqual([]);
+    expect(
+      migrated.sqlite
+        .prepare(
+          'SELECT count(*) AS total, count(DISTINCT uuid) AS identities FROM external_collection_programs WHERE position IS NULL AND status = ?',
+        )
+        .get('available'),
+    ).toEqual({ total: 8, identities: 8 });
+    const member = migrated.sqlite
+      .prepare(
+        'SELECT collection_id,program_id FROM external_collection_programs WHERE program_id IS NOT NULL LIMIT 1',
+      )
+      .get() as { collection_id: string; program_id: string } | undefined;
+    if (!member) {
+      throw new Error('Legacy programme membership missing');
+    }
+    expect(() =>
+      migrated.sqlite
+        .prepare(
+          'INSERT INTO external_collection_programs (collection_id,program_id) VALUES (?,?)',
+        )
+        .run(member.collection_id, member.program_id),
+    ).toThrow(/UNIQUE/);
     expect(
       migrated.sqlite.prepare('SELECT youtube_metadata FROM program').all(),
     ).toEqual(

@@ -10062,6 +10062,189 @@ export type PutApiMediaSourcesByIdResponses = {
     200: unknown;
 };
 
+export type GetYouTubeCollectionsData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/media-sources/{id}/youtube/collections';
+};
+
+export type GetYouTubeCollectionsErrors = {
+    /**
+     * Default Response
+     */
+    400: string;
+};
+
+export type GetYouTubeCollectionsError = GetYouTubeCollectionsErrors[keyof GetYouTubeCollectionsErrors];
+
+export type GetYouTubeCollectionsResponses = {
+    /**
+     * Default Response
+     */
+    200: Array<{
+        id: string;
+        sourceId: string;
+        title: string;
+        kind: 'saved_videos' | 'playlist' | 'creator_uploads';
+        externalKey: string;
+        revision: string;
+        lastSuccessfulRefreshAt: number | null;
+        lastRefreshError: string | null;
+    }>;
+};
+
+export type GetYouTubeCollectionsResponse = GetYouTubeCollectionsResponses[keyof GetYouTubeCollectionsResponses];
+
+export type GetYouTubeCollectionEntriesData = {
+    body?: never;
+    path: {
+        id: string;
+        collectionId: string;
+    };
+    query?: {
+        offset?: number;
+        limit?: number;
+        order?: 'newest' | 'oldest';
+        revision?: string;
+    };
+    url: '/api/media-sources/{id}/youtube/collections/{collectionId}/entries';
+};
+
+export type GetYouTubeCollectionEntriesErrors = {
+    /**
+     * Default Response
+     */
+    400: string;
+    /**
+     * Default Response
+     */
+    409: string;
+};
+
+export type GetYouTubeCollectionEntriesError = GetYouTubeCollectionEntriesErrors[keyof GetYouTubeCollectionEntriesErrors];
+
+export type GetYouTubeCollectionEntriesResponses = {
+    /**
+     * Default Response
+     */
+    200: {
+        sourceId: string;
+        libraryId: string;
+        collection: {
+            id: string;
+            sourceId: string;
+            title: string;
+            kind: 'saved_videos' | 'playlist' | 'creator_uploads';
+            externalKey: string;
+            revision: string;
+            lastSuccessfulRefreshAt: number | null;
+            lastRefreshError: string | null;
+        };
+        entries: Array<{
+            id: string;
+            position: number;
+            videoId: string | null;
+            status: 'available' | 'pending' | 'unavailable';
+            message: string | null;
+            program: {
+                type: 'content';
+                duration: number;
+                icon?: string;
+                id: string;
+                startOffsetMs?: number;
+                program: TerminalProgram;
+            } | null;
+        }>;
+        total: number;
+    };
+};
+
+export type GetYouTubeCollectionEntriesResponse = GetYouTubeCollectionEntriesResponses[keyof GetYouTubeCollectionEntriesResponses];
+
+export type ImportYouTubeLinksData = {
+    body: {
+        inputs: Array<{
+            url: string;
+            intent?: 'video' | 'playlist';
+            order?: 'newest' | 'oldest';
+        }>;
+        refresh?: boolean;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/media-sources/{id}/youtube/imports';
+};
+
+export type ImportYouTubeLinksErrors = {
+    /**
+     * Default Response
+     */
+    400: string;
+    /**
+     * Default Response
+     */
+    409: string;
+    /**
+     * Default Response
+     */
+    503: string;
+};
+
+export type ImportYouTubeLinksError = ImportYouTubeLinksErrors[keyof ImportYouTubeLinksErrors];
+
+export type ImportYouTubeLinksResponses = {
+    /**
+     * Default Response
+     */
+    200: {
+        sourceId: string;
+        libraryId: string;
+        imports: Array<{
+            inputIndex: number;
+            kind: 'video' | 'playlist' | 'creator';
+            status: 'complete' | 'failed' | 'duplicate';
+            title: string;
+            message: string | null;
+            collection: {
+                id: string;
+                sourceId: string;
+                title: string;
+                kind: 'saved_videos' | 'playlist' | 'creator_uploads';
+                externalKey: string;
+                revision: string;
+                lastSuccessfulRefreshAt: number | null;
+                lastRefreshError: string | null;
+            } | null;
+            changes?: {
+                added: number;
+                removed: number;
+            };
+            entries: Array<{
+                id: string;
+                position: number;
+                videoId: string | null;
+                status: 'available' | 'pending' | 'unavailable';
+                message: string | null;
+                program: {
+                    type: 'content';
+                    duration: number;
+                    icon?: string;
+                    id: string;
+                    startOffsetMs?: number;
+                    program: TerminalProgram;
+                } | null;
+            }>;
+        }>;
+    };
+};
+
+export type ImportYouTubeLinksResponse = ImportYouTubeLinksResponses[keyof ImportYouTubeLinksResponses];
+
 export type GetYouTubeHealthData = {
     body?: never;
     path?: never;

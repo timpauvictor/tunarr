@@ -215,6 +215,9 @@ export abstract class ExternalCollectionScanner<
           sourceType: this.sourceType,
           title: collection.title,
           kind: null,
+          snapshotId: null,
+          lastSuccessfulRefreshAt: null,
+          lastRefreshError: null,
         };
 
         await this.externalCollectionsRepo.insertCollection(existingCollection);

@@ -512,6 +512,10 @@ describe('Plex ratings-only refresh', () => {
           Promise.reject(
             new Error('Unexpected YouTube import in a ratings fixture'),
           ),
+        importLinks: () =>
+          Promise.reject(
+            new Error('Unexpected YouTube links import in a ratings fixture'),
+          ),
         refresh: () =>
           Promise.reject(
             new Error('Unexpected YouTube refresh in a ratings fixture'),

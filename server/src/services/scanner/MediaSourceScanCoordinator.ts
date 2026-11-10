@@ -2,6 +2,8 @@ import type { MediaSourceId } from '@tunarr/shared';
 import type {
   PlexRatingsRefreshStatus,
   YouTubeImportResponse,
+  YouTubeLinkInput,
+  YouTubeLinksImportResponse,
 } from '@tunarr/types/schemas';
 import { YouTubeImportService } from '../YouTubeImportService.ts';
 import type { MediaSourceLibrary } from '../../db/schema/MediaSourceLibrary.ts';
@@ -53,7 +55,7 @@ export class MediaSourceScanCoordinator {
     @inject(YouTubeImportService)
     private youtubeImports: Pick<
       YouTubeImportService,
-      'importVideo' | 'refresh'
+      'importVideo' | 'importLinks' | 'refresh'
     >,
   ) {}
 
@@ -282,6 +284,40 @@ export class MediaSourceScanCoordinator {
       library,
       signal,
       (owner) => this.youtubeImports.importVideo(library, videoId, owner),
+    );
+    return operation.finished;
+  }
+
+  async importYouTubeLinks(
+    sourceId: string,
+    inputs: readonly YouTubeLinkInput[],
+    signal: AbortSignal,
+    refresh = false,
+  ): Promise<YouTubeLinksImportResponse> {
+    const source = await this.mediaSourceDB.getById(sourceId as MediaSourceId);
+    const library = source?.libraries.find(
+      (library) => library.externalKey === 'saved-videos',
+    );
+    if (
+      !source ||
+      source.type !== 'youtube' ||
+      !library ||
+      !library.enabled ||
+      library.unavailableSince
+    ) {
+      throw new Error('YouTube source or Saved Videos library is unavailable.');
+    }
+    const operation = await this.queueYouTubeOperation(
+      library,
+      signal,
+      (owner) =>
+        this.youtubeImports.importLinks(
+          library,
+          inputs,
+          owner,
+          (percent) => this.progressService.scanProgress(library.uuid, percent),
+          refresh,
+        ),
     );
     return operation.finished;
   }

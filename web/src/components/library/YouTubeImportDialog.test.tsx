@@ -1,4 +1,9 @@
 import type { ContentProgram, MediaSourceSettings } from '@tunarr/types';
+import type {
+  YouTubeCollection,
+  YouTubeCollectionEntry,
+  YouTubeLinksImportResponse,
+} from '@tunarr/types/schemas';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { ProgrammingSelectionContextType } from '../../context/ProgrammingSelectionContext.ts';
 import type * as Sdk from '../../generated/sdk.gen.ts';
@@ -14,18 +19,20 @@ import type { AddedMedia } from '../../types/index.ts';
 import { YouTubeImportDialog } from './YouTubeImportDialog.tsx';
 
 const boundary = vi.hoisted(() => ({
-  importVideo: vi.fn(),
+  importLinks: vi.fn(),
+  collections: vi.fn(),
+  page: vi.fn(),
   pathname: '/channels/channel-1/programming/add',
 }));
-
 vi.mock('@tanstack/react-router', () => ({
   useLocation: () => ({ pathname: boundary.pathname }),
 }));
 vi.mock('../../generated/sdk.gen.ts', async (importOriginal) => ({
   ...(await importOriginal<typeof Sdk>()),
-  importYouTubeVideo: boundary.importVideo,
+  importYouTubeLinks: boundary.importLinks,
+  getYouTubeCollections: boundary.collections,
+  getYouTubeCollectionEntries: boundary.page,
 }));
-
 const source = {
   id: 'youtube-1',
   name: 'YouTube',
@@ -33,7 +40,6 @@ const source = {
   libraries: [],
   pathReplacements: [],
 } satisfies Extract<MediaSourceSettings, { type: 'youtube' }>;
-
 const video = makeContentProgram(
   {
     ...makeMovie(),
@@ -51,11 +57,53 @@ const video = makeContentProgram(
   },
   125000,
 );
-
-function response(program: ContentProgram = video) {
-  return { data: { sourceId: source.id, libraryId: 'saved-videos', program } };
+const collection: YouTubeCollection = {
+  id: 'collection-1',
+  sourceId: source.id,
+  title: 'Ordered playlist',
+  kind: 'playlist',
+  externalKey: 'playlist:PLfixture',
+  revision: 'snapshot-1',
+  lastSuccessfulRefreshAt: 1794256505000,
+  lastRefreshError: null,
+};
+const url = 'https://www.youtube.com/watch?v=abcdefghijk';
+const label = 'YouTube URLs (one per line)';
+function entry(
+  id: string,
+  program: ContentProgram | null = video,
+  position = 0,
+): YouTubeCollectionEntry {
+  return {
+    id,
+    position,
+    videoId: 'abcdefghijk',
+    status: program ? 'available' : 'pending',
+    message: program ? null : 'Duration is still missing.',
+    program,
+  };
 }
-
+function response(
+  entries = [entry('saved-one')],
+  kind: 'video' | 'playlist' = 'video',
+) {
+  const data: YouTubeLinksImportResponse = {
+    sourceId: source.id,
+    libraryId: 'saved-videos',
+    imports: [
+      {
+        inputIndex: 0,
+        kind,
+        title: kind === 'video' ? 'Video import' : collection.title,
+        status: 'complete',
+        message: null,
+        collection: kind === 'video' ? null : collection,
+        entries,
+      },
+    ],
+  };
+  return { data };
+}
 function deferred() {
   let settle: (value: ReturnType<typeof response>) => void = () => {
     throw new Error('Deferred promise was not initialized');
@@ -68,7 +116,6 @@ function deferred() {
     resolve: (value: ReturnType<typeof response>) => settle(value),
   };
 }
-
 function programmingTarget() {
   return {
     entityType: 'channel',
@@ -80,21 +127,21 @@ function programmingTarget() {
   >;
 }
 
-const url = 'https://www.youtube.com/watch?v=abcdefghijk';
-
-describe('YouTubeImportDialog SDK boundary', () => {
+describe('shared YouTube import and collection SDK boundary', () => {
   beforeEach(() => {
-    boundary.importVideo.mockReset();
+    boundary.importLinks.mockReset();
+    boundary.collections.mockReset().mockResolvedValue({ data: [] });
+    boundary.page.mockReset();
     boundary.pathname = '/channels/channel-1/programming/add';
   });
 
   test('reviews metadata, requires explicit Add, preserves a mixed draft and blocks duplicate Add after reimport', async () => {
-    boundary.importVideo.mockResolvedValue(response());
+    boundary.importLinks.mockResolvedValue(response());
     const draft: AddedMedia[] = [
       { type: Imported, media: makeContentProgram(makeMovie(), 60000) },
     ];
-    const existing = draft[0];
-    const target = programmingTarget();
+    const existing = draft[0],
+      target = programmingTarget();
     target.onAddSelectedMedia.mockImplementation((items: AddedMedia[]) =>
       draft.push(...items),
     );
@@ -106,7 +153,7 @@ describe('YouTubeImportDialog SDK boundary', () => {
         programming={target}
       />,
     );
-    await user.type(screen.getByLabelText('YouTube video URL'), url);
+    await user.type(screen.getByLabelText(label), url);
     await user.click(screen.getByRole('button', { name: 'Import' }));
     expect(await screen.findByText('A finite video')).toBeInTheDocument();
     expect(screen.getByText('Example creator')).toBeInTheDocument();
@@ -126,9 +173,8 @@ describe('YouTubeImportDialog SDK boundary', () => {
     expect(
       screen.getByRole('button', { name: 'Add to programming' }),
     ).toBeDisabled();
-
-    await user.clear(screen.getByLabelText('YouTube video URL'));
-    await user.type(screen.getByLabelText('YouTube video URL'), url);
+    await user.clear(screen.getByLabelText(label));
+    await user.type(screen.getByLabelText(label), url);
     await user.click(screen.getByRole('button', { name: 'Import' }));
     await screen.findByText('A finite video');
     expect(
@@ -137,13 +183,13 @@ describe('YouTubeImportDialog SDK boundary', () => {
     expect(target.onAddSelectedMedia).toHaveBeenCalledOnce();
   });
 
-  test('cancels the exact signal, retains input and ignores an old completion while retry is pending', async () => {
-    const old = deferred();
-    const retry = deferred();
-    boundary.importVideo
+  test('cancels the exact signal, retains inputs and ignores an old completion while retry is pending', async () => {
+    const old = deferred(),
+      retry = deferred(),
+      target = programmingTarget();
+    boundary.importLinks
       .mockReturnValueOnce(old.promise)
       .mockReturnValueOnce(retry.promise);
-    const target = programmingTarget();
     const { user } = renderWithProviders(
       <YouTubeImportDialog
         open
@@ -152,20 +198,20 @@ describe('YouTubeImportDialog SDK boundary', () => {
         programming={target}
       />,
     );
-    await user.type(screen.getByLabelText('YouTube video URL'), url);
+    await user.type(screen.getByLabelText(label), url);
     await user.click(screen.getByRole('button', { name: 'Import' }));
-    const signal: AbortSignal = boundary.importVideo.mock.calls[0][0].signal;
+    const signal: AbortSignal = boundary.importLinks.mock.calls[0][0].signal;
     expect(signal.aborted).toBe(false);
     await user.click(screen.getByRole('button', { name: 'Cancel import' }));
     expect(signal.aborted).toBe(true);
-    expect(screen.getByLabelText('YouTube video URL')).toHaveValue(url);
+    expect(screen.getByLabelText(label)).toHaveValue(url);
     await user.click(screen.getByRole('button', { name: 'Retry' }));
     await act(async () => {
       old.resolve(response());
     });
     expect(screen.queryByText('A finite video')).not.toBeInTheDocument();
     expect(
-      screen.getByLabelText('Importing video metadata'),
+      screen.getByLabelText('Importing YouTube metadata'),
     ).toBeInTheDocument();
     expect(target.onAddSelectedMedia).not.toHaveBeenCalled();
     await act(async () => {
@@ -182,17 +228,17 @@ describe('YouTubeImportDialog SDK boundary', () => {
   test.each(['close', 'navigation', 'source', 'entity'] as const)(
     'invalidates pending review after %s and never appends a late response',
     async (change) => {
-      const pending = deferred();
-      boundary.importVideo.mockReturnValue(pending.promise);
-      const target = programmingTarget();
-      const onClose = vi.fn();
+      const pending = deferred(),
+        target = programmingTarget(),
+        onClose = vi.fn();
+      boundary.importLinks.mockReturnValue(pending.promise);
       const props = { open: true, source, onClose, programming: target };
       const { user, rerender } = renderWithProviders(
         <YouTubeImportDialog {...props} />,
       );
-      await user.type(screen.getByLabelText('YouTube video URL'), url);
+      await user.type(screen.getByLabelText(label), url);
       await user.click(screen.getByRole('button', { name: 'Import' }));
-      const signal: AbortSignal = boundary.importVideo.mock.calls[0][0].signal;
+      const signal: AbortSignal = boundary.importLinks.mock.calls[0][0].signal;
       if (change === 'close') {
         await user.click(screen.getByRole('button', { name: 'Close' }));
         expect(onClose).toHaveBeenCalledOnce();
@@ -224,34 +270,38 @@ describe('YouTubeImportDialog SDK boundary', () => {
       expect(target.onAddMediaSuccess).not.toHaveBeenCalled();
       if (change === 'close') {
         rerender(<YouTubeImportDialog {...props} />);
-        expect(screen.getByLabelText('YouTube video URL')).toHaveValue(url);
+        expect(screen.getByLabelText(label)).toHaveValue(url);
       }
     },
   );
 
-  test('requires mixed-link confirmation and keeps URL and intent on failed catalogue-only retry', async () => {
-    boundary.importVideo
+  test('requires explicit mixed-link intent and retains it on failed catalogue-only retry', async () => {
+    boundary.importLinks
       .mockRejectedValueOnce(new Error('unavailable'))
       .mockResolvedValueOnce(response());
     const { user } = renderWithProviders(
       <YouTubeImportDialog open source={source} onClose={vi.fn()} />,
     );
-    const mixedUrl = `${url}&list=PL-example`;
-    await user.type(screen.getByLabelText('YouTube video URL'), mixedUrl);
+    const mixedUrl = `${url}&list=PLfixture`;
+    await user.type(screen.getByLabelText(label), mixedUrl);
     expect(screen.getByRole('button', { name: 'Import' })).toBeDisabled();
-    expect(boundary.importVideo).not.toHaveBeenCalled();
+    expect(boundary.importLinks).not.toHaveBeenCalled();
     await user.click(
-      screen.getByRole('checkbox', { name: 'Import only this video' }),
+      screen.getByRole('combobox', { name: /Choose video or playlist/ }),
     );
+    await user.click(screen.getByRole('option', { name: 'Only this video' }));
     await user.click(screen.getByRole('button', { name: 'Import' }));
     await screen.findByRole('button', { name: 'Retry' });
-    expect(screen.getByLabelText('YouTube video URL')).toHaveValue(mixedUrl);
+    expect(screen.getByLabelText(label)).toHaveValue(mixedUrl);
     await user.click(screen.getByRole('button', { name: 'Retry' }));
     expect(await screen.findByText('A finite video')).toBeInTheDocument();
-    expect(boundary.importVideo).toHaveBeenCalledTimes(2);
-    expect(boundary.importVideo.mock.calls[1][0]).toMatchObject({
+    expect(boundary.importLinks).toHaveBeenCalledTimes(2);
+    expect(boundary.importLinks.mock.calls[1][0]).toMatchObject({
       path: { id: source.id },
-      body: { url: mixedUrl, intent: 'video' },
+      body: {
+        inputs: [{ url: mixedUrl, intent: 'video', order: 'newest' }],
+        refresh: false,
+      },
       throwOnError: true,
     });
     expect(
@@ -262,5 +312,194 @@ describe('YouTubeImportDialog SDK boundary', () => {
         'Imported into the library. Playback has not been verified.',
       ),
     ).toBeInTheDocument();
+  });
+
+  test('adds repeated occurrences in input order only after explicit partial-set confirmation', async () => {
+    const repeated = [
+      entry('a-first'),
+      entry('a-second', video, 1),
+      entry('pending', null, 2),
+    ];
+    boundary.importLinks.mockResolvedValue(response(repeated, 'playlist'));
+    const target = programmingTarget(),
+      { user } = renderWithProviders(
+        <YouTubeImportDialog
+          open
+          source={source}
+          onClose={vi.fn()}
+          programming={target}
+        />,
+      );
+    await user.type(
+      screen.getByLabelText(label),
+      'https://www.youtube.com/playlist?list=PLfixture\nhttps://www.youtube.com/@Example',
+    );
+    await user.click(screen.getByRole('button', { name: 'Import' }));
+    await screen.findByText(collection.title);
+    expect(
+      screen.getByText('Eligible: 2; pending: 1; unavailable: 0'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Add to programming' }),
+    ).toBeDisabled();
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: 'I understand that excluded entries will not be added',
+      }),
+    );
+    await user.click(
+      screen.getByRole('button', { name: 'Add to programming' }),
+    );
+    expect(target.onAddSelectedMedia).toHaveBeenCalledExactlyOnceWith([
+      { type: Imported, media: video },
+      { type: Imported, media: video },
+    ]);
+    expect(
+      boundary.importLinks.mock.calls[0][0].body.inputs.map(
+        (input: { url: string }) => input.url,
+      ),
+    ).toEqual([
+      'https://www.youtube.com/playlist?list=PLfixture',
+      'https://www.youtube.com/@Example',
+    ]);
+  });
+
+  test('selection survives pagination and grid/list changes without collapsing repeated programme IDs', async () => {
+    const repeated = Array.from({ length: 51 }, (_, index) =>
+      entry(`occurrence-${index}`, video, index),
+    );
+    boundary.importLinks.mockResolvedValue(response(repeated, 'playlist'));
+    const target = programmingTarget(),
+      { user } = renderWithProviders(
+        <YouTubeImportDialog
+          open
+          source={source}
+          onClose={vi.fn()}
+          programming={target}
+        />,
+      );
+    await user.type(
+      screen.getByLabelText(label),
+      'https://www.youtube.com/playlist?list=PLfixture',
+    );
+    await user.click(screen.getByRole('button', { name: 'Import' }));
+    await screen.findByText(collection.title);
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: 'Select occurrence 1',
+      }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Go to page 2' }));
+    expect(
+      screen.getByRole('checkbox', { name: 'Select occurrence 51' }),
+    ).toBeChecked();
+    await user.click(
+      screen.getByRole('checkbox', { name: 'Select occurrence 51' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Grid' }));
+    await user.click(screen.getByRole('button', { name: 'Go to page 1' }));
+    expect(
+      screen.getByRole('checkbox', {
+        name: 'Select occurrence 1',
+      }),
+    ).not.toBeChecked();
+    await user.click(
+      screen.getByRole('button', { name: 'Add to programming' }),
+    );
+    const added: AddedMedia[] = target.onAddSelectedMedia.mock.calls[0][0];
+    expect(added).toHaveLength(49);
+    expect(added).toEqual(
+      Array.from({ length: 49 }, () => ({ type: Imported, media: video })),
+    );
+  }, 15000);
+
+  test('loads all collection pages with the captured revision and explicit creator order, without metadata import', async () => {
+    const creator = {
+        ...collection,
+        kind: 'creator_uploads' as const,
+        externalKey: 'creator:UCSMOQeBJ2RAnuFungnQOxLg',
+        title: 'Creator uploads',
+      },
+      repeated = Array.from({ length: 101 }, (_, index) =>
+        entry(`creator-${index}`, video, index),
+      );
+    boundary.collections.mockResolvedValue({ data: [creator] });
+    boundary.page.mockImplementation(
+      ({ query }: { query: { offset: number } }) =>
+        Promise.resolve({
+          data: {
+            sourceId: source.id,
+            libraryId: 'saved-videos',
+            collection: creator,
+            total: 101,
+            entries: repeated.slice(query.offset, query.offset + 100),
+          },
+        }),
+    );
+    const target = programmingTarget(),
+      { user } = renderWithProviders(
+        <YouTubeImportDialog
+          open
+          source={source}
+          onClose={vi.fn()}
+          programming={target}
+        />,
+      );
+    await user.click(screen.getByRole('tab', { name: 'Saved collections' }));
+    await screen.findByRole('button', { name: 'Load collection' });
+    await user.click(
+      screen.getByRole('combobox', { name: /^Creator upload order/ }),
+    );
+    await user.click(screen.getByRole('option', { name: 'Oldest first' }));
+    await user.click(screen.getByRole('button', { name: 'Load collection' }));
+    await screen.findByText('Eligible: 101; pending: 0; unavailable: 0');
+    expect(boundary.page).toHaveBeenCalledTimes(2);
+    expect(boundary.page.mock.calls[1][0]).toMatchObject({
+      query: {
+        offset: 100,
+        limit: 100,
+        order: 'oldest',
+        revision: collection.revision,
+      },
+    });
+    expect(boundary.importLinks).not.toHaveBeenCalled();
+    expect(target.onAddSelectedMedia).not.toHaveBeenCalled();
+    await user.click(
+      screen.getByRole('button', { name: 'Add to programming' }),
+    );
+    expect(target.onAddSelectedMedia.mock.calls[0][0]).toHaveLength(101);
+  }, 15000);
+
+  test('an incomplete collection page sequence cannot become an eligible Add result', async () => {
+    boundary.collections.mockResolvedValue({ data: [collection] });
+    boundary.page
+      .mockResolvedValueOnce({
+        data: {
+          sourceId: source.id,
+          libraryId: 'saved-videos',
+          collection,
+          total: 2,
+          entries: [entry('one')],
+        },
+      })
+      .mockRejectedValueOnce(new Error('Collection changed while paging'));
+    const target = programmingTarget(),
+      { user } = renderWithProviders(
+        <YouTubeImportDialog
+          open
+          source={source}
+          onClose={vi.fn()}
+          programming={target}
+        />,
+      );
+    await user.click(screen.getByRole('tab', { name: 'Saved collections' }));
+    await screen.findByRole('button', { name: 'Load collection' });
+    await user.click(screen.getByRole('button', { name: 'Load collection' }));
+    await screen.findByText(/Could not finish\. Check the links/);
+    await waitFor(() => expect(boundary.page).toHaveBeenCalledTimes(2));
+    expect(
+      screen.getByRole('button', { name: 'Add to programming' }),
+    ).toBeDisabled();
+    expect(target.onAddSelectedMedia).not.toHaveBeenCalled();
   });
 });

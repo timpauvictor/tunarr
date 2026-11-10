@@ -4,6 +4,7 @@ import { PassThrough } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   normalizeYouTubeVideoUrl,
+  normalizeYouTubeUrl,
   runYouTubeProcess,
   YouTubeAdapter,
 } from './YouTubeAdapter.ts';
@@ -125,6 +126,7 @@ describe('YouTube URL admission', () => {
     CanonicalUrl,
     `https://youtu.be/${VideoId}?t=2`,
     `https://www.youtube.com/shorts/${VideoId}`,
+    `https://www.youtube.com/embed/${VideoId}`,
     `https://m.youtube.com/watch?v=${VideoId}&t=2`,
   ])('normalizes one finite-video identity: %s', (url) => {
     expect(normalizeYouTubeVideoUrl(url)).toEqual({
@@ -143,7 +145,7 @@ describe('YouTube URL admission', () => {
     'https://www.youtube.com/watch?v=bad',
     'https://www.youtube.com/watch?v=aqz-KE-bpKQ&v=aqz-KE-bpKQ',
     'https://youtu.be/aqz-KE-bpKQ/extra',
-    'https://www.youtube.com/embed/aqz-KE-bpKQ',
+    'https://www.youtube.com/embed/bad',
   ])('rejects unsupported or malformed input: %s', (url) => {
     expect(() => normalizeYouTubeVideoUrl(url)).toThrow();
   });
@@ -215,9 +217,7 @@ describe('YouTube extraction boundary', () => {
   });
 
   test.each([
-    { duration: 0 },
     { duration: -1 },
-    { duration: null },
     { duration: '12' },
     { id: 'wrongwrongxx' },
     { title: 'x'.repeat(1025) },
@@ -230,6 +230,16 @@ describe('YouTube extraction boundary', () => {
       await expect(
         new YouTubeAdapter().metadata(VideoId, new AbortController().signal),
       ).rejects.toMatchObject({ code: 'INVALID_METADATA' });
+    },
+  );
+
+  test.each([0, null, undefined])(
+    'reports missing scheduling duration as pending, never zero: %s',
+    async (duration) => {
+      subprocesses((child) => child.output(video({ duration })));
+      await expect(
+        new YouTubeAdapter().metadata(VideoId, new AbortController().signal),
+      ).rejects.toMatchObject({ code: 'PENDING_METADATA' });
     },
   );
 
@@ -609,4 +619,162 @@ describe('owned subprocess lifecycle', () => {
     // Four jobs, each with one pin check, runtime check and extraction.
     expect(children).toHaveLength(12);
   });
+});
+
+describe('YouTube collection admission and complete enumeration', () => {
+  function input(url = 'https://www.youtube.com/playlist?list=PLfixture') {
+    const normalized = normalizeYouTubeUrl(url);
+    if (normalized.kind === 'video') {
+      throw new Error('Expected a collection');
+    }
+    return normalized;
+  }
+  const listing = (entries: unknown[], extra = {}) => ({
+    _type: 'playlist',
+    id: 'PLfixture',
+    title: 'Ordered playlist',
+    entries,
+    playlist_count: entries.length,
+    ...extra,
+  });
+
+  test('normalizes kinds and requires explicit intent for ambiguous watch links', () => {
+    expect(normalizeYouTubeUrl(CanonicalUrl)).toMatchObject({
+      kind: 'video',
+      id: VideoId,
+    });
+    expect(
+      input('https://www.youtube.com/@BlenderOfficial/shorts'),
+    ).toMatchObject({
+      kind: 'creator',
+      id: '/@BlenderOfficial',
+      canonicalUrl: 'https://www.youtube.com/@BlenderOfficial/videos',
+    });
+    const mixed = CanonicalUrl + '&list=PLfixture';
+    expect(() => normalizeYouTubeUrl(mixed)).toThrow(
+      'Choose video or playlist',
+    );
+    expect(normalizeYouTubeUrl(mixed, 'video')).toMatchObject({
+      kind: 'video',
+      id: VideoId,
+    });
+    expect(normalizeYouTubeUrl(mixed, 'playlist')).toEqual(input());
+    for (const url of [
+      'https://youtube.com/playlist?list=../bad',
+      'https://youtube.com/@abc/../../evil',
+      'https://youtube.com/channel/invalid',
+      'https://youtube.com/@abc%2Fevil',
+      'https://youtube.com/playlist?list=PLone&list=PLtwo',
+      'https://youtube.com.evil.test/@valid',
+    ]) {
+      expect(() => normalizeYouTubeUrl(url), url).toThrow();
+    }
+  });
+
+  test('keeps order, repeats and inaccessible positions without resolving media', async () => {
+    subprocesses((child) =>
+      child.output(
+        listing([
+          { id: VideoId },
+          null,
+          { id: VideoId },
+          { id: 'abcdefghijk', availability: 'private' },
+        ]),
+      ),
+    );
+    const result = await new YouTubeAdapter().listing(
+      input(),
+      new AbortController().signal,
+    );
+    expect(result.entries).toEqual([
+      { videoId: VideoId, title: 'Unidentified entry', unavailable: false },
+      { videoId: null, title: 'Unidentified entry', unavailable: false },
+      { videoId: VideoId, title: 'Unidentified entry', unavailable: false },
+      {
+        videoId: 'abcdefghijk',
+        title: 'Unidentified entry',
+        unavailable: true,
+      },
+    ]);
+    const argv = vi
+      .mocked(spawn)
+      .mock.calls.find(
+        (call) => Array.isArray(call[1]) && call[1].includes('--flat-playlist'),
+      )?.[1];
+    expect(argv).toEqual(
+      expect.arrayContaining([
+        '--skip-download',
+        '--flat-playlist',
+        '--abort-on-error',
+        '--verbose',
+        '--playlist-end',
+        '1001',
+      ]),
+    );
+    expect(JSON.stringify(result)).not.toContain('googlevideo');
+  });
+
+  test('resolves a handle to the canonical all-uploads playlist rather than importing only the videos tab', async () => {
+    const channel = 'UCSMOQeBJ2RAnuFungnQOxLg';
+    const uploads = 'UU' + channel.slice(2);
+    const urls: string[] = [];
+    subprocesses((child, args) => {
+      const url = args.at(-1) ?? '';
+      urls.push(url);
+      child.output(
+        listing([{ id: VideoId }], {
+          id: url.includes('/@') ? channel : uploads,
+          channel_id: channel,
+          playlist_count: url.includes('/@') ? 500 : 1,
+        }),
+      );
+    });
+    const result = await new YouTubeAdapter().listing(
+      input('https://www.youtube.com/@BlenderOfficial'),
+      new AbortController().signal,
+    );
+    expect(result).toMatchObject({ kind: 'creator_uploads', id: channel });
+    expect(urls).toEqual([
+      'https://www.youtube.com/@BlenderOfficial/videos',
+      `https://www.youtube.com/playlist?list=${uploads}`,
+    ]);
+  });
+
+  test.each(['limit', 'incomplete', 'wrong-identity', 'continuation'] as const)(
+    'fails closed on %s rather than publishing a truncated list',
+    async (fault) => {
+      if (fault === 'limit') {
+        vi.stubEnv('TUNARR_YOUTUBE_MAX_COLLECTION_ENTRIES', '2');
+      }
+      subprocesses((child) => {
+        if (fault === 'continuation') {
+          // Exact pinned yt-dlp debug message, split across chunks, followed
+          // by enough diagnostics to evict it from the retained tail.
+          child.stderr.write('[debug] Detected YouTube feed loop');
+          child.stderr.write('ing - assuming end of feed.\n');
+          child.stderr.write('x'.repeat(9000));
+        }
+        child.output(
+          listing(
+            [{ id: VideoId }, { id: VideoId }, { id: VideoId }],
+            fault === 'incomplete'
+              ? { playlist_count: 4 }
+              : fault === 'wrong-identity'
+                ? { id: 'PLwrong' }
+                : {},
+          ),
+        );
+      });
+      await expect(
+        new YouTubeAdapter().listing(input(), new AbortController().signal),
+      ).rejects.toMatchObject({
+        code:
+          fault === 'limit'
+            ? 'SAFETY_LIMIT'
+            : fault === 'wrong-identity'
+              ? 'INVALID_METADATA'
+              : 'NETWORK',
+      });
+    },
+  );
 });

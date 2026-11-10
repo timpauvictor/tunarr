@@ -269,6 +269,11 @@ export class DirectMigrationProvider implements MigrationProvider {
           './sql/0057_youtube_source.sql',
           true,
         ),
+        // Membership has no dependent tables; its normal rebuild preserves
+        // rows directly. A copy restore would duplicate nullable legacy joins.
+        migration1794347877: makeMigrationFromSqlFile(
+          './sql/0058_youtube_collection_occurrences.sql',
+        ),
       } satisfies Record<string, TunarrDatabaseMigration>,
       wrapWithTransaction,
     );

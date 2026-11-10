@@ -1,11 +1,13 @@
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
 import {
   index,
-  primaryKey,
+  integer,
   sqliteTable,
   text,
   unique,
+  uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
 import type { MediaSourceId } from './base.ts';
 import { MediaSourceTypes } from './base.ts';
@@ -29,6 +31,9 @@ export const ExternalCollection = sqliteTable(
     sourceType: text({ enum: MediaSourceTypes }).notNull(),
     title: text().notNull(),
     kind: text({ enum: ['saved_videos', 'playlist', 'creator_uploads'] }),
+    snapshotId: text(),
+    lastSuccessfulRefreshAt: integer({ mode: 'timestamp_ms' }),
+    lastRefreshError: text(),
   },
   (table) => [
     unique().on(table.mediaSourceId, table.externalKey),
@@ -49,6 +54,17 @@ export type NewExternalCollection = InferInsertModel<typeof ExternalCollection>;
 export const ExternalCollectionPrograms = sqliteTable(
   'external_collection_programs',
   {
+    uuid: text()
+      .primaryKey()
+      .default(sql`(lower(hex(randomblob(16))))`)
+      .$defaultFn(randomUUID),
+    position: integer(),
+    upstreamEntryId: text(),
+    videoId: text(),
+    status: text({ enum: ['available', 'pending', 'unavailable'] })
+      .notNull()
+      .default('available'),
+    message: text(),
     collectionId: text()
       .notNull()
       .references(() => ExternalCollection.uuid, { onDelete: 'cascade' }),
@@ -58,7 +74,14 @@ export const ExternalCollectionPrograms = sqliteTable(
     }),
   },
   (table) => [
-    primaryKey({ columns: [table.collectionId, table.programId] }),
+    // Existing sources use set membership (no position); YouTube uses ordered
+    // occurrences. Both live in the same authoritative membership table.
+    uniqueIndex('external_collection_legacy_program_unique')
+      .on(table.collectionId, table.programId)
+      .where(sql`${table.position} is null`),
+    uniqueIndex('external_collection_position_unique')
+      .on(table.collectionId, table.position)
+      .where(sql`${table.position} is not null`),
     index('external_collection_program_idx').on(table.programId),
   ],
 );

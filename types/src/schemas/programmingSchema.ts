@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ResolutionSchema } from './miscSchemas.js';
+import { RatingSnapshotSchema } from './ratingsSchema.js';
 import { MediaSourceType } from './settingsSchemas.js';
 import {
   ContentProgramTypeSchema,
@@ -268,6 +269,8 @@ const BaseProgram = z.object({
   externalSubtitles: z.array(MediaSubtitles).nullish(),
   artwork: MediaArtwork.array(),
   state: z.enum(['ok', 'missing']),
+  ratings: RatingSnapshotSchema.nullish(),
+  omnirating: z.number().min(0).max(100).nullish(),
   // mediaItem: MediaItem.optional(),
   // duration: z.number(),
 });
@@ -287,6 +290,8 @@ export const Movie = z.object({
 
 const BaseProgramGrouping = z.object({
   ...BaseItem.shape,
+  ratings: RatingSnapshotSchema.nullish(),
+  omnirating: z.number().min(0).max(100).nullish(),
   ...WithSummaryMetadata.shape,
   genres: z.array(Genre).optional(),
   // e.g. for shows => seasons, seasons => episodes

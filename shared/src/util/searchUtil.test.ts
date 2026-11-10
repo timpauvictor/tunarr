@@ -1,10 +1,12 @@
 import { SearchFilter } from '@tunarr/types/schemas';
 import dayjs from 'dayjs';
+import { ratingFieldKey } from './ratings.js';
 import customParseFormat from 'dayjs/plugin/customParseFormat.js';
 import {
   BinarySearchClause,
   makeTitleContainsFilter,
   parsedSearchToRequest,
+  normalizeSearchFilter,
   SearchClause,
   searchFilterToString,
   SearchParser,
@@ -24,6 +26,130 @@ function parseAndCheckExpression(input: string) {
   expect(parser.errors, JSON.stringify(parser.errors, null, 2)).toHaveLength(0);
   return query;
 }
+
+describe('numeric rating queries', () => {
+  test.each(['=', '!=', '<', '>', '<=', '>='])(
+    'retains %s and a 0-100 threshold on one provider/type',
+    (op) => {
+      const text = `score("imdb", "audience") ${op} 70`;
+      const request = parsedSearchToRequest(parseAndCheckExpression(text));
+      expect(request).toMatchObject({
+        type: 'value',
+        fieldSpec: {
+          type: 'numeric',
+          key: ratingFieldKey('imdb', 'audience'),
+          op,
+          value: 70,
+        },
+      });
+      expect(searchFilterToString(request)).toBe(text);
+    },
+  );
+
+  test('round-trips unknown and JSON-escaped Unicode provider identities and ranges', () => {
+    for (const provider of [
+      'new-provider',
+      'reviews/"quoted"/中文\\\\source',
+    ]) {
+      const text = `score(${JSON.stringify(provider)}, "community") between [70, 90]`;
+      const request = parsedSearchToRequest(parseAndCheckExpression(text));
+      expect(request).toMatchObject({
+        type: 'value',
+        fieldSpec: {
+          type: 'numeric',
+          key: ratingFieldKey(provider, 'community'),
+          op: 'to',
+          value: [70, 90],
+        },
+      });
+      expect(searchFilterToString(request)).toBe(text);
+    }
+  });
+
+  test('does not reinterpret rating values through click-builder display names', () => {
+    for (const key of [ratingFieldKey('imdb', 'audience'), 'omnirating']) {
+      const request: SearchFilter = {
+        type: 'value',
+        fieldSpec: {
+          type: 'numeric',
+          key,
+          name: 'minutes',
+          op: '>=',
+          value: 70,
+        },
+      };
+      expect(normalizeSearchFilter(request)).toMatchObject({
+        fieldSpec: { key, value: 70 },
+      });
+      const output = searchFilterToString(request);
+      expect(output).toBe(
+        key === 'omnirating'
+          ? 'omnirating >= 70'
+          : 'score("imdb", "audience") >= 70',
+      );
+      expect(
+        parsedSearchToRequest(parseAndCheckExpression(output)),
+      ).toMatchObject({ fieldSpec: { key, value: 70 } });
+    }
+  });
+
+  test('combines Omnirating with existing age, genre, type and release-date filters', () => {
+    const query = parsedSearchToRequest(
+      parseAndCheckExpression(
+        'type = "movie" AND genre = "Action" AND rating = "PG-13" AND release_date >= 2007-01-01 AND omnirating > 70',
+      ),
+    );
+    function leaves(node: SearchFilter): SearchFilter[] {
+      return node.type === 'op' ? node.children.flatMap(leaves) : [node];
+    }
+    const fields = leaves(query);
+    expect(fields).toContainEqual(
+      expect.objectContaining({
+        fieldSpec: expect.objectContaining({
+          key: 'omnirating',
+          type: 'numeric',
+          op: '>',
+          value: 70,
+        }),
+      }),
+    );
+    expect(fields).toContainEqual(
+      expect.objectContaining({
+        fieldSpec: expect.objectContaining({
+          key: 'rating',
+          type: 'faceted_string',
+          value: ['PG-13'],
+        }),
+      }),
+    );
+    expect(fields).toContainEqual(
+      expect.objectContaining({
+        fieldSpec: expect.objectContaining({
+          key: 'originalReleaseDate',
+          type: 'date',
+          value: new Date(2007, 0, 1).getTime(),
+        }),
+      }),
+    );
+    expect(fields).toHaveLength(5);
+    expect(searchFilterToString(query)).toContain('omnirating > 70');
+  });
+
+  test.each([
+    'score("imdb", "") > 70',
+    'score("", "audience") > 70',
+    String.raw`score("\q", "audience") > 70`,
+  ])(
+    'rejects malformed identities without throwing out of the parser: %s',
+    (text) => {
+      const parser = new SearchParser();
+      const lexed = tokenizeSearchQuery(text);
+      parser.input = lexed.tokens;
+      expect(() => parser.searchExpression()).not.toThrow();
+      expect(parser.errors.length + lexed.errors.length).toBeGreaterThan(0);
+    },
+  );
+});
 
 describe('search parser', () => {
   test('simple parse', () => {

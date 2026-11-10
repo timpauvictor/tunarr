@@ -82,6 +82,20 @@ export type TerminalProgramInput = {
         path?: string | null;
     }>;
     state: 'ok' | 'missing';
+    ratings?: {
+        version: 1;
+        observedAt: number;
+        entries: Array<{
+            providerId: string;
+            kind: string;
+            value: number;
+            scale: 10;
+            score: number;
+            source?: string;
+            isAlias?: boolean;
+        }>;
+    } | null;
+    omnirating?: number | null;
     summary: string | null;
     plot: string | null;
     tagline: string | null;
@@ -228,6 +242,20 @@ export type TerminalProgramInput = {
         path?: string | null;
     }>;
     state: 'ok' | 'missing';
+    ratings?: {
+        version: 1;
+        observedAt: number;
+        entries: Array<{
+            providerId: string;
+            kind: string;
+            value: number;
+            scale: 10;
+            score: number;
+            source?: string;
+            isAlias?: boolean;
+        }>;
+    } | null;
+    omnirating?: number | null;
     mediaSourceId: string;
     libraryId: string;
     canonicalId: string;
@@ -370,6 +398,20 @@ export type TerminalProgramInput = {
         path?: string | null;
     }>;
     state: 'ok' | 'missing';
+    ratings?: {
+        version: 1;
+        observedAt: number;
+        entries: Array<{
+            providerId: string;
+            kind: string;
+            value: number;
+            scale: 10;
+            score: number;
+            source?: string;
+            isAlias?: boolean;
+        }>;
+    } | null;
+    omnirating?: number | null;
     artistName?: string | null;
     albumName?: string | null;
     mediaSourceId: string;
@@ -447,6 +489,20 @@ export type ShowInput = {
     sortTitle: string;
     tags: Array<string>;
     createdAt?: number | null;
+    ratings?: {
+        version: 1;
+        observedAt: number;
+        entries: Array<{
+            providerId: string;
+            kind: string;
+            value: number;
+            scale: 10;
+            score: number;
+            source?: string;
+            isAlias?: boolean;
+        }>;
+    } | null;
+    omnirating?: number | null;
     summary: string | null;
     plot: string | null;
     tagline: string | null;
@@ -501,6 +557,20 @@ export type ShowInput = {
         sortTitle: string;
         tags: Array<string>;
         createdAt?: number | null;
+        ratings?: {
+            version: 1;
+            observedAt: number;
+            entries: Array<{
+                providerId: string;
+                kind: string;
+                value: number;
+                scale: 10;
+                score: number;
+                source?: string;
+                isAlias?: boolean;
+            }>;
+        } | null;
+        omnirating?: number | null;
         summary: string | null;
         plot: string | null;
         tagline: string | null;
@@ -561,6 +631,20 @@ export type SeasonInput = {
     sortTitle: string;
     tags: Array<string>;
     createdAt?: number | null;
+    ratings?: {
+        version: 1;
+        observedAt: number;
+        entries: Array<{
+            providerId: string;
+            kind: string;
+            value: number;
+            scale: 10;
+            score: number;
+            source?: string;
+            isAlias?: boolean;
+        }>;
+    } | null;
+    omnirating?: number | null;
     summary: string | null;
     plot: string | null;
     tagline: string | null;
@@ -678,6 +762,20 @@ export type SeasonInput = {
             path?: string | null;
         }>;
         state: 'ok' | 'missing';
+        ratings?: {
+            version: 1;
+            observedAt: number;
+            entries: Array<{
+                providerId: string;
+                kind: string;
+                value: number;
+                scale: 10;
+                score: number;
+                source?: string;
+                isAlias?: boolean;
+            }>;
+        } | null;
+        omnirating?: number | null;
         episodeNumber: number;
         summary: string | null;
         seasonId?: string | null;
@@ -824,6 +922,20 @@ export type EpisodeInput = {
         path?: string | null;
     }>;
     state: 'ok' | 'missing';
+    ratings?: {
+        version: 1;
+        observedAt: number;
+        entries: Array<{
+            providerId: string;
+            kind: string;
+            value: number;
+            scale: 10;
+            score: number;
+            source?: string;
+            isAlias?: boolean;
+        }>;
+    } | null;
+    omnirating?: number | null;
     episodeNumber: number;
     summary: string | null;
     seasonId?: string | null;
@@ -905,6 +1017,20 @@ export type MusicArtistInput = {
     sortTitle: string;
     tags: Array<string>;
     createdAt?: number | null;
+    ratings?: {
+        version: 1;
+        observedAt: number;
+        entries: Array<{
+            providerId: string;
+            kind: string;
+            value: number;
+            scale: 10;
+            score: number;
+            source?: string;
+            isAlias?: boolean;
+        }>;
+    } | null;
+    omnirating?: number | null;
     summary: string | null;
     plot: string | null;
     tagline: string | null;
@@ -936,6 +1062,20 @@ export type MusicArtistInput = {
         sortTitle: string;
         tags: Array<string>;
         createdAt?: number | null;
+        ratings?: {
+            version: 1;
+            observedAt: number;
+            entries: Array<{
+                providerId: string;
+                kind: string;
+                value: number;
+                scale: 10;
+                score: number;
+                source?: string;
+                isAlias?: boolean;
+            }>;
+        } | null;
+        omnirating?: number | null;
         summary: string | null;
         plot: string | null;
         tagline: string | null;
@@ -996,6 +1136,20 @@ export type MusicAlbumInput = {
     sortTitle: string;
     tags: Array<string>;
     createdAt?: number | null;
+    ratings?: {
+        version: 1;
+        observedAt: number;
+        entries: Array<{
+            providerId: string;
+            kind: string;
+            value: number;
+            scale: 10;
+            score: number;
+            source?: string;
+            isAlias?: boolean;
+        }>;
+    } | null;
+    omnirating?: number | null;
     summary: string | null;
     plot: string | null;
     tagline: string | null;
@@ -1109,6 +1263,20 @@ export type MusicAlbumInput = {
             path?: string | null;
         }>;
         state: 'ok' | 'missing';
+        ratings?: {
+            version: 1;
+            observedAt: number;
+            entries: Array<{
+                providerId: string;
+                kind: string;
+                value: number;
+                scale: 10;
+                score: number;
+                source?: string;
+                isAlias?: boolean;
+            }>;
+        } | null;
+        omnirating?: number | null;
         trackNumber: number;
         albumId?: string | null;
         artistId?: string | null;
@@ -1264,6 +1432,20 @@ export type MusicTrackInput = {
         path?: string | null;
     }>;
     state: 'ok' | 'missing';
+    ratings?: {
+        version: 1;
+        observedAt: number;
+        entries: Array<{
+            providerId: string;
+            kind: string;
+            value: number;
+            scale: 10;
+            score: number;
+            source?: string;
+            isAlias?: boolean;
+        }>;
+    } | null;
+    omnirating?: number | null;
     trackNumber: number;
     albumId?: string | null;
     artistId?: string | null;
@@ -1352,7 +1534,7 @@ export type SearchFilterInput = {
     type: 'value';
     fieldSpec: {
         /**
-         * The actual field path in the search index
+         * The actual field path or public rating identity
          */
         key: string;
         /**
@@ -1364,7 +1546,7 @@ export type SearchFilterInput = {
         value: Array<string>;
     } | {
         /**
-         * The actual field path in the search index
+         * The actual field path or public rating identity
          */
         key: string;
         /**
@@ -1376,7 +1558,7 @@ export type SearchFilterInput = {
         value: Array<string>;
     } | {
         /**
-         * The actual field path in the search index
+         * The actual field path or public rating identity
          */
         key: string;
         /**
@@ -1391,7 +1573,7 @@ export type SearchFilterInput = {
         ];
     } | {
         /**
-         * The actual field path in the search index
+         * The actual field path or public rating identity
          */
         key: string;
         /**
@@ -1494,6 +1676,20 @@ export type TerminalProgram = {
         path?: string | null;
     }>;
     state: 'ok' | 'missing';
+    ratings?: {
+        version: 1;
+        observedAt: number;
+        entries: Array<{
+            providerId: string;
+            kind: string;
+            value: number;
+            scale: 10;
+            score: number;
+            source?: string;
+            isAlias?: boolean;
+        }>;
+    } | null;
+    omnirating?: number | null;
     summary: string | null;
     plot: string | null;
     tagline: string | null;
@@ -1640,6 +1836,20 @@ export type TerminalProgram = {
         path?: string | null;
     }>;
     state: 'ok' | 'missing';
+    ratings?: {
+        version: 1;
+        observedAt: number;
+        entries: Array<{
+            providerId: string;
+            kind: string;
+            value: number;
+            scale: 10;
+            score: number;
+            source?: string;
+            isAlias?: boolean;
+        }>;
+    } | null;
+    omnirating?: number | null;
     mediaSourceId: string;
     libraryId: string;
     canonicalId: string;
@@ -1782,6 +1992,20 @@ export type TerminalProgram = {
         path?: string | null;
     }>;
     state: 'ok' | 'missing';
+    ratings?: {
+        version: 1;
+        observedAt: number;
+        entries: Array<{
+            providerId: string;
+            kind: string;
+            value: number;
+            scale: 10;
+            score: number;
+            source?: string;
+            isAlias?: boolean;
+        }>;
+    } | null;
+    omnirating?: number | null;
     artistName?: string | null;
     albumName?: string | null;
     mediaSourceId: string;
@@ -1859,6 +2083,20 @@ export type Show = {
     sortTitle: string;
     tags: Array<string>;
     createdAt?: number | null;
+    ratings?: {
+        version: 1;
+        observedAt: number;
+        entries: Array<{
+            providerId: string;
+            kind: string;
+            value: number;
+            scale: 10;
+            score: number;
+            source?: string;
+            isAlias?: boolean;
+        }>;
+    } | null;
+    omnirating?: number | null;
     summary: string | null;
     plot: string | null;
     tagline: string | null;
@@ -1913,6 +2151,20 @@ export type Show = {
         sortTitle: string;
         tags: Array<string>;
         createdAt?: number | null;
+        ratings?: {
+            version: 1;
+            observedAt: number;
+            entries: Array<{
+                providerId: string;
+                kind: string;
+                value: number;
+                scale: 10;
+                score: number;
+                source?: string;
+                isAlias?: boolean;
+            }>;
+        } | null;
+        omnirating?: number | null;
         summary: string | null;
         plot: string | null;
         tagline: string | null;
@@ -1973,6 +2225,20 @@ export type Season = {
     sortTitle: string;
     tags: Array<string>;
     createdAt?: number | null;
+    ratings?: {
+        version: 1;
+        observedAt: number;
+        entries: Array<{
+            providerId: string;
+            kind: string;
+            value: number;
+            scale: 10;
+            score: number;
+            source?: string;
+            isAlias?: boolean;
+        }>;
+    } | null;
+    omnirating?: number | null;
     summary: string | null;
     plot: string | null;
     tagline: string | null;
@@ -2090,6 +2356,20 @@ export type Season = {
             path?: string | null;
         }>;
         state: 'ok' | 'missing';
+        ratings?: {
+            version: 1;
+            observedAt: number;
+            entries: Array<{
+                providerId: string;
+                kind: string;
+                value: number;
+                scale: 10;
+                score: number;
+                source?: string;
+                isAlias?: boolean;
+            }>;
+        } | null;
+        omnirating?: number | null;
         episodeNumber: number;
         summary: string | null;
         seasonId?: string | null;
@@ -2236,6 +2516,20 @@ export type Episode = {
         path?: string | null;
     }>;
     state: 'ok' | 'missing';
+    ratings?: {
+        version: 1;
+        observedAt: number;
+        entries: Array<{
+            providerId: string;
+            kind: string;
+            value: number;
+            scale: 10;
+            score: number;
+            source?: string;
+            isAlias?: boolean;
+        }>;
+    } | null;
+    omnirating?: number | null;
     episodeNumber: number;
     summary: string | null;
     seasonId?: string | null;
@@ -2317,6 +2611,20 @@ export type MusicArtist = {
     sortTitle: string;
     tags: Array<string>;
     createdAt?: number | null;
+    ratings?: {
+        version: 1;
+        observedAt: number;
+        entries: Array<{
+            providerId: string;
+            kind: string;
+            value: number;
+            scale: 10;
+            score: number;
+            source?: string;
+            isAlias?: boolean;
+        }>;
+    } | null;
+    omnirating?: number | null;
     summary: string | null;
     plot: string | null;
     tagline: string | null;
@@ -2348,6 +2656,20 @@ export type MusicArtist = {
         sortTitle: string;
         tags: Array<string>;
         createdAt?: number | null;
+        ratings?: {
+            version: 1;
+            observedAt: number;
+            entries: Array<{
+                providerId: string;
+                kind: string;
+                value: number;
+                scale: 10;
+                score: number;
+                source?: string;
+                isAlias?: boolean;
+            }>;
+        } | null;
+        omnirating?: number | null;
         summary: string | null;
         plot: string | null;
         tagline: string | null;
@@ -2408,6 +2730,20 @@ export type MusicAlbum = {
     sortTitle: string;
     tags: Array<string>;
     createdAt?: number | null;
+    ratings?: {
+        version: 1;
+        observedAt: number;
+        entries: Array<{
+            providerId: string;
+            kind: string;
+            value: number;
+            scale: 10;
+            score: number;
+            source?: string;
+            isAlias?: boolean;
+        }>;
+    } | null;
+    omnirating?: number | null;
     summary: string | null;
     plot: string | null;
     tagline: string | null;
@@ -2521,6 +2857,20 @@ export type MusicAlbum = {
             path?: string | null;
         }>;
         state: 'ok' | 'missing';
+        ratings?: {
+            version: 1;
+            observedAt: number;
+            entries: Array<{
+                providerId: string;
+                kind: string;
+                value: number;
+                scale: 10;
+                score: number;
+                source?: string;
+                isAlias?: boolean;
+            }>;
+        } | null;
+        omnirating?: number | null;
         trackNumber: number;
         albumId?: string | null;
         artistId?: string | null;
@@ -2676,6 +3026,20 @@ export type MusicTrack = {
         path?: string | null;
     }>;
     state: 'ok' | 'missing';
+    ratings?: {
+        version: 1;
+        observedAt: number;
+        entries: Array<{
+            providerId: string;
+            kind: string;
+            value: number;
+            scale: 10;
+            score: number;
+            source?: string;
+            isAlias?: boolean;
+        }>;
+    } | null;
+    omnirating?: number | null;
     trackNumber: number;
     albumId?: string | null;
     artistId?: string | null;
@@ -2764,7 +3128,7 @@ export type SearchFilter = {
     type: 'value';
     fieldSpec: {
         /**
-         * The actual field path in the search index
+         * The actual field path or public rating identity
          */
         key: string;
         /**
@@ -2776,7 +3140,7 @@ export type SearchFilter = {
         value: Array<string>;
     } | {
         /**
-         * The actual field path in the search index
+         * The actual field path or public rating identity
          */
         key: string;
         /**
@@ -2788,7 +3152,7 @@ export type SearchFilter = {
         value: Array<string>;
     } | {
         /**
-         * The actual field path in the search index
+         * The actual field path or public rating identity
          */
         key: string;
         /**
@@ -2803,7 +3167,7 @@ export type SearchFilter = {
         ];
     } | {
         /**
-         * The actual field path in the search index
+         * The actual field path or public rating identity
          */
         key: string;
         /**
@@ -7980,6 +8344,30 @@ export type GetApiFillerListsByIdProgramsResponses = {
 
 export type GetApiFillerListsByIdProgramsResponse = GetApiFillerListsByIdProgramsResponses[keyof GetApiFillerListsByIdProgramsResponses];
 
+export type GetApiProgramsRatingsFieldsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/programs/ratings/fields';
+};
+
+export type GetApiProgramsRatingsFieldsResponses = {
+    /**
+     * Default Response
+     */
+    200: {
+        fields: Array<{
+            providerId: string;
+            kind: string;
+            key: string;
+            label: string;
+            ready: boolean;
+        }>;
+    };
+};
+
+export type GetApiProgramsRatingsFieldsResponse = GetApiProgramsRatingsFieldsResponses[keyof GetApiProgramsRatingsFieldsResponses];
+
 export type PostApiProgramsSearchData = {
     body: {
         query: {
@@ -7987,7 +8375,7 @@ export type PostApiProgramsSearchData = {
             restrictSearchTo?: Array<string>;
             filter?: SearchFilterInput | null;
             sort?: Array<{
-                field: 'title' | 'sortTitle' | 'duration' | 'originalReleaseDate' | 'originalReleaseYear' | 'addedAt' | 'index';
+                field: ('title' | 'sortTitle' | 'duration' | 'originalReleaseDate' | 'originalReleaseYear' | 'addedAt' | 'index' | 'omnirating') | string;
                 direction: 'asc' | 'desc';
             }> | null;
         };
@@ -9167,6 +9555,123 @@ export type GetApiMediaLibrariesByLibraryIdProgramsResponses = {
 
 export type GetApiMediaLibrariesByLibraryIdProgramsResponse = GetApiMediaLibrariesByLibraryIdProgramsResponses[keyof GetApiMediaLibrariesByLibraryIdProgramsResponses];
 
+export type PostApiMediaSourcesByIdLibrariesByLibraryIdRatingsRefreshData = {
+    body?: never;
+    path: {
+        id: string;
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/media-sources/{id}/libraries/{libraryId}/ratings/refresh';
+};
+
+export type PostApiMediaSourcesByIdLibrariesByLibraryIdRatingsRefreshErrors = {
+    /**
+     * Default Response
+     */
+    404: unknown;
+    /**
+     * Default Response
+     */
+    409: unknown;
+};
+
+export type PostApiMediaSourcesByIdLibrariesByLibraryIdRatingsRefreshResponses = {
+    /**
+     * Default Response
+     */
+    202: {
+        jobId: string;
+        libraryId: string;
+        mediaSourceId: string;
+        state: 'queued' | 'in_progress' | 'completed' | 'partial' | 'cancelled' | 'failed';
+        cancelRequested: boolean;
+        total: number;
+        processed: number;
+        refreshed: number;
+        unchanged: number;
+        failed: number;
+        skipped: number;
+        indexFailed: number;
+        startedAt: number | null;
+        finishedAt: number | null;
+        lastError: 'auth' | 'denied' | 'not_found' | 'timeout' | 'invalid_metadata' | 'source_changed' | 'identity_changed' | 'database' | 'index' | null;
+    };
+};
+
+export type PostApiMediaSourcesByIdLibrariesByLibraryIdRatingsRefreshResponse = PostApiMediaSourcesByIdLibrariesByLibraryIdRatingsRefreshResponses[keyof PostApiMediaSourcesByIdLibrariesByLibraryIdRatingsRefreshResponses];
+
+export type GetApiMediaSourcesByIdLibrariesByLibraryIdRatingsData = {
+    body?: never;
+    path: {
+        id: string;
+        libraryId: string;
+    };
+    query?: never;
+    url: '/api/media-sources/{id}/libraries/{libraryId}/ratings';
+};
+
+export type GetApiMediaSourcesByIdLibrariesByLibraryIdRatingsErrors = {
+    /**
+     * Default Response
+     */
+    404: unknown;
+};
+
+export type GetApiMediaSourcesByIdLibrariesByLibraryIdRatingsResponses = {
+    /**
+     * Default Response
+     */
+    200: {
+        jobId: string;
+        libraryId: string;
+        mediaSourceId: string;
+        state: 'queued' | 'in_progress' | 'completed' | 'partial' | 'cancelled' | 'failed';
+        cancelRequested: boolean;
+        total: number;
+        processed: number;
+        refreshed: number;
+        unchanged: number;
+        failed: number;
+        skipped: number;
+        indexFailed: number;
+        startedAt: number | null;
+        finishedAt: number | null;
+        lastError: 'auth' | 'denied' | 'not_found' | 'timeout' | 'invalid_metadata' | 'source_changed' | 'identity_changed' | 'database' | 'index' | null;
+    } | null;
+};
+
+export type GetApiMediaSourcesByIdLibrariesByLibraryIdRatingsResponse = GetApiMediaSourcesByIdLibrariesByLibraryIdRatingsResponses[keyof GetApiMediaSourcesByIdLibrariesByLibraryIdRatingsResponses];
+
+export type PostApiMediaSourcesByIdLibrariesByLibraryIdRatingsByJobIdCancelData = {
+    body?: never;
+    path: {
+        id: string;
+        libraryId: string;
+        jobId: string;
+    };
+    query?: never;
+    url: '/api/media-sources/{id}/libraries/{libraryId}/ratings/{jobId}/cancel';
+};
+
+export type PostApiMediaSourcesByIdLibrariesByLibraryIdRatingsByJobIdCancelErrors = {
+    /**
+     * Default Response
+     */
+    404: unknown;
+    /**
+     * Default Response
+     */
+    409: unknown;
+};
+
+export type PostApiMediaSourcesByIdLibrariesByLibraryIdRatingsByJobIdCancelResponses = {
+    /**
+     * Default Response
+     */
+    202: unknown;
+};
+
 export type GetApiMediaSourcesByMediaSourceIdByLibraryIdStatusData = {
     body?: never;
     path: {
@@ -9190,12 +9695,14 @@ export type GetApiMediaSourcesByMediaSourceIdByLibraryIdStatusResponses = {
      */
     200: {
         state: 'in_progress';
+        operation?: 'ratings';
         startedAt: number;
         percentComplete: number;
     } | {
         state: 'not_scanning';
     } | {
         state: 'queued';
+        operation?: 'ratings';
     };
 };
 
@@ -11184,6 +11691,20 @@ export type GetApiPlexByMediaSourceIdSearchResponses = {
                 path?: string | null;
             }>;
             state: 'ok' | 'missing';
+            ratings?: {
+                version: 1;
+                observedAt: number;
+                entries: Array<{
+                    providerId: string;
+                    kind: string;
+                    value: number;
+                    scale: 10;
+                    score: number;
+                    source?: string;
+                    isAlias?: boolean;
+                }>;
+            } | null;
+            omnirating?: number | null;
             summary: string | null;
             plot: string | null;
             tagline: string | null;
@@ -11330,6 +11851,20 @@ export type GetApiPlexByMediaSourceIdSearchResponses = {
                 path?: string | null;
             }>;
             state: 'ok' | 'missing';
+            ratings?: {
+                version: 1;
+                observedAt: number;
+                entries: Array<{
+                    providerId: string;
+                    kind: string;
+                    value: number;
+                    scale: 10;
+                    score: number;
+                    source?: string;
+                    isAlias?: boolean;
+                }>;
+            } | null;
+            omnirating?: number | null;
             artistName?: string | null;
             albumName?: string | null;
             mediaSourceId: string;
@@ -11474,6 +12009,20 @@ export type GetApiPlexByMediaSourceIdSearchResponses = {
                 path?: string | null;
             }>;
             state: 'ok' | 'missing';
+            ratings?: {
+                version: 1;
+                observedAt: number;
+                entries: Array<{
+                    providerId: string;
+                    kind: string;
+                    value: number;
+                    scale: 10;
+                    score: number;
+                    source?: string;
+                    isAlias?: boolean;
+                }>;
+            } | null;
+            omnirating?: number | null;
             mediaSourceId: string;
             libraryId: string;
             canonicalId: string;

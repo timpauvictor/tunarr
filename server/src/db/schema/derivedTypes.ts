@@ -23,6 +23,7 @@ import type { MediaSourceLibrary } from './MediaSourceLibrary.ts';
 import type { MediaSourceLibraryReplacePath } from './MediaSourceLibraryReplacePath.ts';
 import type {
   NewProgramDao,
+  NewProgramOrm,
   ProgramDao,
   ProgramOrm,
   ProgramType,
@@ -235,7 +236,7 @@ export type NewCreditWithArtwork = {
 };
 
 export type NewProgramWithRelations<Type extends ProgramType = ProgramType> = {
-  program: SpecificProgramType<Type, NewProgramDao>;
+  program: SpecificProgramType<Type, NewProgramOrm>;
   externalIds: NewSingleOrMultiExternalId[];
   versions: NewProgramVersion[];
   artwork: NewArtwork[];
@@ -250,17 +251,17 @@ export type NewProgramWithExternalIds = NewProgramDao & {
   externalIds: NewSingleOrMultiExternalId[];
 };
 
-export type NewMovieProgram = SpecificProgramType<'movie', NewProgramDao>;
+export type NewMovieProgram = SpecificProgramType<'movie', NewProgramOrm>;
 export type NewOtherVideoProgram = SpecificProgramType<
   'other_video',
-  NewProgramDao
+  NewProgramOrm
 >;
 export type NewMusicVideoProgram = SpecificProgramType<
   'music_video',
-  NewProgramDao
+  NewProgramOrm
 >;
 
-export type NewEpisodeProgram = SpecificProgramType<'episode', NewProgramDao>;
+export type NewEpisodeProgram = SpecificProgramType<'episode', NewProgramOrm>;
 
 export type ProgramGroupingWithExternalIds = ProgramGrouping & {
   externalIds: ProgramGroupingExternalId[];
@@ -376,7 +377,7 @@ export type NewMusicAlbum = SpecificProgramGroupingType<
 > &
   WithNewGroupingExternalIds;
 
-export type NewMusicTrack = SpecificProgramType<'track', NewProgramDao>;
+export type NewMusicTrack = SpecificProgramType<'track', NewProgramOrm>;
 
 export type MediaSourceWithLibrariesDirect = MediaSource & {
   libraries: MediaSourceLibrary[];

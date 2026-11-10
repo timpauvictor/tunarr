@@ -42,6 +42,7 @@ import { useDayjs } from '../hooks/useDayjs.ts';
 import { useStoreBackedTableSettings } from '../hooks/useTableSettings.ts';
 import { UnavailableLibraryIcon } from './UnavailableLibraryIndicator.tsx';
 import { NetworkIcon } from './util/NetworkIcon.tsx';
+import { PlexRatingsRefreshAction } from './library/PlexRatingsRefreshAction.tsx';
 
 type MediaSourceLibraryRow = MediaSourceLibrary & {
   mediaSource: MediaSourceSettings;
@@ -66,6 +67,10 @@ const MediaSourceLibraryTableActionCell = ({
   );
   const scanState = scanStateQuery.data?.state;
   const scanStateUpdatedAt = scanStateQuery.dataUpdatedAt;
+  const isRatingsRefresh =
+    scanStateQuery.data &&
+    scanStateQuery.data.state !== 'not_scanning' &&
+    scanStateQuery.data.operation === 'ratings';
 
   const queryClient = useQueryClient();
 
@@ -117,9 +122,13 @@ const MediaSourceLibraryTableActionCell = ({
         placement="top"
         title={
           scanStateQuery.data?.state === 'queued'
-            ? t`Queued`
+            ? isRatingsRefresh
+              ? t`Ratings refresh queued`
+              : t`Queued`
             : library.isLocked
-              ? t`Scanning`
+              ? isRatingsRefresh
+                ? t`Refreshing ratings`
+                : t`Scanning`
               : t`Scan`
         }
       >
@@ -170,6 +179,14 @@ const MediaSourceLibraryTableActionCell = ({
             </IconButton>
           </span>
         </Tooltip>
+      )}
+      {mediaSource.type === 'plex' && (
+        <PlexRatingsRefreshAction
+          mediaSourceId={mediaSource.id}
+          libraryId={library.id}
+          disabled={!library.enabled || library.unavailableSince != null}
+          busy={library.isLocked}
+        />
       )}
       {isScanning && (
         <Box

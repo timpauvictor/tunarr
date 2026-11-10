@@ -389,6 +389,14 @@ msgstr "12 小时制"
 msgid "24-hour"
 msgstr "24 小时制"
 
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "A Plex metadata request timed out. Its previous snapshot was kept."
+msgstr ""
+
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "A ratings update could not be saved."
+msgstr ""
+
 #: src/components/settings/media_source/LocalMediaEditDialog.tsx
 msgid "A root path to scan for media. Local sources can search many different paths."
 msgstr "要扫描媒体文件的根路径。本地媒体源可以配置多个路径。"
@@ -739,6 +747,14 @@ msgstr "数量"
 #: src/components/guide/TvGuide.tsx
 msgid "An error occurred: {0}"
 msgstr "发生错误：{0}"
+
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "An existing item was not found in Plex. Its previous snapshot was kept."
+msgstr ""
+
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "An item changed identity during this job. Its previous snapshot was kept."
+msgstr ""
 
 #: src/components/profiles/StreamSelectionRuleEditor.tsx
 #: src/components/ui/table/filters/BooleanFilter.tsx
@@ -1095,8 +1111,17 @@ msgstr "正在计算时段…"
 msgid "Cancel"
 msgstr "取消"
 
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "Cancel refresh"
+msgstr ""
+
+#: src/components/library/PlexRatingsRefreshAction.tsx
 #: src/hooks/plex/usePlexLogin.tsx
 msgid "Cancelled"
+msgstr ""
+
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "Cancelling"
 msgstr ""
 
 #: src/components/settings/media_source/EmbyServerEditDialog.tsx
@@ -1281,6 +1306,7 @@ msgstr ""
 
 #: src/components/channel_config/SelectedProgrammingList.tsx
 #: src/components/channels/ChannelSessionsDialog.tsx
+#: src/components/library/PlexRatingsRefreshAction.tsx
 #: src/components/settings/media_source/EditMediaSourceLibrariesDialog.tsx
 msgid "Close"
 msgstr "关闭"
@@ -1306,6 +1332,10 @@ msgstr ""
 #: src/components/slot_scheduler/RandomSlotsWeightAdjustDialog.tsx
 msgid "Commit"
 msgstr "提交"
+
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "Completed"
+msgstr ""
 
 #: src/components/channel_config/ChannelProgrammingSort.tsx
 #: src/components/custom-shows/CustomShowSortToolsMenu.tsx
@@ -1407,6 +1437,10 @@ msgstr "继续"
 msgid "Continue with New Content"
 msgstr "使用新内容继续"
 
+#: src/components/library/ProgramRatings.tsx
+msgid "Contributing scores: {contributions}"
+msgstr ""
+
 #: src/components/slot_scheduler/SlotLinkingControl.tsx
 msgid "Controls what happens when this slot runs out of replayed content from earlier continue slots."
 msgstr "控制当此时段用完前面续播时段重播的内容时如何处理。"
@@ -1491,6 +1525,14 @@ msgstr ""
 
 #: src/hooks/useEmptyTrash.ts
 msgid "Could not cancel emptying the trash."
+msgstr ""
+
+#: src/components/search/RatingSortControl.tsx
+msgid "Could not load Plex rating fields."
+msgstr ""
+
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "Could not load refresh status."
 msgstr ""
 
 #: src/components/search/SearchFilterBuilder.tsx
@@ -1662,6 +1704,10 @@ msgstr "默认配置"
 msgid "Default only"
 msgstr ""
 
+#: src/components/search/RatingSortControl.tsx
+msgid "Default order"
+msgstr ""
+
 #: src/components/profiles/StreamSelectionProfilesTable.tsx
 #: src/components/profiles/StreamSelectionProfilesTable.tsx
 msgid "Default profile"
@@ -1803,6 +1849,10 @@ msgstr "详情"
 #: src/components/settings/media_source/JelllyfinServerEditDialog.tsx
 msgid "Did not receive an accessToken or userId from Jellyfin server."
 msgstr "未从 Jellyfin 服务器获取到 accessToken 或 userId。"
+
+#: src/components/search/RatingSortControl.tsx
+msgid "Direction"
+msgstr ""
 
 #: src/components/profiles/StreamSelectionRuleEditor.tsx
 msgid "Disable"
@@ -2163,6 +2213,10 @@ msgstr "为你的本地媒体源输入名称"
 msgid "Enter a number of minutes, 0 or more."
 msgstr ""
 
+#: src/components/search/NumericValueSearchNode.tsx
+msgid "Enter a valid number in the displayed scale."
+msgstr ""
+
 #: src/components/settings/media_source/EmbyServerEditDialog.tsx
 msgid "Enter your Emby password to generate a new access token."
 msgstr "输入你的 Emby 密码以生成新的访问令牌。"
@@ -2341,6 +2395,10 @@ msgstr ""
 
 #: src/components/channel_config/WatermarkTimingFields.tsx
 msgid "Fade Period (mins)"
+msgstr ""
+
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "Failed"
 msgstr ""
 
 #: src/components/fillers/AssignFillerToChannelsDialog.tsx
@@ -2582,9 +2640,18 @@ msgstr ""
 #~ msgid "Filter which subtitle tracks are considered<0/><1>Any: </1> All subtitle tracks are considered <2/><3>Forced: </3>Only consider <4>\"forced\"</4>subtitle tracks <5/><6>Default: </6>Only consider default subtitle tracks <7/><8>None: </8> Do not select any subtitles"
 #~ msgstr "筛选要考虑的字幕轨<0/><1>任意：</1>考虑所有字幕轨<2/><3>强制：</3>仅考虑<4>「强制」</4>字幕轨<5/><6>默认：</6>仅考虑默认字幕轨<7/><8>无：</8>不选择任何字幕"
 
+#: src/components/library/LibraryProgramGrid.tsx
+msgid "Filters apply to the items in this view, not their parent ratings. Clear or change the filter to see other children."
+msgstr ""
+
 #: src/pages/welcome/WelcomePage.tsx
 msgid "Finish"
 msgstr "完成"
+
+#. placeholder {0}: new Date(job.finishedAt).toLocaleString()
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "Finished: {0}"
+msgstr ""
 
 #: src/components/programming_controls/AddBlockShuffleModal.tsx
 msgid "First Episode"
@@ -2768,6 +2835,10 @@ msgstr "播放垫片时隐藏水印"
 
 #: src/components/channel_config/WatermarkTimingFields.tsx
 msgid "Hides the watermark for the rest of each program once the limit is reached. This overrides the fade settings above."
+msgstr ""
+
+#: src/components/search/RatingSortControl.tsx
+msgid "Highest first"
 msgstr ""
 
 #: src/pages/settings/FfmpegSettingsPage.tsx
@@ -2971,6 +3042,11 @@ msgstr "语言"
 msgid "Languages"
 msgstr ""
 
+#. placeholder {0}: new Date(snapshot.observedAt).toLocaleString()
+#: src/components/library/ProgramRatings.tsx
+msgid "Last fetched: {0}"
+msgstr ""
+
 #: src/pages/settings/TaskSettingsPage.tsx
 msgid "Last run"
 msgstr "上次运行"
@@ -3090,6 +3166,10 @@ msgstr "加载流"
 msgid "Loading"
 msgstr "加载中"
 
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "Loading ratings refresh status"
+msgstr ""
+
 #: src/components/ui/patterns/AppShell/HelpMenu.tsx
 msgid "Loading version…"
 msgstr ""
@@ -3164,6 +3244,14 @@ msgstr "响度目标"
 #: src/components/settings/ffmpeg/TranscodeConfigAudioSettingsForm.tsx
 msgid "Loudnorm Options"
 msgstr "Loudnorm 选项"
+
+#: src/components/search/NumericValueSearchNode.tsx
+msgid "Lower value"
+msgstr ""
+
+#: src/components/search/RatingSortControl.tsx
+msgid "Lowest first"
+msgstr ""
 
 #: src/pages/welcome/WelcomePage.tsx
 msgid "M3U playlist"
@@ -3618,6 +3706,10 @@ msgstr "该时间段内没有安排节目"
 #~ msgid "No programs selected"
 #~ msgstr "No programs selected"
 
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "No ratings-only job has run in this server session."
+msgstr ""
+
 #: src/components/ui/table/DataTable.tsx
 msgid "No records to display"
 msgstr ""
@@ -3729,6 +3821,18 @@ msgstr "Nvidia 支持能力"
 
 #: src/components/profiles/condition/ConditionGroupEditor.tsx
 msgid "of the following"
+msgstr ""
+
+#: src/components/library/ProgramRatings.tsx
+msgid "Omnirating"
+msgstr ""
+
+#: src/components/search/RatingSortControl.tsx
+msgid "Omnirating (0-100)"
+msgstr ""
+
+#: src/components/library/ProgramRatings.tsx
+msgid "Omnirating is the equal average of available public scores, normalized to 0-100. Critics and audience count separately; personal stars do not count."
 msgstr ""
 
 #: src/components/channel_config/ChannelPropertiesEditor.tsx
@@ -3890,6 +3994,10 @@ msgstr ""
 msgid "Pages"
 msgstr ""
 
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "Partial"
+msgstr ""
+
 #: src/components/settings/ffmpeg/TranscodeConfigAudioSettingsForm.tsx
 msgid "Passthrough audio unchanged. Other settings will not apply."
 msgstr "直接透传音频不做处理，其他设置将不生效。"
@@ -3918,6 +4026,12 @@ msgstr "按百分比"
 #: src/pages/channels/TimeSlotEditorPage.tsx
 msgid "Period"
 msgstr "周期"
+
+#. placeholder {0}: entry.value / 2
+#. placeholder {1}: entry.value
+#: src/components/library/ProgramRatings.tsx
+msgid "Personal: {0}/5 stars ({1}/10), excluded from Omnirating."
+msgstr ""
 
 #: src/components/programming_controls/RemoveShowsModal.tsx
 msgid "Pick specific programming to remove from the channel."
@@ -3980,12 +4094,34 @@ msgstr "Plex（自动）"
 msgid "Plex (Manual)"
 msgstr "Plex（手动）"
 
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "Plex authentication failed. Check this source before retrying."
+msgstr ""
+
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "Plex denied access to an item. Its previous snapshot was kept."
+msgstr ""
+
 #: src/hooks/plex/usePlexLogin.tsx
 msgid "Plex discovery failed. Saved sources are preserved; refresh before retrying."
 msgstr ""
 
+#: src/components/library/PlexRatingsRefreshAction.tsx
+#: src/components/library/PlexRatingsRefreshAction.tsx
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "Plex ratings"
+msgstr ""
+
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "Plex returned invalid ratings metadata. Its previous snapshot was kept."
+msgstr ""
+
 #: src/hooks/plex/usePlexLogin.tsx
 msgid "Plex sign-in failed or was cancelled. Please try again."
+msgstr ""
+
+#: src/components/library/ProgramRatings.tsx
+msgid "Plex supplied no scores for this item."
 msgstr ""
 
 #: src/hooks/plex/usePlexLogin.tsx
@@ -3996,6 +4132,10 @@ msgstr ""
 #: src/components/channel_config/ChannelTranscodingConfig.tsx
 msgid "Position"
 msgstr "位置"
+
+#: src/components/library/ProgramRatings.tsx
+msgid "Possible scalar alias; excluded from Omnirating."
+msgstr ""
 
 #: src/components/slot_scheduler/SlotFillerDialogPanel.tsx
 msgid "Post"
@@ -4034,6 +4174,17 @@ msgstr "预设"
 #: src/components/settings/UnsavedNavigationAlert.tsx
 msgid "Proceed"
 msgstr "继续"
+
+#. placeholder {0}: job.processed
+#. placeholder {1}: job.total
+#. placeholder {2}: job.refreshed
+#. placeholder {3}: job.unchanged
+#. placeholder {4}: job.failed
+#. placeholder {5}: job.skipped
+#. placeholder {6}: job.indexFailed
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "Processed {0} of {1} items. Updated: {2}; unchanged: {3}; failed: {4}; skipped: {5}; search updates unconfirmed: {6}."
+msgstr ""
 
 #: src/pages/system/TroubleshootPage.tsx
 #~ msgid "Profile"
@@ -4157,10 +4308,15 @@ msgstr "属性"
 msgid "Protocol must be HTTP or HTTPS"
 msgstr "协议必须是 HTTP 或 HTTPS"
 
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "Public and personal scores come from Plex. Omnirating excludes personal stars."
+msgstr ""
+
 #: src/components/settings/ffmpeg/TranscodeConfigVideoSettingsForm.tsx
 msgid "QSV Device"
 msgstr "QSV 设备"
 
+#: src/components/library/PlexRatingsRefreshAction.tsx
 #: src/components/MediaSourceLibraryTable.tsx
 #: src/components/MediaSourceLibraryTable.tsx
 msgid "Queued"
@@ -4193,6 +4349,22 @@ msgstr "随机…"
 #: src/components/slot_scheduler/MidRollConfigPanel.tsx
 msgid "Range"
 msgstr "范围"
+
+#: src/components/library/ProgramRatings.tsx
+msgid "Ratings have not been refreshed yet."
+msgstr ""
+
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "Ratings refresh progress"
+msgstr ""
+
+#: src/components/MediaSourceLibraryTable.tsx
+msgid "Ratings refresh queued"
+msgstr ""
+
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "Ratings refresh requires an enabled, available Plex library."
+msgstr ""
 
 #: src/components/programs/MediaDetailCard.tsx
 msgid "Read Less"
@@ -4247,10 +4419,23 @@ msgstr "刷新页面"
 msgid "Refresh Preview"
 msgstr "刷新预览"
 
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "Refresh ratings only"
+msgstr ""
+
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "Refresh scores for existing Plex items only. This does not discover media, read media files, change channel schedules or enable libraries."
+msgstr ""
+
 #: src/pages/settings/XmlTvSettingsPage.tsx
 #: src/pages/settings/XmlTvSettingsPage.tsx
 msgid "Refresh Timer (Hours)"
 msgstr "刷新周期（小时）"
+
+#: src/components/library/PlexRatingsRefreshAction.tsx
+#: src/components/MediaSourceLibraryTable.tsx
+msgid "Refreshing ratings"
+msgstr ""
 
 #: src/components/channels/BulkAssignFillersDialog.tsx
 #: src/components/fillers/AssignFillerToChannelsDialog.tsx
@@ -4468,6 +4653,7 @@ msgstr ""
 
 #: src/components/channels/BulkAssignFillersDialog.tsx
 #: src/components/fillers/AssignFillerToChannelsDialog.tsx
+#: src/components/library/PlexRatingsRefreshAction.tsx
 msgid "Retry"
 msgstr ""
 
@@ -4625,6 +4811,10 @@ msgstr "使用指定了开始时间和时长的时段来编排节目。"
 msgid "Schedule removed"
 msgstr ""
 
+#: src/components/search/NumericValueSearchNode.tsx
+msgid "Score (0-100)"
+msgstr ""
+
 #: src/components/ui/table/DataTable.tsx
 #: src/components/ui/table/DataTable.tsx
 #: src/hooks/useRouteName.ts
@@ -4672,6 +4862,10 @@ msgstr ""
 #: src/pages/system/StatusPage.tsx
 msgid "Search Server URL:"
 msgstr "搜索服务器地址："
+
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "Search updates can still be pending after metadata processing reaches 100%."
+msgstr ""
 
 #: src/components/TopBar.tsx
 #~ msgid "Search…"
@@ -4972,6 +5166,10 @@ msgstr "智能合集是会自动更新的内容列表。你只需设置查询条
 msgid "Software (No GPU)"
 msgstr "软件（无 GPU）"
 
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "Some search updates were not confirmed. Retry after the existing search index is available."
+msgstr ""
+
 #: src/hooks/useQueryErrorSnackbar.tsx
 msgid "Something went wrong loading data. Check the logs for details."
 msgstr ""
@@ -4979,6 +5177,10 @@ msgstr ""
 #: src/components/channel_config/ChannelProgrammingSort.tsx
 msgid "Sort"
 msgstr "排序"
+
+#: src/components/search/RatingSortControl.tsx
+msgid "Sort by"
+msgstr ""
 
 #: src/components/ui/table/SortButton.tsx
 msgid "Sort by {label} ascending"
@@ -5321,12 +5523,20 @@ msgstr ""
 msgid "The image will be rendered at its actual size without any scaling applied."
 msgstr "图片将按实际尺寸渲染，不做任何缩放。"
 
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "The library is busy. Wait for its current operation to finish."
+msgstr ""
+
 #: src/hooks/useVersion.tsx
 msgid "The loaded version of the Tunarr UI does not match the server. Reload the browser to get the latest. If this message persists, clear your browser cache and reload."
 msgstr "当前加载的 Tunarr 界面版本与服务器不匹配。请刷新浏览器以获取最新版本。若此提示持续出现，请清除浏览器缓存后重新加载。"
 
 #: src/components/UnavailableLibraryIndicator.tsx
 msgid "The media server stopped reporting this library on {since}. Its programs and channel schedules are preserved. Tunarr will not scan it until the server reports it again."
+msgstr ""
+
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "The request failed or this library is busy. Check its status before retrying."
 msgstr ""
 
 #: src/components/profiles/StreamSelectionPreviewPanel.tsx
@@ -5340,6 +5550,10 @@ msgstr ""
 #: src/components/LanguagePreferencesList.tsx
 #~ msgid "The selected languages will be considered in order they are selected."
 #~ msgstr "所选语言将按选择的先后顺序依次生效。"
+
+#: src/components/library/PlexRatingsRefreshAction.tsx
+msgid "The source or library changed during this job. Retry against the current configuration."
+msgstr ""
 
 #: src/components/channel_config/ChannelTranscodingConfig.tsx
 msgid "The streaming mode affects the type of underlying transcoding process used to create the channel's video stream.<0/>Learn more about Tunarr's stream modes <1>here</1>!"
@@ -5770,6 +5984,10 @@ msgstr ""
 msgid "Unit"
 msgstr "单位"
 
+#: src/components/library/ProgramRatings.tsx
+msgid "Unknown"
+msgstr ""
+
 #: src/components/profiles/condition/LibrarySelect.tsx
 msgid "Unknown library"
 msgstr ""
@@ -5796,6 +6014,10 @@ msgstr "更新"
 #: src/components/settings/media_source/JelllyfinServerEditDialog.tsx
 #: src/components/settings/media_source/PlexServerEditDialog.tsx
 msgid "Update Play Status"
+msgstr ""
+
+#: src/components/search/NumericValueSearchNode.tsx
+msgid "Upper value"
 msgstr ""
 
 #: src/components/settings/media_source/EmbyServerEditDialog.tsx

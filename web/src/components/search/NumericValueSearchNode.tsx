@@ -2,66 +2,119 @@ import { useLingui } from '@lingui/react/macro';
 import type { SearchFieldSpec } from '@/helpers/searchBuilderConstants.ts';
 import { numericBij } from '@/helpers/searchBuilderConstants.ts';
 import type { FieldKey, FieldPrefix } from '@/types/SearchBuilder.ts';
-import { TextField } from '@mui/material';
+import { Stack, TextField } from '@mui/material';
 import { isNumber2Tuple } from '@tunarr/shared/util';
-import { castArray, isNumber } from 'lodash-es';
-import { useCallback } from 'react';
+import { isNumber } from 'lodash-es';
+import { useState } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import type { SearchForm } from './SearchInput.tsx';
 
 type Props = {
-  // field: NumericSearchField;
   uiSpec: SearchFieldSpec<'numeric'>;
   formKey: FieldKey<FieldPrefix, 'fieldSpec'>;
 };
 
-export const NumericValueSearchNode = ({ uiSpec, formKey }: Props) => {
+function NumericDraftInput({
+  value,
+  uiSpec,
+  label,
+  onChange,
+  onBlur,
+}: {
+  value: number;
+  uiSpec: SearchFieldSpec<'numeric'>;
+  label: string;
+  onChange: (value: number) => void;
+  onBlur: () => void;
+}) {
+  const { t } = useLingui();
+  // A focused draft owns unfinished decimals such as "70.". The form keeps
+  // the last valid numeric value; blur abandons an invalid draft, not as zero.
+  const [draft, setDraft] = useState<string>();
+  const bijection = uiSpec.uiBijection ?? numericBij;
+  const displayValue = uiSpec.bijection ? uiSpec.bijection.from(value) : value;
+  const text = draft ?? bijection.to(displayValue);
+  const parsed = text.trim() === '' ? NaN : bijection.from(text);
+  const valid =
+    Number.isFinite(parsed) &&
+    (!uiSpec.valueBounds ||
+      (parsed >= uiSpec.valueBounds.min && parsed <= uiSpec.valueBounds.max));
+  return (
+    <TextField
+      label={label}
+      size="small"
+      value={text}
+      error={draft !== undefined && !valid}
+      helperText={
+        draft !== undefined && !valid
+          ? t`Enter a valid number in the displayed scale.`
+          : undefined
+      }
+      slotProps={{ htmlInput: { inputMode: 'decimal' } }}
+      onFocus={() => setDraft(bijection.to(displayValue))}
+      onBlur={() => {
+        setDraft(undefined);
+        onBlur();
+      }}
+      onChange={(event) => {
+        const next = event.target.value;
+        setDraft(next);
+        if (next.trim() === '') return;
+        const parsed = bijection.from(next);
+        if (
+          !Number.isFinite(parsed) ||
+          (uiSpec.valueBounds &&
+            (parsed < uiSpec.valueBounds.min ||
+              parsed > uiSpec.valueBounds.max))
+        )
+          return;
+        const result = uiSpec.bijection ? uiSpec.bijection.to(parsed) : parsed;
+        if (Number.isFinite(result)) onChange(result);
+      }}
+    />
+  );
+}
+
+export function NumericValueSearchNode({ uiSpec, formKey }: Props) {
   const { t } = useLingui();
   const { control } = useFormContext<SearchForm>();
-
-  const handleValueChange = useCallback(
-    (
-      // spec: SearchFieldSpec<SearchField['type']>,
-      value: string,
-      originalOnChange: (...args: unknown[]) => void,
-    ) => {
-      const fromUiValue = (uiSpec.uiBijection ?? numericBij).from(value);
-      if (uiSpec.bijection) {
-        originalOnChange(uiSpec.bijection.to(fromUiValue));
-      } else {
-        if (isNaN(fromUiValue)) {
-          return;
-        }
-        originalOnChange(fromUiValue);
-      }
-    },
-    [uiSpec.bijection, uiSpec.uiBijection],
-  );
-
   return (
     <Controller
       control={control}
       name={`${formKey}.value`}
       render={({ field }) => {
-        // Have to do this check for TS even though we know it's true.
-        if (!isNumber(field.value) && !isNumber2Tuple(field.value)) {
-          return <></>;
+        const value = field.value;
+        if (isNumber(value)) {
+          return (
+            <NumericDraftInput
+              value={value}
+              uiSpec={uiSpec}
+              label={uiSpec.valueBounds ? t`Score (0-100)` : t`Value`}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+            />
+          );
         }
-
-        let v = castArray(field.value)[0];
-        if (uiSpec.bijection) {
-          v = uiSpec.bijection.from(v);
-        }
-
+        if (!isNumber2Tuple(value)) return <></>;
         return (
-          <TextField
-            label={t`Value`}
-            size="small"
-            value={v}
-            onChange={(e) => handleValueChange(e.target.value, field.onChange)}
-          />
+          <Stack direction="row" gap={1}>
+            <NumericDraftInput
+              value={value[0]}
+              uiSpec={uiSpec}
+              label={t`Lower value`}
+              onChange={(next) => field.onChange([next, value[1]])}
+              onBlur={field.onBlur}
+            />
+            <NumericDraftInput
+              value={value[1]}
+              uiSpec={uiSpec}
+              label={t`Upper value`}
+              onChange={(next) => field.onChange([value[0], next])}
+              onBlur={field.onBlur}
+            />
+          </Stack>
         );
       }}
     />
   );
-};
+}

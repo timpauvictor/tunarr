@@ -2,7 +2,7 @@ import { KEYS } from '@/types/inject.js';
 import { isNonEmptyString, nullToUndefined } from '@/util/index.js';
 import { InjectLogger } from '@/util/inject.js';
 import { type Logger } from '@/util/logging/LoggerFactory.js';
-import { seq } from '@tunarr/shared/util';
+import { calculateOmnirating, seq } from '@tunarr/shared/util';
 import type {
   Actor,
   ContentProgram,
@@ -81,6 +81,8 @@ export class ProgramConverter {
 
     const base = {
       rating: program.rating,
+      ratings: program.ratings ?? null,
+      omnirating: calculateOmnirating(program.ratings),
       summary: program.summary,
       title: program.title,
       year: program.year,

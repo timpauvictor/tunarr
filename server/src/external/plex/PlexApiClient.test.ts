@@ -1,15 +1,18 @@
 import { faker } from '@faker-js/faker';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
-import { AxiosError } from 'axios';
+import { AxiosError, type AxiosRequestConfig } from 'axios';
+import { QueryError } from '../BaseApiClient.ts';
 import { describe, expect, it, vi } from 'vitest';
 import { Result } from '@/types/result.js';
 import { PlexMovieSchema } from '@tunarr/types/plex';
+import { tag } from '@tunarr/types';
 import { PlexApiClient, selectPlexVideoStream } from './PlexApiClient.js';
 
 const { fakeLogger } = vi.hoisted(() => {
   const fakeLogger = {
     trace: vi.fn(),
+    http_out: vi.fn(),
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
@@ -28,6 +31,12 @@ vi.mock('@/util/version.js', () => ({
   getTunarrVersion: () => '1.0.0-test',
 }));
 
+class TestPlexApiClient extends PlexApiClient {
+  public override doRequest<T>(request: AxiosRequestConfig): Promise<T> {
+    return super.doRequest<T>(request);
+  }
+}
+
 function makeMinimalPlexClient(uri = 'http://localhost:32400') {
   const mediaSourceId = faker.string.uuid();
   const libraryId = faker.string.uuid();
@@ -38,13 +47,20 @@ function makeMinimalPlexClient(uri = 'http://localhost:32400') {
       `plex://movie/${item.ratingKey}`,
   };
 
-  const client = new PlexApiClient(canonicalizer as never, {
+  const client = new TestPlexApiClient(canonicalizer as never, {
     mediaSource: {
-      uuid: mediaSourceId,
-      name: 'Test Plex' as never,
+      uuid: tag(mediaSourceId),
+      name: tag('Test Plex'),
       type: 'plex',
       uri,
       accessToken: 'test-token',
+      paths: [],
+      replacePaths: [],
+      consecutiveAuthFailures: 0,
+      mediaType: null,
+      sendPlayStatusUpdates: false,
+      userId: null,
+      username: null,
       libraries: [
         {
           uuid: libraryId,
@@ -59,6 +75,77 @@ function makeMinimalPlexClient(uri = 'http://localhost:32400') {
 
   return { client, mediaSourceId, libraryId, externalLibraryKey };
 }
+
+describe('Plex full-metadata numeric ratings', () => {
+  it('retains provider scores and personal stars without changing age classification', async () => {
+    const payload = {
+      ...makePlexMovieMetadata('42', 1),
+      contentRating: 'PG-13',
+      audienceRating: 6,
+      audienceRatingImage: 'imdb://image.rating',
+      userRating: 8,
+      Rating: [
+        { image: 'imdb://image.rating', type: 'audience', value: 6 },
+        {
+          image: 'rottentomatoes://image.rating.ripe',
+          type: 'critic',
+          value: 3.6,
+        },
+        {
+          image: 'rottentomatoes://image.rating.upright',
+          type: 'audience',
+          value: 5,
+        },
+        { image: 'themoviedb://image.rating', type: 'audience', value: 6.5 },
+      ],
+    };
+    let response: unknown = {
+      MediaContainer: { size: 1, Metadata: [payload] },
+    };
+    const paths: string[] = [];
+    const server = createServer((req, res) => {
+      paths.push(new URL(req.url ?? '/', 'http://fixture').pathname);
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify(response));
+    }).listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const address = server.address();
+    if (!address || typeof address === 'string')
+      throw new Error('Missing fixture port');
+    const { client } = makeMinimalPlexClient(
+      `http://127.0.0.1:${address.port}`,
+    );
+    try {
+      const movie = (await client.getMovie('42')).getOrThrow();
+      expect(movie.rating).toBe('PG-13');
+      expect(movie.omnirating).toBe(52.75);
+      expect(movie.ratings?.entries).toHaveLength(5);
+      expect(
+        movie.ratings?.entries.find((entry) => entry.kind === 'personal')
+          ?.value,
+      ).toBe(8);
+      response = {
+        MediaContainer: {
+          size: 1,
+          Metadata: [{ ...payload, Rating: 'broken' }],
+        },
+      };
+      const malformed = (await client.getMovie('42')).getOrThrow();
+      expect(malformed.title).toBe(payload.title);
+      expect(malformed.ratings).toBeUndefined();
+      response = {
+        MediaContainer: { size: 1, Metadata: [makePlexMovieMetadata('42', 1)] },
+      };
+      expect(
+        (await client.getMovie('42')).getOrThrow().ratings?.entries,
+      ).toEqual([]);
+      expect(paths).toEqual(Array(3).fill('/library/metadata/42'));
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+});
 
 describe('Plex status request deadlines', () => {
   it('terminates a hanging real request at five seconds without changing defaults', async () => {
@@ -188,15 +275,16 @@ function mockPagedItems(
   { reportTotalSize = true }: { reportTotalSize?: boolean } = {},
 ) {
   return vi
-    .spyOn(client, 'doTypeCheckedGet' as never)
+    .spyOn(client, 'doTypeCheckedGet')
     .mockImplementation(
       (
         _path: string,
         _schema: unknown,
-        config: { params: Record<string, unknown> },
+        config: { params?: Record<string, unknown> } = {},
       ) => {
-        const offset = (config.params['X-Plex-Container-Start'] as number) ?? 0;
-        const size = (config.params['X-Plex-Container-Size'] as number) ?? 50;
+        const offset =
+          (config.params?.['X-Plex-Container-Start'] as number) ?? 0;
+        const size = (config.params?.['X-Plex-Container-Size'] as number) ?? 50;
         const page = allMetadata.slice(offset, offset + size);
         return Promise.resolve(
           Result.success({
@@ -308,15 +396,15 @@ describe('PlexApiClient', () => {
 
       // A server that caps pages at 20 regardless of X-Plex-Container-Size.
       const doGetSpy = vi
-        .spyOn(client, 'doTypeCheckedGet' as never)
+        .spyOn(client, 'doTypeCheckedGet')
         .mockImplementation(
           (
             _path: string,
             _schema: unknown,
-            config: { params: Record<string, unknown> },
+            config: { params?: Record<string, unknown> } = {},
           ) => {
             const offset =
-              (config.params['X-Plex-Container-Start'] as number) ?? 0;
+              (config.params?.['X-Plex-Container-Start'] as number) ?? 0;
             const page = allMetadata.slice(offset, offset + 20);
             return Promise.resolve(
               Result.success({
@@ -348,7 +436,7 @@ describe('PlexApiClient', () => {
         makePlexMovieMetadata(String(i + 1), librarySectionID),
       );
 
-      vi.spyOn(client, 'doTypeCheckedGet' as never)
+      vi.spyOn(client, 'doTypeCheckedGet')
         .mockImplementationOnce(() =>
           Promise.resolve(
             Result.success({
@@ -361,7 +449,9 @@ describe('PlexApiClient', () => {
           ),
         )
         .mockImplementationOnce(() =>
-          Promise.resolve(Result.forError(new Error('network timeout'))),
+          Promise.resolve(
+            Result.failure(QueryError.genericQueryError('network timeout')),
+          ),
         );
 
       const result = await client.getItemChildren('playlist-3', 'playlist');
@@ -381,8 +471,10 @@ describe('PlexApiClient', () => {
     it('returns an error when the first request fails', async () => {
       const { client } = makeMinimalPlexClient();
 
-      vi.spyOn(client, 'doTypeCheckedGet' as never).mockImplementation(() =>
-        Promise.resolve(Result.forError(new Error('connection refused'))),
+      vi.spyOn(client, 'doTypeCheckedGet').mockImplementation(() =>
+        Promise.resolve(
+          Result.failure(QueryError.genericQueryError('connection refused')),
+        ),
       );
 
       const result = await client.getItemChildren('playlist-4', 'playlist');
@@ -480,7 +572,7 @@ describe('PlexApiClient', () => {
 
       // Never returns an empty page, so only the page cap ends the loop.
       const doGetSpy = vi
-        .spyOn(client, 'doTypeCheckedGet' as never)
+        .spyOn(client, 'doTypeCheckedGet')
         .mockImplementation(() =>
           Promise.resolve(
             Result.success({
@@ -506,7 +598,7 @@ describe('PlexApiClient', () => {
     it('reads a response without a Directory key as no libraries', async () => {
       const { client } = makeMinimalPlexClient();
 
-      vi.spyOn(client, 'doRequest' as never).mockImplementation(() =>
+      vi.spyOn(client, 'doRequest').mockImplementation(() =>
         Promise.resolve({
           MediaContainer: { size: 0, allowSync: false, title1: 'Plex Library' },
         }),

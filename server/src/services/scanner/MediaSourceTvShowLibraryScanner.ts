@@ -290,6 +290,7 @@ export abstract class MediaSourceTvShowLibraryScanner<
 
     const show = showResult.get();
     const needsDeepScan =
+      !!show.ratings ||
       context.force ||
       !existingShow ||
       (existingShow.canonicalId &&
@@ -475,6 +476,7 @@ export abstract class MediaSourceTvShowLibraryScanner<
     const fullSeason = fullSeasonResult.get();
 
     const needsUpdate =
+      !!fullSeason.ratings ||
       scanContext.force ||
       !existingSeason ||
       fullSeason.canonicalId !== existingSeason.canonicalId;
@@ -584,6 +586,7 @@ export abstract class MediaSourceTvShowLibraryScanner<
             existing[externalKey],
             fullEpisode.canonicalId,
             force,
+            !!fullEpisode.ratings,
           )
         ) {
           this.logger.debug(

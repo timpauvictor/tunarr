@@ -11,6 +11,8 @@ export type SearchFieldSpec<
   type: Typ;
   displayName: string;
   uiVisible: boolean;
+  disabled?: boolean;
+  valueBounds?: { min: number; max: number };
   visibleForLibraryTypes:
     | 'all'
     | ReadonlyArray<MediaSourceLibrary['mediaType']>;

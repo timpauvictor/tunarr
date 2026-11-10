@@ -185,7 +185,12 @@ export abstract class MediaSourceOtherVideoScanner<
     const fullMetadata = fullMetadataResult.get();
 
     if (
-      canSkipUnchangedProgram(existingVideo, fullMetadata.canonicalId, force)
+      canSkipUnchangedProgram(
+        existingVideo,
+        fullMetadata.canonicalId,
+        force,
+        !!fullMetadata.ratings,
+      )
     ) {
       this.logger.debug(
         'Found an unchanged program: rating key = %s, program ID = %s',

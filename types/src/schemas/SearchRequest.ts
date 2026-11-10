@@ -1,5 +1,6 @@
 import { z } from 'zod/v4';
 import type { TupleToUnion } from '../util.js';
+import { parseRatingFieldKey, RatingFieldKeySchema } from './ratingsSchema.js';
 
 const StringOperators = [
   '=',
@@ -25,7 +26,15 @@ const DateOperators = [
 export type DateOperators = TupleToUnion<typeof DateOperators>;
 
 const BaseSearchFieldSchema = z.object({
-  key: z.string().describe('The actual field path in the search index'),
+  key: z
+    .string()
+    .refine(
+      (key) =>
+        !key.startsWith('numericRatings') &&
+        (!key.startsWith('score_v1_') || !!parseRatingFieldKey(key)),
+      'Use a valid public rating field identity',
+    )
+    .describe('The actual field path or public rating identity'),
   name: z
     .string()
     .optional()
@@ -156,12 +165,13 @@ export const SearchSortFields = [
   'originalReleaseYear',
   'addedAt',
   'index',
+  'omnirating',
 ] as const;
 
-export type SearchSortField = TupleToUnion<typeof SearchSortFields>;
+export type SearchSortField = SearchSort['field'];
 
 export const SearchSortSchema = z.object({
-  field: z.enum(SearchSortFields),
+  field: z.enum(SearchSortFields).or(RatingFieldKeySchema),
   direction: z.enum(['asc', 'desc']),
 });
 

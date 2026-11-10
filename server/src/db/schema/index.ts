@@ -83,6 +83,7 @@ import {
 } from './ProgramSubtitles.ts';
 import { ProgramVersion, ProgramVersionRelations } from './ProgramVersion.ts';
 import { SmartCollection } from './SmartCollection.ts';
+import { RatingField } from './RatingField.ts';
 import { Studio, StudioEntity, StudioRelations } from './Studio.ts';
 import {
   Tag,
@@ -146,6 +147,7 @@ export const schema = {
   programSubtitles: ProgramSubtitles,
   programSubtitlesRelations: ProgramSubtitlesRelations,
   smartCollection: SmartCollection,
+  ratingField: RatingField,
   credit: Credit,
   creditRelations: CreditRelations,
   genre: Genre,

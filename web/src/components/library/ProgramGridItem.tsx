@@ -8,6 +8,7 @@ import type { GridItemMetadata } from '../channel_config/MediaGridItem.tsx';
 import { MediaGridItem } from '../channel_config/MediaGridItem.tsx';
 import type { GridItemProps } from '../channel_config/MediaItemGrid.tsx';
 import { ProgramSubtitle } from './extractSubtitle.tsx';
+import { ProgramRatings } from './ProgramRatings.tsx';
 
 const ProgramGridItemInner = <T extends ProgramOrFolder>(
   props: GridItemProps<T>,
@@ -53,7 +54,12 @@ const ProgramGridItemInner = <T extends ProgramOrFolder>(
         childCount: null,
         mayHaveChildren: !isTerminalItemType(item),
         title: item.title,
-        subtitle: ProgramSubtitle(item),
+        subtitle: (
+          <>
+            {ProgramSubtitle(item)}
+            <ProgramRatings program={item} />
+          </>
+        ),
         thumbnailUrl: thumbnailUrlFunc(item),
         selectedMedia:
           props.item.sourceType === 'local'

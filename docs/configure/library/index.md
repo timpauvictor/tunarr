@@ -38,3 +38,9 @@ The Library contains reusable collections of content that can be used across mul
 | **Custom Shows** | YouTube series, home videos, or any content you want to treat as episodic |
 | **Smart Collections** | Auto-updating playlists based on genre, year, rating, etc. |
 | **Trash** | Reviewing and permanently removing content that disappeared from your media |
+
+## Plex review scores
+
+The media library table has a **Plex ratings** star action for Plex libraries. **Refresh ratings only** updates review scores for existing items without a full media scan, file reads or schedule changes. The library must be enabled and available; the action never enables it for you.
+
+Use numeric score fields or **Omnirating** to filter and sort imported content. The existing `rating` field still means the age/content classification. See the [numeric ratings search and refresh guide](../../misc/search/index.md#plex-numeric-ratings-and-omnirating) for score units, missing values, personal stars and partial-job recovery.

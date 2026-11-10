@@ -1,4 +1,6 @@
 import type { MediaSourceId } from '@tunarr/shared';
+import type { PlexRatingsRefreshStatus } from '@tunarr/types/schemas';
+import { PlexRatingsRefreshService } from './PlexRatingsRefreshService.ts';
 import { E_ALREADY_LOCKED, tryAcquire } from 'async-mutex';
 import { inject, injectable } from 'inversify';
 import PQueue from 'p-queue';
@@ -25,7 +27,8 @@ export class MediaSourceScanCoordinator {
   @InjectLogger() declare private readonly logger: Logger;
 
   constructor(
-    @inject(MediaSourceDB) private mediaSourceDB: MediaSourceDB,
+    @inject(MediaSourceDB)
+    private mediaSourceDB: Pick<MediaSourceDB, 'getById' | 'getLibrary'>,
     @inject(EntityMutex) private entityMutex: EntityMutex,
     @inject(KEYS.MediaSourceLibraryScanner)
     private scannerFactory: GenericMediaSourceScannerFactory,
@@ -39,6 +42,8 @@ export class MediaSourceScanCoordinator {
     ) => Maybe<GenericExternalCollectionScanner>,
     @inject(autoFactoryKey(ReconcileProgramDurationsTask))
     private reconcileDurationsTaskFactory: () => ReconcileProgramDurationsTask,
+    @inject(PlexRatingsRefreshService)
+    private ratingsRefresh: PlexRatingsRefreshService,
   ) {}
 
   async addLocal({
@@ -99,7 +104,11 @@ export class MediaSourceScanCoordinator {
           ),
         )
         .finally(() => {
-          MediaSourceScanCoordinator.signalById.delete(mediaSource.uuid);
+          if (
+            MediaSourceScanCoordinator.signalById.get(mediaSource.uuid) ===
+            controller
+          )
+            MediaSourceScanCoordinator.signalById.delete(mediaSource.uuid);
           this.reconcileProgramDurations();
         });
 
@@ -193,7 +202,11 @@ export class MediaSourceScanCoordinator {
           this.logger.error(e, 'Error scanning library %s', library.uuid),
         )
         .finally(() => {
-          MediaSourceScanCoordinator.signalById.delete(library.uuid);
+          if (
+            MediaSourceScanCoordinator.signalById.get(library.uuid) ===
+            controller
+          )
+            MediaSourceScanCoordinator.signalById.delete(library.uuid);
           this.reconcileProgramDurations();
         });
 
@@ -215,6 +228,126 @@ export class MediaSourceScanCoordinator {
     }
   }
 
+  async addRatingsRefresh(
+    mediaSourceId: string,
+    libraryId: string,
+  ): Promise<PlexRatingsRefreshStatus | null> {
+    const library = await this.mediaSourceDB.getLibrary(libraryId);
+    if (
+      !library ||
+      library.mediaSourceId !== mediaSourceId ||
+      library.mediaSource.type !== 'plex' ||
+      !library.enabled ||
+      library.unavailableSince !== null
+    )
+      return null;
+    try {
+      const release = await tryAcquire(
+        await this.entityMutex.getLockForLibrary(library),
+      ).acquire();
+      // A queued whole-source scan owns the parent even before it enters this
+      // library. Do not reserve a child lock behind that source's queue slot.
+      if (this.entityMutex.isMediaSourceLocked(library.mediaSource)) {
+        release();
+        return null;
+      }
+      let scheduled = false;
+      let started = false;
+      let finished = false;
+      let job: PlexRatingsRefreshStatus | undefined;
+      const controller = new AbortController();
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        controller.signal.removeEventListener('abort', abortQueued);
+        try {
+          if (job) this.progressService.scanEnded(library.uuid);
+        } finally {
+          if (
+            MediaSourceScanCoordinator.signalById.get(library.uuid) ===
+            controller
+          )
+            MediaSourceScanCoordinator.signalById.delete(library.uuid);
+          release();
+        }
+      };
+      const abortQueued = () => {
+        if (!started && job) {
+          this.ratingsRefresh.cancelQueued(library.uuid, job.jobId);
+          finish();
+        }
+      };
+      try {
+        job = this.ratingsRefresh.queue(library.uuid, library.mediaSourceId);
+        const jobId = job.jobId;
+        MediaSourceScanCoordinator.signalById.set(library.uuid, controller);
+        controller.signal.addEventListener('abort', abortQueued, {
+          once: true,
+        });
+        this.progressService.scanQueued(library.uuid, 'ratings');
+        const pending = MediaSourceScanCoordinator.queue.add(async () => {
+          started = true;
+          if (finished) return;
+          try {
+            this.progressService.scanStarted(library.uuid, 'ratings');
+            await this.ratingsRefresh.run(
+              jobId,
+              library,
+              controller.signal,
+              (percent) =>
+                this.progressService.scanProgress(library.uuid, percent),
+            );
+          } catch {
+            this.ratingsRefresh.fail(library.uuid, jobId);
+            this.logger.warn(
+              'Plex ratings refresh failed for library %s',
+              library.uuid,
+            );
+          } finally {
+            finish();
+          }
+        });
+        // Keep the queue slot until active cleanup settles. PQueue's own abort
+        // race would release it while the cancelled callback is still running.
+        scheduled = true;
+        void pending.catch(() => {
+          if (!started) {
+            if (controller.signal.aborted)
+              this.ratingsRefresh.cancelQueued(library.uuid, jobId);
+            else this.ratingsRefresh.fail(library.uuid, jobId);
+            finish();
+          } else if (!controller.signal.aborted) {
+            this.logger.warn(
+              'Plex ratings refresh could not finish for library %s',
+              library.uuid,
+            );
+          }
+        });
+        return job;
+      } finally {
+        if (!scheduled) {
+          if (job) this.ratingsRefresh.fail(library.uuid, job.jobId);
+          finish();
+        }
+      }
+    } catch (error) {
+      if (error !== E_ALREADY_LOCKED)
+        this.logger.warn(
+          'Could not queue ratings refresh for library %s',
+          library.uuid,
+        );
+      return null;
+    }
+  }
+
+  cancelRatingsRefresh(libraryId: string, jobId: string): boolean {
+    if (!this.ratingsRefresh.requestCancel(libraryId, jobId)) return false;
+    const controller = MediaSourceScanCoordinator.signalById.get(libraryId);
+    if (!controller) return false;
+    controller.abort();
+    return true;
+  }
+
   // A scan can change program durations. Channel lineups keep their own copy,
   // which streaming schedules from, so it is brought back in line here.
   private reconcileProgramDurations() {
@@ -228,7 +361,7 @@ export class MediaSourceScanCoordinator {
   }
 
   awaitAllFinished() {
-    return MediaSourceScanCoordinator.queue.onEmpty();
+    return MediaSourceScanCoordinator.queue.onIdle();
   }
 }
 

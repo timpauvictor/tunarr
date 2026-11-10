@@ -1,4 +1,5 @@
 import dayjs from '@/util/dayjs.js';
+import { calculateOmnirating } from '@tunarr/shared/util';
 import type {
   Actor,
   Episode,
@@ -126,6 +127,8 @@ export class ApiProgramConverters {
       title: program.title,
       duration: program.duration,
       canonicalId: program.canonicalId ?? '',
+      ratings: program.ratings ?? null,
+      omnirating: calculateOmnirating(program.ratings),
       tags: program.tags?.map((tag) => tag.tag.tag) ?? searchDoc?.tags ?? [],
       // Omitted when credits were not loaded, so an empty list always means
       // the program has none.
@@ -316,6 +319,8 @@ export class ApiProgramConverters {
       identifiers,
       year: year && year > 0 ? year : null,
       canonicalId: grouping.canonicalId ?? '',
+      ratings: grouping.ratings ?? null,
+      omnirating: calculateOmnirating(grouping.ratings),
       title: grouping.title,
       summary: grouping.summary,
       plot: grouping.plot,

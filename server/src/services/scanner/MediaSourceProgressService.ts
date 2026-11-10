@@ -17,10 +17,12 @@ type NotScanningState = {
 
 type QueuedState = {
   state: 'queued';
+  operation?: 'ratings';
 };
 
 type ScanningState = {
   state: 'in_progress';
+  operation?: 'ratings';
   startedAt: dayjs.Dayjs;
   percentComplete: number;
 };
@@ -39,29 +41,30 @@ export class MediaSourceProgressService extends Emitter {
     super();
   }
 
-  scanStarted(libraryId: string) {
-    this.emit('scanStart', libraryId);
+  scanStarted(libraryId: string, operation?: 'ratings') {
     this.#scanDetails.set(libraryId, {
       state: 'in_progress',
+      ...(operation ? { operation } : {}),
       startedAt: dayjs(),
       percentComplete: 0,
     });
+    this.emit('scanStart', libraryId);
   }
 
   scanEnded(libraryId: string) {
-    this.emit('scanEnd', libraryId);
     this.#scanDetails.delete(libraryId);
+    this.emit('scanEnd', libraryId);
   }
 
-  scanQueued(libraryId: string) {
-    this.emit('scanQueued', libraryId);
+  scanQueued(libraryId: string, operation?: 'ratings') {
     this.#scanDetails.set(libraryId, {
       state: 'queued',
+      ...(operation ? { operation } : {}),
     });
+    this.emit('scanQueued', libraryId);
   }
 
   scanProgress(libraryId: string, percentComplete: number) {
-    this.emit('scanProgress', libraryId, percentComplete);
     const existing = this.#scanDetails.get(libraryId);
     if (existing) {
       const start =
@@ -70,6 +73,7 @@ export class MediaSourceProgressService extends Emitter {
         state: 'in_progress',
         percentComplete,
         startedAt: start,
+        ...(existing.operation ? { operation: existing.operation } : {}),
       });
     } else {
       const progress = {
@@ -79,6 +83,7 @@ export class MediaSourceProgressService extends Emitter {
       } satisfies ScanningState;
       this.#scanDetails.set(libraryId, progress);
     }
+    this.emit('scanProgress', libraryId, percentComplete);
   }
 
   getScanProgress(libraryId: string): ScanState {

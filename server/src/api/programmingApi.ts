@@ -26,6 +26,7 @@ import {
   ProgramGroupingSchema,
   SearchFilterQuerySchema,
   TerminalProgramSchema,
+  RatingFieldsResponseSchema,
 } from '@tunarr/types/schemas';
 import { jsonArrayFrom } from 'kysely/helpers/sqlite';
 import { compact, find, first, head, isNil, map, values } from 'lodash-es';
@@ -48,6 +49,7 @@ import { BackfillPlexClientIdentifierCommand } from '../commands/media_source/Ba
 import { SearchProgramsCommand } from '../commands/SearchProgramsCommand.ts';
 import type { DrizzleDBAccess } from '../db/schema/index.ts';
 import { ArtworkService } from '../services/ArtworkService.ts';
+import { MeilisearchService } from '../services/MeilisearchService.ts';
 import { FfprobeStreamDetails } from '../stream/FfprobeStreamDetails.ts';
 import { ProgramStreamDetailsFetcher } from '../stream/ProgramStreamDetailsFetcher.ts';
 import { TypedError } from '../types/errors.ts';
@@ -69,6 +71,15 @@ export const programmingApi: RouterPluginAsyncCallback = async (fastify) => {
     caller: import.meta,
     className: 'ProgrammingApi',
   });
+
+  fastify.get(
+    '/programs/ratings/fields',
+    {
+      schema: { response: { 200: RatingFieldsResponseSchema } },
+    },
+    async (_req, res) =>
+      res.send({ fields: container.get(MeilisearchService).getRatingFields() }),
+  );
 
   fastify.post(
     '/programs/search',

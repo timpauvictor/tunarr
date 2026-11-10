@@ -34,6 +34,7 @@ import type {
 } from '../schema/derivedTypes.ts';
 import type { DrizzleDBAccess, schema } from '../schema/index.ts';
 import type { ProgramMetadataRepository } from './ProgramMetadataRepository.ts';
+import { registerRatingFields } from './ratingFields.ts';
 
 @injectable()
 export class ProgramGroupingUpsertRepository {
@@ -56,6 +57,7 @@ export class ProgramGroupingUpsertRepository {
     let wasInserted = false,
       wasUpdated = false;
     const { programGrouping: dao, externalIds } = newGroupingAndRelations;
+    shouldUpdate ||= !!dao.ratings;
 
     if (!entity && dao.sourceType === 'local') {
       const incomingYear = newGroupingAndRelations.programGrouping.year;
@@ -115,6 +117,7 @@ export class ProgramGroupingUpsertRepository {
         externalId.groupUuid = entity.uuid;
       }
       entity = this.drizzleDB.transaction((tx) => {
+        registerRatingFields(tx, [dao.ratings]);
         const updated = this.updateProgramGrouping(
           newGroupingAndRelations,
           entity!,
@@ -134,6 +137,7 @@ export class ProgramGroupingUpsertRepository {
       wasUpdated = true;
     } else if (!entity) {
       entity = this.drizzleDB.transaction((tx) => {
+        registerRatingFields(tx, [dao.ratings]);
         const grouping = tx
           .insert(ProgramGrouping)
           .values(omit(dao, 'externalIds'))
@@ -256,6 +260,7 @@ export class ProgramGroupingUpsertRepository {
       externalKey: incoming.externalKey,
       plot: incoming.plot,
       rating: incoming.rating,
+      ratings: incoming.ratings ?? undefined,
       releaseDate: incoming.releaseDate,
       tagline: incoming.tagline,
       updatedAt: incoming.updatedAt,

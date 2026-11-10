@@ -50,6 +50,7 @@ import type { GenericMediaSourceOtherVideoLibraryScanner } from './scanner/Media
 import { EmptyTrashService } from './EmptyTrashService.ts';
 import { MediaSourceProgressService } from './scanner/MediaSourceProgressService.ts';
 import { MediaSourceScanCoordinator } from './scanner/MediaSourceScanCoordinator.ts';
+import { PlexRatingsRefreshService } from './scanner/PlexRatingsRefreshService.ts';
 import type {
   GenericMediaSourceScanner,
   GenericMediaSourceScannerFactory,
@@ -227,6 +228,7 @@ export const ServicesModule = new ContainerModule(({ bind }) => {
   bind(MediaSourceProgressService).toSelf().inSingletonScope();
   bind(EmptyTrashService).toSelf().inSingletonScope();
   bind(MediaSourceScanCoordinator).toSelf().inSingletonScope();
+  bind(PlexRatingsRefreshService).toSelf().inSingletonScope();
 
   bind(CelEvaluationService).toSelf().inSingletonScope();
   bind(StreamSelectionProfileResolver).toSelf().inSingletonScope();

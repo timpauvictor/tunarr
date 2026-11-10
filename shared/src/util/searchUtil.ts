@@ -12,7 +12,12 @@ import type {
   StringOperators,
   StringSearchField,
 } from '@tunarr/types/schemas';
-import { createToken, EmbeddedActionsParser, Lexer } from 'chevrotain';
+import {
+  createToken,
+  EmbeddedActionsParser,
+  Lexer,
+  MismatchedTokenException,
+} from 'chevrotain';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat.js';
 import { has, head, identity, isArray, isNumber } from 'lodash-es';
@@ -26,6 +31,7 @@ import { match, P } from 'ts-pattern';
 import type { MediaSourceId } from '../index.js';
 import { emptyStringToNull, isNonEmptyString } from './index.js';
 import { inConstArr, invert } from './seq.js';
+import { parseRatingFieldKey, ratingFieldKey } from './ratings.js';
 
 dayjs.extend(customParseFormat);
 
@@ -104,7 +110,9 @@ const NumericFields = [
 
 const NumericField = createToken({
   name: 'NumericField',
-  pattern: new RegExp(NumericFields.join('|')),
+  pattern: new RegExp(
+    `(?:score\\(\\s*"(?:\\\\.|[^"\\\\])*"\\s*,\\s*"(?:\\\\.|[^"\\\\])*"\\s*\\)|omnirating|${NumericFields.join('|')})`,
+  ),
   longer_alt: Identifier,
 });
 
@@ -859,7 +867,31 @@ export class SearchParser extends EmbeddedActionsParser {
   });
 
   private singleNumericSearch = this.RULE('singleNumericSearch', () => {
-    const field = this.CONSUME(NumericField).image;
+    const fieldToken = this.CONSUME(NumericField);
+    const fieldImage = fieldToken.image;
+    let field = fieldImage;
+    const scoreMatch =
+      /^score\(\s*("(?:\\.|[^"\\])*")\s*,\s*("(?:\\.|[^"\\])*")\s*\)$/.exec(
+        fieldImage,
+      );
+    if (scoreMatch) {
+      try {
+        const providerId: unknown = JSON.parse(scoreMatch[1]);
+        const kind: unknown = JSON.parse(scoreMatch[2]);
+        if (typeof providerId !== 'string' || typeof kind !== 'string')
+          throw new Error();
+        field = ratingFieldKey(providerId, kind);
+      } catch {
+        const error = new MismatchedTokenException(
+          'Invalid rating search identity',
+          fieldToken,
+          fieldToken,
+        );
+        this.errors = [...this.errors, error];
+        throw error;
+      }
+    }
+
     const opRet = this.SUBRULE(this.numericOperator);
 
     if (opRet.op === 'between') {
@@ -1250,14 +1282,16 @@ export function denormalizeSearchFilter(input: SearchFilter): SearchFilter {
         fieldSpec: { type: 'numeric', name: P.when(isNonEmptyString) },
       },
       (numeric) => {
-        const denorm = has(
-          numericFieldDenormalizersByField,
-          numeric.fieldSpec.name,
-        )
-          ? (numericFieldDenormalizersByField[
-              numeric.fieldSpec.name
-            ] as Converter<number>)
-          : identity<number>;
+        const isRatingKey =
+          !!parseRatingFieldKey(numeric.fieldSpec.key) ||
+          numeric.fieldSpec.key === 'omnirating';
+        const denorm =
+          !isRatingKey &&
+          has(numericFieldDenormalizersByField, numeric.fieldSpec.name)
+            ? (numericFieldDenormalizersByField[
+                numeric.fieldSpec.name
+              ] as Converter<number>)
+            : identity<number>;
         if (isArray(numeric.fieldSpec.value)) {
           return {
             type: 'value',
@@ -1297,9 +1331,14 @@ export function normalizeSearchFilter(input: SearchFilter): SearchFilter {
       children: op.children.map(normalizeSearchFilter),
     }))
     .with({ type: 'value', fieldSpec: { type: 'numeric' } }, (numeric) => {
-      const aliasOrKey = numeric.fieldSpec.name ?? numeric.fieldSpec.key;
+      const isRatingKey =
+        !!parseRatingFieldKey(numeric.fieldSpec.key) ||
+        numeric.fieldSpec.key === 'omnirating';
+      const aliasOrKey = isRatingKey
+        ? numeric.fieldSpec.key
+        : (numeric.fieldSpec.name ?? numeric.fieldSpec.key);
       const key: string =
-        (isNonEmptyString(numeric.fieldSpec.name)
+        (!isRatingKey && isNonEmptyString(numeric.fieldSpec.name)
           ? virtualFieldToIndexField[numeric.fieldSpec.name]
           : null) ?? numeric.fieldSpec.key;
 
@@ -1422,10 +1461,15 @@ export function searchFilterToString(input: SearchFilter): string {
     }
     case 'value': {
       // Use the original field name if stored, otherwise fall back to index field mapping
-      const key =
-        emptyStringToNull(input.fieldSpec.name) ??
-        head(indexFieldToVirtualField[input.fieldSpec.key]) ??
-        input.fieldSpec.key;
+      const ratingIdentity = parseRatingFieldKey(input.fieldSpec.key);
+      const isOmnirating = input.fieldSpec.key === 'omnirating';
+      const key = ratingIdentity
+        ? `score(${JSON.stringify(ratingIdentity.providerId)}, ${JSON.stringify(ratingIdentity.kind)})`
+        : isOmnirating
+          ? 'omnirating'
+          : (emptyStringToNull(input.fieldSpec.name) ??
+            head(indexFieldToVirtualField[input.fieldSpec.key]) ??
+            input.fieldSpec.key);
 
       // Relative date expressions round-trip as their original syntax
       if (input.fieldSpec.type === 'date' && input.fieldSpec.relativeDate) {
@@ -1438,7 +1482,10 @@ export function searchFilterToString(input: SearchFilter): string {
         indexOperatorToSyntax[input.fieldSpec.op] ?? input.fieldSpec.op;
 
       // Get denormalizer for numeric fields (e.g., convert ms back to minutes)
-      const denormalizer = findDenormalizer(input.fieldSpec);
+      const denormalizer =
+        ratingIdentity || isOmnirating
+          ? identity<number>
+          : findDenormalizer(input.fieldSpec);
 
       let valueString: string;
       if (isNumber(input.fieldSpec.value)) {

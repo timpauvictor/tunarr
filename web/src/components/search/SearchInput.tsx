@@ -32,6 +32,8 @@ import {
   SearchFieldRestrictMenu,
 } from './SearchFieldRestrictMenu.tsx';
 import { SearchFilterBuilder } from './SearchFilterBuilder.tsx';
+import { RatingSortControl } from './RatingSortControl.tsx';
+import useStore from '../../store/index.ts';
 
 type Props = {
   mediaSourceId?: MediaSourceId;
@@ -156,6 +158,7 @@ export const SearchInput = ({
       }
 
       const search: SearchRequest = {
+        sort: useStore.getState().currentSearchRequest?.sort,
         query: isNonEmptyString(formData.keywords)
           ? formData.keywords
           : undefined,
@@ -289,6 +292,7 @@ export const SearchInput = ({
             libraryId={libraryId}
             mediaSourceId={mediaSourceId}
           />
+          <RatingSortControl />
           <Box sx={{ width: '100%' }}>
             <Stack direction={'row'}>
               {showViewToggle && <ProgramViewToggleButton />}

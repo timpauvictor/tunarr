@@ -210,7 +210,12 @@ export abstract class MediaSourceMovieLibraryScanner<
     const fullMovie = fullMovieResult.get();
 
     if (
-      canSkipUnchangedProgram(existingMovie, incomingMovie.canonicalId, force)
+      canSkipUnchangedProgram(
+        existingMovie,
+        incomingMovie.canonicalId,
+        force,
+        !!fullMovie.ratings,
+      )
     ) {
       this.logger.debug(
         'Found an unchanged program: rating key = %s, program ID = %s',

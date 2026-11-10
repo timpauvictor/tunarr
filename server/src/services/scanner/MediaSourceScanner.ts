@@ -82,8 +82,14 @@ export function canSkipUnchangedProgram<
   existing: Maybe<T>,
   incomingCanonicalId: Maybe<Nullable<string>>,
   force: boolean,
+  hasAuthoritativeRatings = false,
 ): existing is T {
-  if (force || !existing || !isNonEmptyString(existing.canonicalId)) {
+  if (
+    force ||
+    hasAuthoritativeRatings ||
+    !existing ||
+    !isNonEmptyString(existing.canonicalId)
+  ) {
     return false;
   }
 

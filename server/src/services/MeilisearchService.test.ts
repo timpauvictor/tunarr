@@ -1,4 +1,10 @@
-import { SearchFilter } from '@tunarr/types/api';
+import type { SearchFilter } from '@tunarr/types/schemas';
+import {
+  ratingFieldKey,
+  SearchSortSchema,
+  SearchFilterQuerySchema,
+} from '@tunarr/types/schemas';
+import { ratingSearchFields } from './search/ratingSearch.ts';
 import { describe, expect, test } from 'vitest';
 import { MeilisearchService } from './MeilisearchService.js';
 
@@ -30,6 +36,94 @@ const mockIndex = {
     'parent.id',
   ],
 };
+
+describe('numeric ratings search', () => {
+  test('compiles one provider/type leaf and excludes missing/null even for inequality', () => {
+    const key = ratingFieldKey('rottentomatoes', 'critic');
+    const field = `numericRatings.${key}`;
+    for (const op of ['>', '>=', '!='] as const) {
+      const filter: SearchFilter = {
+        type: 'value',
+        fieldSpec: { key, type: 'numeric', op, value: 70 },
+      };
+      expect(MeilisearchService.buildFilterExpression(mockIndex, filter)).toBe(
+        `(${field} EXISTS AND ${field} IS NOT NULL AND ${field} ${op} 70)`,
+      );
+    }
+    expect(
+      MeilisearchService.buildFilterExpression(mockIndex, {
+        type: 'value',
+        fieldSpec: {
+          key: 'omnirating',
+          type: 'numeric',
+          op: 'to',
+          value: [70, 90],
+        },
+      }),
+    ).toBe(
+      '(omnirating EXISTS AND omnirating IS NOT NULL AND omnirating 70 TO 90)',
+    );
+    expect(
+      SearchSortSchema.safeParse({ field: key, direction: 'desc' }).success,
+    ).toBe(true);
+    expect(
+      SearchSortSchema.safeParse({ field: 'omnirating', direction: 'asc' })
+        .success,
+    ).toBe(true);
+    expect(
+      SearchSortSchema.safeParse({
+        field: 'score_v1_00 OR title',
+        direction: 'asc',
+      }).success,
+    ).toBe(false);
+    expect(
+      SearchFilterQuerySchema.safeParse({
+        type: 'value',
+        fieldSpec: {
+          key: 'numericRatings.forced',
+          type: 'numeric',
+          op: '>',
+          value: 1,
+        },
+      }).success,
+    ).toBe(false);
+  });
+
+  test('projects independent provider scores and personal zero without inheriting or falsifying missing scores', () => {
+    const projection = ratingSearchFields({
+      version: 1,
+      observedAt: 123,
+      entries: [
+        {
+          providerId: 'rottentomatoes',
+          kind: 'critic',
+          value: 2,
+          scale: 10,
+          score: 20,
+        },
+        {
+          providerId: 'imdb',
+          kind: 'audience',
+          value: 9,
+          scale: 10,
+          score: 90,
+        },
+        { providerId: 'plex', kind: 'personal', value: 0, scale: 10, score: 0 },
+      ],
+    });
+    expect(projection.numericRatings).toEqual({
+      [ratingFieldKey('rottentomatoes', 'critic')]: 20,
+      [ratingFieldKey('imdb', 'audience')]: 90,
+      [ratingFieldKey('plex', 'personal')]: 0,
+    });
+    expect(projection.omnirating).toBe(55);
+    expect(ratingSearchFields(null)).toEqual({
+      numericRatings: {},
+      ratingKeys: [],
+      omnirating: null,
+    });
+  });
+});
 
 describe('MeilisearchService.buildFilterExpression', () => {
   describe('string field filters', () => {

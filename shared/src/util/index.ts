@@ -1,5 +1,11 @@
 export { mod as dayjsMod } from './dayjsExtensions.js';
 export * from './plexSearchUtil.js';
+export {
+  calculateOmnirating,
+  ratingFieldKey,
+  parseRatingFieldKey,
+  ratingFieldLabel,
+} from './ratings.js';
 export * as search from './searchUtil.js';
 export * as seq from './seq.js';
 import type { ChannelProgram, ProgramLike } from '@tunarr/types';

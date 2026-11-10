@@ -1,5 +1,6 @@
 import type { TupleToUnion } from '@tunarr/types';
-import type { InferSelectModel } from 'drizzle-orm';
+import type { RatingSnapshot } from '@tunarr/types/schemas';
+import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { inArray, relations } from 'drizzle-orm';
 import {
   check,
@@ -82,6 +83,7 @@ export const Program = sqliteTable(
     plexFilePath: text(),
     plexRatingKey: text(),
     rating: text(),
+    ratings: text({ mode: 'json' }).$type<RatingSnapshot>(),
     seasonIcon: text(),
     seasonNumber: integer(),
     seasonUuid: text().references(() => ProgramGrouping.uuid),
@@ -182,6 +184,10 @@ export const ProgramRelations = relations(Program, ({ many, one }) => ({
 export type ProgramTable = KyselifyBetter<typeof Program>;
 export type ProgramDao = Selectable<ProgramTable>;
 export type ProgramOrm = InferSelectModel<typeof Program>;
+export type NewProgramOrm = MarkNotNilable<
+  InferInsertModel<typeof Program>,
+  'canonicalId' | 'mediaSourceId' | 'state'
+>;
 // Make canonicalId required on insert.
 export type NewProgramDao = MarkNotNilable<
   Insertable<ProgramTable>,

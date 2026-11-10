@@ -3,7 +3,7 @@ import { type Maybe } from '@/types/util.ts';
 import type { Library, MediaSourceType, ProgramOrFolder } from '@tunarr/types';
 import { type MediaSourceSettings } from '@tunarr/types';
 import { type PlexFilter, type PlexSort } from '@tunarr/types/api';
-import type { SearchRequest } from '@tunarr/types/schemas';
+import type { SearchRequest, SearchSort } from '@tunarr/types/schemas';
 
 import { groupBy, has, reject, some, uniq } from 'lodash-es';
 import { match } from 'ts-pattern';
@@ -182,6 +182,12 @@ export const setPlexSort = (plexSort: PlexSort | undefined) =>
         ...(state.plexSearch.limit ? [`limit=${state.plexSearch.limit}`] : []),
       ].join('&'),
     };
+  });
+
+export const setSearchSort = (sort: SearchSort[] | undefined) =>
+  useStore.setState((state) => {
+    state.currentSearchRequest ??= {};
+    state.currentSearchRequest.sort = sort;
   });
 
 export const setSearchRequest = (request: Nullable<SearchRequest>) =>

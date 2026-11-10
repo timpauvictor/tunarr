@@ -480,12 +480,14 @@ const NotScanningSchema = z.object({
 
 const InProgressScanSchema = z.object({
   state: z.literal('in_progress'),
+  operation: z.literal('ratings').optional(),
   startedAt: z.number(), // timestamp
   percentComplete: z.number().min(0).max(100),
 });
 
 const QueuedProgressScanSchema = z.object({
   state: z.literal('queued'),
+  operation: z.literal('ratings').optional(),
 });
 
 export const ScanProgressSchema = z.discriminatedUnion('state', [

@@ -24,6 +24,17 @@ describe('canSkipUnchangedProgram', () => {
     ).toBe(false);
   });
 
+  test('does not skip authoritative ratings when content identity is unchanged', () => {
+    expect(
+      canSkipUnchangedProgram(
+        { canonicalId: 'c1', state: 'ok' },
+        'c1',
+        false,
+        true,
+      ),
+    ).toBe(false);
+  });
+
   test('does not skip a forced scan', () => {
     expect(
       canSkipUnchangedProgram({ canonicalId: 'c1', state: 'ok' }, 'c1', true),

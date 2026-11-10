@@ -1,4 +1,5 @@
 import { type TupleToUnion } from '@tunarr/types';
+import type { RatingSnapshot } from '@tunarr/types/schemas';
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { inArray, relations } from 'drizzle-orm';
 import {
@@ -62,6 +63,7 @@ export const ProgramGrouping = sqliteTable(
     year: integer(),
     releaseDate: integer({ mode: 'timestamp_ms' }),
     rating: text(), // content rating
+    ratings: text({ mode: 'json' }).$type<RatingSnapshot>(),
     sourceType: text({ enum: MediaSourceTypes }),
     externalKey: text(),
 

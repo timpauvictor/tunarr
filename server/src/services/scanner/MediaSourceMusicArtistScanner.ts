@@ -311,6 +311,7 @@ export abstract class MediaSourceMusicArtistScanner<
 
     const artist = artistResult.get();
     const needsDeepScan =
+      !!artist.ratings ||
       context.force ||
       !existingArtist ||
       (existingArtist.canonicalId &&
@@ -481,6 +482,7 @@ export abstract class MediaSourceMusicArtistScanner<
     const fullAlbum = fullAlbumResult.get();
 
     const needsUpdate =
+      !!fullAlbum.ratings ||
       scanContext.force ||
       !existingAlbum ||
       (existingAlbum.canonicalId &&
@@ -594,6 +596,7 @@ export abstract class MediaSourceMusicArtistScanner<
             existing[externalKey],
             fullMetadata.canonicalId,
             force,
+            !!fullMetadata.ratings,
           )
         ) {
           this.logger.debug(

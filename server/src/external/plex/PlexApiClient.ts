@@ -11,7 +11,8 @@ import {
 } from '@/util/index.js';
 import { getTunarrVersion } from '@/util/version.js';
 import { PlexClientIdentifier } from '@tunarr/shared/constants';
-import { seq } from '@tunarr/shared/util';
+import { calculateOmnirating, seq } from '@tunarr/shared/util';
+import { extractPlexRatings } from './plexRatings.ts';
 import type {
   Actor,
   Collection,
@@ -340,41 +341,26 @@ export class PlexApiClient extends MediaSourceApiClient<PlexTypes> {
   }
 
   async getMusicArtist(key: string): Promise<QueryResult<PlexArtist>> {
-    const queryResult = await this.getItemMetadataInternal(
+    return this.getMediaOfType(
       key,
       PlexMusicArtistMediaContainerResponseSchema,
-    );
-
-    return queryResult.flatMap((artist) =>
-      this.findLibraryFromPlexMedia(artist)
-        .flatMap((library) => this.plexMusicArtistInjection(artist, library))
-        .mapError((e) => QueryError.genericQueryError(e.message)),
+      (artist, library) => this.plexMusicArtistInjection(artist, library),
     );
   }
 
   async getMusicAlbum(key: string): Promise<QueryResult<PlexAlbum>> {
-    const queryResult = await this.getItemMetadataInternal(
+    return this.getMediaOfType(
       key,
       PlexMusicAlbumMediaContainerResponseSchema,
-    );
-
-    return queryResult.flatMap((album) =>
-      this.findLibraryFromPlexMedia(album)
-        .flatMap((library) => this.plexAlbumInjection(album, library))
-        .mapError((e) => QueryError.genericQueryError(e.message)),
+      (album, library) => this.plexAlbumInjection(album, library),
     );
   }
 
   async getMusicTrack(key: string): Promise<QueryResult<PlexTrack>> {
-    const queryResult = await this.getItemMetadataInternal(
+    return this.getMediaOfType(
       key,
       PlexMusicTrackMediaContainerResponseSchema,
-    );
-
-    return queryResult.flatMap((track) =>
-      this.findLibraryFromPlexMedia(track)
-        .flatMap((library) => this.plexTrackInjection(track, library))
-        .mapError((e) => QueryError.genericQueryError(e.message)),
+      (track, library) => this.plexTrackInjection(track, library),
     );
   }
 
@@ -756,7 +742,8 @@ export class PlexApiClient extends MediaSourceApiClient<PlexTypes> {
           .with({ type: 'playlist' }, () => {
             throw new Error('Playlists are not supported in this call');
           })
-          .exhaustive(),
+          .exhaustive()
+          .map((item) => this.attachRatings(media, item)),
       );
     });
   }
@@ -793,9 +780,25 @@ export class PlexApiClient extends MediaSourceApiClient<PlexTypes> {
     );
   }
 
+  private attachRatings<T extends object>(raw: unknown, item: T): T {
+    const result = extractPlexRatings(raw);
+    if (!result.snapshot) {
+      this.logger.warn(
+        'Could not refresh Plex numeric ratings: %s',
+        result.error,
+      );
+      return item;
+    }
+    return {
+      ...item,
+      ratings: result.snapshot,
+      omnirating: calculateOmnirating(result.snapshot),
+    };
+  }
+
   private async getMediaOfType<
     ItemType extends PlexMediaNoCollectionOrPlaylist,
-    OutType,
+    OutType extends object,
   >(
     externalKey: string,
     schema: z.ZodType<PlexMetadataResponse<ItemType>>,
@@ -807,12 +810,14 @@ export class PlexApiClient extends MediaSourceApiClient<PlexTypes> {
     const queryResult = await this.getItemMetadataInternal(externalKey, schema);
     return queryResult.flatMap((show) => {
       return this.findLibraryFromPlexMedia(show).flatMap((library) =>
-        converter(show, library).ifNil(
-          QueryError.create(
-            'generic_request_error',
-            `Could not convert Plex show ID = ${externalKey}`,
+        converter(show, library)
+          .map((item) => this.attachRatings(show, item))
+          .ifNil(
+            QueryError.create(
+              'generic_request_error',
+              `Could not convert Plex show ID = ${externalKey}`,
+            ),
           ),
-        ),
       );
     });
   }

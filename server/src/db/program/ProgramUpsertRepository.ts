@@ -45,6 +45,7 @@ import type {
 import type { DrizzleDBAccess } from '../schema/index.ts';
 import type { ProgramExternalIdRepository } from './ProgramExternalIdRepository.ts';
 import type { ProgramMetadataRepository } from './ProgramMetadataRepository.ts';
+import { registerRatingFields } from './ratingFields.ts';
 
 @injectable()
 export class ProgramUpsertRepository {
@@ -82,8 +83,12 @@ export class ProgramUpsertRepository {
 
     const result = await Promise.all(
       chunk(requests, programUpsertBatchSize).map(async (c) => {
-        const chunkResult = this.drizzleDB.transaction((tx) =>
-          tx
+        const chunkResult = this.drizzleDB.transaction((tx) => {
+          registerRatingFields(
+            tx,
+            c.map(({ program }) => program.ratings),
+          );
+          return tx
             .insert(Program)
             .values(c.map(({ program }) => program))
             .onConflictDoUpdate({
@@ -95,8 +100,8 @@ export class ProgramUpsertRepository {
               set: ProgramUpsertSetClause,
             })
             .returning()
-            .all(),
-        ) as MarkNonNullable<ProgramDao, 'mediaSourceId' | 'canonicalId'>[];
+            .all();
+        }) as MarkNonNullable<ProgramDao, 'mediaSourceId' | 'canonicalId'>[];
 
         const allExternalIds = flatten(c.map((program) => program.externalIds));
         const versionsToInsert: NewProgramVersion[] = [];

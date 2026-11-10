@@ -57,6 +57,7 @@ export const AllProgramFields = [
   'program.plexFilePath',
   'program.plexRatingKey',
   'program.rating',
+  'program.ratings',
   'program.seasonIcon',
   'program.seasonNumber',
   'program.seasonUuid',
@@ -100,7 +101,10 @@ const ProgramUpsertFields: ProgramUpsertFields[] = AllProgramFields.filter(
 ).map((v) => v.replace('program.', '') as Replace<typeof v, 'program.', ''>);
 
 export const ProgramUpsertSetClause = mapToObj(ProgramUpsertFields, (f) => ({
-  [f]: sql`excluded.${sql.identifier(toSnakeCase(f))}`,
+  [f]:
+    f === 'ratings'
+      ? sql`coalesce(excluded.ratings, program.ratings)`
+      : sql`excluded.${sql.identifier(toSnakeCase(f))}`,
 }));
 
 export const AllProgramGroupingFields = [
@@ -122,6 +126,7 @@ export const AllProgramGroupingFields = [
   'programGrouping.externalKey',
   'programGrouping.releaseDate',
   'programGrouping.rating',
+  'programGrouping.ratings',
   'programGrouping.tagline',
   'programGrouping.plot',
 ] as const;

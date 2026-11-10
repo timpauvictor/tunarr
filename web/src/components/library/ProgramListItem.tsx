@@ -30,6 +30,7 @@ import {
 import { ProgramTypeIcon } from '../base/ProgramTypeIcon.tsx';
 import ProgramDetailsDialog from '../programs/ProgramDetailsDialog.tsx';
 import { ProgramSubtitle } from './extractSubtitle.tsx';
+import { ProgramRatings } from './ProgramRatings.tsx';
 
 interface ProgramListItemProps {
   item: ProgramOrFolder;
@@ -111,7 +112,12 @@ export const ProgramListItem = ({
           </ListItemIcon>
           <ListItemText
             primary={item.title}
-            secondary={ProgramSubtitle(item)}
+            secondary={
+              <>
+                {ProgramSubtitle(item)}
+                <ProgramRatings program={item} />
+              </>
+            }
           />
           {!disableSelection && (
             <Button

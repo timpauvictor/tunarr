@@ -29,6 +29,7 @@ import {
   ContentProgramSchema,
   MediaSourceLibrarySchema,
   MediaSourceSettingsSchema,
+  PlexRatingsRefreshStatusSchema,
 } from '@tunarr/types/schemas';
 import dayjs from 'dayjs';
 import { isEmpty, isError, isNil, isNull } from 'lodash-es';
@@ -43,6 +44,7 @@ import type { MediaSourceWithRelations } from '../db/schema/derivedTypes.js';
 import { EntityMutex } from '../services/EntityMutex.ts';
 import { MediaSourceLibraryRefresher } from '../services/MediaSourceLibraryRefresher.ts';
 import { MediaSourceProgressService } from '../services/scanner/MediaSourceProgressService.ts';
+import { PlexRatingsRefreshService } from '../services/scanner/PlexRatingsRefreshService.ts';
 import type { MediaSourceScanCoordinator } from '../services/scanner/MediaSourceScanCoordinator.ts';
 import {
   LibraryProgramsPagingParams,
@@ -357,6 +359,91 @@ export const mediaSourceRouter: RouterPluginAsyncCallback = async (
         size: programs.length,
         offset: req.query.offset,
       });
+    },
+  );
+
+  fastify.post(
+    '/media-sources/:id/libraries/:libraryId/ratings/refresh',
+    {
+      schema: {
+        tags: ['Media Source'],
+        params: BasicIdParamSchema.extend({ libraryId: z.uuid() }),
+        response: {
+          202: PlexRatingsRefreshStatusSchema,
+          404: z.void(),
+          409: z.void(),
+        },
+      },
+    },
+    async (req, res) => {
+      const library = await req.serverCtx.mediaSourceDB.getLibrary(
+        req.params.libraryId,
+      );
+      if (
+        !library ||
+        library.mediaSourceId !== req.params.id ||
+        library.mediaSource.type !== 'plex' ||
+        !library.enabled ||
+        library.unavailableSince !== null
+      )
+        return res.status(404).send();
+      const job =
+        await req.serverCtx.mediaSourceScanCoordinator.addRatingsRefresh(
+          req.params.id,
+          library.uuid,
+        );
+      return job ? res.status(202).send(job) : res.status(409).send();
+    },
+  );
+
+  fastify.get(
+    '/media-sources/:id/libraries/:libraryId/ratings',
+    {
+      schema: {
+        tags: ['Media Source'],
+        params: BasicIdParamSchema.extend({ libraryId: z.uuid() }),
+        response: {
+          200: PlexRatingsRefreshStatusSchema.nullable(),
+          404: z.void(),
+        },
+      },
+    },
+    async (req, res) => {
+      const library = await req.serverCtx.mediaSourceDB.getLibrary(
+        req.params.libraryId,
+      );
+      if (!library || library.mediaSourceId !== req.params.id)
+        return res.status(404).send();
+      return res.send(
+        container.get(PlexRatingsRefreshService).getStatus(library.uuid),
+      );
+    },
+  );
+
+  fastify.post(
+    '/media-sources/:id/libraries/:libraryId/ratings/:jobId/cancel',
+    {
+      schema: {
+        tags: ['Media Source'],
+        params: BasicIdParamSchema.extend({
+          libraryId: z.uuid(),
+          jobId: z.uuid(),
+        }),
+        response: { 202: z.void(), 404: z.void(), 409: z.void() },
+      },
+    },
+    async (req, res) => {
+      const library = await req.serverCtx.mediaSourceDB.getLibrary(
+        req.params.libraryId,
+      );
+      if (!library || library.mediaSourceId !== req.params.id)
+        return res.status(404).send();
+      const cancelled =
+        req.serverCtx.mediaSourceScanCoordinator.cancelRatingsRefresh(
+          library.uuid,
+          req.params.jobId,
+        );
+      return cancelled ? res.status(202).send() : res.status(409).send();
     },
   );
 

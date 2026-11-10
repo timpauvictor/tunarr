@@ -124,6 +124,7 @@ export class ProgramDaoMinter {
       createdAt: now,
       updatedAt: now,
       canonicalId: movie.canonicalId,
+      ratings: movie.ratings ?? undefined,
       state: 'ok',
     } satisfies NewMovieProgram;
 
@@ -384,6 +385,7 @@ export class ProgramDaoMinter {
       createdAt: now,
       updatedAt: now,
       canonicalId: episode.canonicalId,
+      ratings: episode.ratings ?? undefined,
       seasonNumber: episode.season?.index,
       episode: episode.episodeNumber,
       state: 'ok',
@@ -454,6 +456,7 @@ export class ProgramDaoMinter {
       createdAt: now,
       updatedAt: now,
       canonicalId: track.canonicalId,
+      ratings: track.ratings ?? undefined,
       state: 'ok',
       // TODO: change this field name! jeez!
       episode: track.trackNumber,
@@ -504,6 +507,7 @@ export class ProgramDaoMinter {
       updatedAt: now,
       canonicalId: video.canonicalId,
       state: 'ok',
+      ratings: video.ratings ?? undefined,
     } satisfies NewOtherVideoProgram;
 
     return {
@@ -561,6 +565,7 @@ export class ProgramDaoMinter {
       updatedAt: now,
       canonicalId: video.canonicalId,
       state: 'ok',
+      ratings: video.ratings ?? undefined,
       artistName: video.artistName ?? null,
       albumName: video.albumName ?? null,
     } satisfies NewMusicVideoProgram;

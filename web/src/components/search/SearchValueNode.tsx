@@ -8,7 +8,7 @@ import {
   Select,
   Stack,
 } from '@mui/material';
-import { seq } from '@tunarr/shared/util';
+import { seq, parseRatingFieldKey } from '@tunarr/shared/util';
 import type {
   NumericOperators,
   SearchField,
@@ -28,6 +28,8 @@ import {
 } from '../../helpers/searchBuilderConstants.ts';
 import { useGetFieldName } from '../../hooks/searchBuilderHooks.ts';
 import { useDayjs } from '../../hooks/useDayjs.ts';
+import { useRatingFields } from '../../hooks/useRatingFields.ts';
+import { ratingSearchFieldSpecs } from '../../helpers/ratingSearchFields.ts';
 import type { FieldPrefix } from '../../types/SearchBuilder.ts';
 import { DateSearchValueNode } from './DateSearchValueNode.tsx';
 import { FacetStringValueSearchNode } from './FacetStringValueSearchNode.tsx';
@@ -58,18 +60,30 @@ export function SearchValueNode(props: ValueNodeProps) {
     SearchFilterValueNode,
     SearchField,
   ];
-  const matchingSpec = useMemo(() => {
-    return Object.values(SearchFieldSpecs).find((spec) =>
-      spec.name ? searchField.name === spec.name : spec.key === searchField.key,
-    );
-  }, [searchField]);
+  const ratings = useRatingFields();
+  const fieldSpecs = useMemo(
+    () => [
+      ...SearchFieldSpecs,
+      ...ratingSearchFieldSpecs(ratings.data?.fields ?? [], searchField.key),
+    ],
+    [ratings.data?.fields, searchField.key],
+  );
+  const isRating =
+    searchField.key === 'omnirating' || !!parseRatingFieldKey(searchField.key);
+  const matchingSpec = fieldSpecs.find((spec) =>
+    isRating
+      ? spec.key === searchField.key
+      : spec.name
+        ? searchField.name === spec.name
+        : spec.key === searchField.key,
+  );
   const getFieldName = useGetFieldName(formKey);
   const dayjs = useDayjs();
 
   const handleFieldChange = useCallback(
     (newField: string) => {
       const spec = find(
-        SearchFieldSpecs,
+        fieldSpecs,
         (spec) => (spec.name ?? spec.key) === newField,
       );
 
@@ -121,7 +135,7 @@ export function SearchValueNode(props: ValueNodeProps) {
         shouldDirty: true,
       });
     },
-    [dayjs, getFieldName, setValue],
+    [dayjs, getFieldName, setValue, fieldSpecs],
   );
 
   const handleOpChange = useCallback(
@@ -161,10 +175,10 @@ export function SearchValueNode(props: ValueNodeProps) {
         // Cover going from multi value <=> single
         match([selfValue.fieldSpec, newOp])
           .with([{ value: P.number }, 'to'], ([{ value }, _]) => {
-            setValue(getFieldName('fieldSpec.value'), [value, 0] as [
-              number,
-              number,
-            ]);
+            setValue(getFieldName('fieldSpec.value'), [
+              value,
+              matchingSpec?.valueBounds?.max ?? 0,
+            ] as [number, number]);
           })
           .with(
             [{ value: [P.number, P._] }, P.not('to')],
@@ -184,7 +198,13 @@ export function SearchValueNode(props: ValueNodeProps) {
         newOp as StringOperators | NumericOperators,
       );
     },
-    [getFieldName, selfValue.fieldSpec, setValue, dayjs],
+    [
+      getFieldName,
+      selfValue.fieldSpec,
+      setValue,
+      dayjs,
+      matchingSpec?.valueBounds?.max,
+    ],
   );
 
   const renderValueInput = useMemo(() => {
@@ -251,7 +271,7 @@ export function SearchValueNode(props: ValueNodeProps) {
         </Select>
       );
     },
-    [handleOpChange, selfValue.fieldSpec.type, selfValue.fieldSpec.value],
+    [handleOpChange, selfValue.fieldSpec.type, t],
   );
 
   return (
@@ -269,10 +289,15 @@ export function SearchValueNode(props: ValueNodeProps) {
             <Select
               label={t`Field`}
               MenuProps={{ sx: { maxHeight: 375 } }}
-              value={field.value.name ?? field.value.key}
+              value={
+                matchingSpec?.name ??
+                matchingSpec?.key ??
+                field.value.name ??
+                field.value.key
+              }
               onChange={(e) => handleFieldChange(e.target.value)}
             >
-              {seq.collect(SearchFieldSpecs, (spec) => {
+              {seq.collect(fieldSpecs, (spec) => {
                 if (
                   mediaTypeFilter &&
                   isArray(spec.visibleForLibraryTypes) &&
@@ -284,6 +309,7 @@ export function SearchValueNode(props: ValueNodeProps) {
                   <MenuItem
                     key={spec.name ?? spec.key}
                     value={spec.name ?? spec.key}
+                    disabled={spec.disabled}
                   >
                     {spec.displayName}
                   </MenuItem>

@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { match, P } from 'ts-pattern';
 import { postApiProgramsSearch } from '../../generated/sdk.gen.ts';
 import { defaultLibrarySearchFilter } from '../../helpers/programUtil.ts';
+import { librarySearchQuery } from '../../helpers/librarySearchQuery.ts';
 import { useProgramHierarchy } from '../../hooks/channel_config/useProgramHierarchy.ts';
 import { getChildSearchFilter } from '../../hooks/useProgramSearch.ts';
 import useStore from '../../store/index.ts';
@@ -66,31 +67,27 @@ export const LibraryProgramGrid = ({
         ])
         .otherwise(() => undefined);
       const filter = getChildSearchFilter(currentParentContext);
-      return {
+      return librarySearchQuery(
+        staticSearchRequest ?? searchRequest,
+        undefined,
         filter,
         sort,
-      };
+      );
     }
 
     if (staticSearchRequest) {
       return staticSearchRequest;
     }
 
-    const filter =
-      searchRequest?.filter ?? defaultLibrarySearchFilter(mediaSource, library);
-
-    return {
-      query: searchRequest?.query,
-      filter,
-      restrictSearchTo: searchRequest?.restrictSearchTo,
-    };
+    return librarySearchQuery(
+      searchRequest,
+      defaultLibrarySearchFilter(mediaSource, library),
+    );
   }, [
     currentParentContext,
     library,
     mediaSource,
-    searchRequest?.filter,
-    searchRequest?.query,
-    searchRequest?.restrictSearchTo,
+    searchRequest,
     staticSearchRequest,
   ]);
 
@@ -192,6 +189,14 @@ export const LibraryProgramGrid = ({
             {isNonEmptyString(query.query) && totalHits >= 1000
               ? '>1000'
               : totalHits}
+          </Trans>
+        </Typography>
+      )}
+      {currentParentContext && query.filter && searchRequest?.filter && (
+        <Typography variant="caption" color="text.secondary">
+          <Trans>
+            Filters apply to the items in this view, not their parent ratings.
+            Clear or change the filter to see other children.
           </Trans>
         </Typography>
       )}

@@ -405,6 +405,18 @@ const BasePlexMediaSchema = z.object({
   Label: z.array(PlexLabelSchema).optional().catch([]),
 });
 
+// Keep rating input isolated from playable-media validation. The extractor
+// validates scores on authoritative detail responses and preserves prior data
+// if this optional metadata is malformed.
+const PlexRatingFields = z.object({
+  Rating: z.unknown().optional(),
+  rating: z.unknown().optional(),
+  ratingImage: z.unknown().optional(),
+  audienceRating: z.unknown().optional(),
+  audienceRatingImage: z.unknown().optional(),
+  userRating: z.unknown().optional(),
+});
+
 export const PlexMovieSchema = BasePlexMediaSchema.extend({
   editionTitle: z.string().optional(),
   studio: z.string().optional(),
@@ -436,7 +448,9 @@ export const PlexMovieSchema = BasePlexMediaSchema.extend({
   Role: z.array(PlexActorSchema).optional(),
   Marker: z.array(PlexMarkerSchema).optional(),
   Chapter: z.array(PlexChapterSchema).optional(),
-}).extend(neverDirectory.shape);
+})
+  .extend(PlexRatingFields.shape)
+  .extend(neverDirectory.shape);
 
 export type PlexMovie = z.infer<typeof PlexMovieSchema>;
 
@@ -466,7 +480,9 @@ export const PlexTvShowSchema = BasePlexMediaSchema.extend({
   updatedAt: z.number().optional(),
   viewedLeafCount: z.number().optional(),
   year: z.number().optional(),
-}).merge(neverDirectory);
+})
+  .extend(PlexRatingFields.shape)
+  .merge(neverDirectory);
 
 export type PlexTvShow = Alias<z.infer<typeof PlexTvShowSchema>>;
 
@@ -490,7 +506,9 @@ export const PlexTvSeasonSchema = BasePlexMediaSchema.extend({
   viewedLeafCount: z.number().optional(),
   addedAt: z.number().optional(),
   updatedAt: z.number().optional(),
-}).merge(neverDirectory);
+})
+  .extend(PlexRatingFields.shape)
+  .merge(neverDirectory);
 
 export type PlexTvSeason = Alias<z.infer<typeof PlexTvSeasonSchema>>;
 
@@ -508,7 +526,9 @@ export const PlexMusicArtistSchema = BasePlexMediaSchema.extend({
   updatedAt: z.number().optional(),
   Genre: z.array(PlexJoinItemSchema).optional(),
   Country: z.array(PlexJoinItemSchema).optional(),
-}).merge(neverDirectory);
+})
+  .extend(PlexRatingFields.shape)
+  .merge(neverDirectory);
 
 export type PlexMusicArtist = Alias<z.infer<typeof PlexMusicArtistSchema>>;
 
@@ -535,7 +555,9 @@ export const PlexMusicAlbumSchema = BasePlexMediaSchema.extend({
   loudnessAnalysisVersion: z.string().optional(), // "1"
   musicAnalysisVersion: z.string().optional(), // "1"
   Genre: z.array(PlexJoinItemSchema).optional(),
-}).merge(neverDirectory);
+})
+  .extend(PlexRatingFields.shape)
+  .merge(neverDirectory);
 
 export type PlexMusicAlbum = Alias<z.infer<typeof PlexMusicAlbumSchema>>;
 
@@ -570,7 +592,9 @@ export const PlexMusicTrackSchema = BasePlexMediaSchema.extend({
   Media: z.array(PlexMediaDescriptionSchema).optional(),
   leafCount: z.number().optional(),
   year: z.number().optional(),
-}).merge(neverDirectory);
+})
+  .extend(PlexRatingFields.shape)
+  .merge(neverDirectory);
 
 export type PlexMusicTrack = Alias<z.infer<typeof PlexMusicTrackSchema>>;
 
@@ -666,7 +690,9 @@ export const PlexEpisodeSchema = BasePlexMediaSchema.extend({
   Role: z.array(PlexActorSchema).optional(),
   Marker: z.array(PlexMarkerSchema).optional(),
   Chapter: z.array(PlexChapterSchema).optional(),
-}).merge(neverDirectory);
+})
+  .extend(PlexRatingFields.shape)
+  .merge(neverDirectory);
 
 export type PlexEpisode = Alias<z.infer<typeof PlexEpisodeSchema>>;
 

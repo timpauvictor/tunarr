@@ -1,4 +1,11 @@
-import { nullToUndefined, seq } from '@tunarr/shared/util';
+import { nullToUndefined, seq, ratingFieldLabel } from '@tunarr/shared/util';
+import type { DrizzleDBAccess } from '../db/schema/index.ts';
+import { RatingField } from '../db/schema/RatingField.ts';
+import type {
+  RatingFieldDescriptor,
+  RatingSnapshot,
+} from '@tunarr/types/schemas';
+import { ratingIndexField, ratingSearchFields } from './search/ratingSearch.ts';
 import type {
   Episode,
   FindChild,
@@ -43,6 +50,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { isMainThread } from 'node:worker_threads';
+import { setTimeout as indexPollDelay } from 'node:timers/promises';
 import type { MarkRequired, Paths } from 'ts-essentials';
 import { match, P } from 'ts-pattern';
 import serverPackage from '../../package.json' with { type: 'json' };
@@ -124,6 +132,9 @@ const ProgramsIndex: TunarrSearchIndex<ProgramSearchDocument> = {
   primaryKey: 'id',
   filterable: [
     'duration',
+    'numericRatings',
+    'ratingKeys',
+    'omnirating',
     'externalIds.source',
     'externalIds.sourceId',
     'externalIds.id',
@@ -173,6 +184,8 @@ const ProgramsIndex: TunarrSearchIndex<ProgramSearchDocument> = {
     'subtitleLanguages',
   ],
   sortable: [
+    'id',
+    'omnirating',
     'title',
     'sortTitle',
     'duration',
@@ -262,6 +275,9 @@ type Studio = StringName;
 
 type BaseProgramSearchDocument = {
   id: string;
+  numericRatings?: Record<string, number>;
+  ratingKeys?: string[];
+  omnirating?: number | null;
   externalIds: ExternalIdSubDoc[];
   externalIdsMerged: MergedExternalId[];
   mediaSourceId: SingleCaseString;
@@ -393,6 +409,8 @@ export type ProgramIndexPartialUpdate =
 @injectable()
 export class MeilisearchService implements ISearchService {
   private mutex = new Mutex();
+  private ratingSettingsMutex = new Mutex();
+  private readyRatingKeys = new Set<string>();
   private started = false;
   private proc?: ChildProcessWrapper;
   private port?: number;
@@ -412,6 +430,7 @@ export class MeilisearchService implements ISearchService {
     @inject(ChildProcessHelper) private childProcessHelper: ChildProcessHelper,
     @inject(FileSystemService) private fileSystemService: FileSystemService,
     @inject(SearchParser) private searchParser: SearchParser,
+    @inject(KEYS.DrizzleDB) private drizzleDB: DrizzleDBAccess,
   ) {}
 
   getPort() {
@@ -879,10 +898,103 @@ export class MeilisearchService implements ISearchService {
     }
   }
 
+  getRatingFields(): RatingFieldDescriptor[] {
+    return this.drizzleDB
+      .select()
+      .from(RatingField)
+      .all()
+      .map((field) => ({
+        ...field,
+        label: ratingFieldLabel(field),
+        ready: this.readyRatingKeys.has(field.key),
+      }));
+  }
+
+  private async ensureRatingFields(signal?: AbortSignal) {
+    await waitForRatingOperation(this.ready, signal);
+    const acquisition = this.ratingSettingsMutex.acquire();
+    let release: () => void;
+    try {
+      release = await waitForRatingOperation(acquisition, signal);
+    } catch (error) {
+      // Cancellation drops this caller's wait, not another owner's settings
+      // update. A late reservation must release itself without doing work.
+      void acquisition.then(
+        (release) => release(),
+        () => {},
+      );
+      throw error;
+    }
+    try {
+      if (signal?.aborted) throw new Error('Rating index operation cancelled');
+      const fields = this.drizzleDB.select().from(RatingField).all();
+      if (fields.some((field) => !this.readyRatingKeys.has(field.key)))
+        await this.syncIndexSettings(ProgramsIndex, signal);
+    } finally {
+      release();
+    }
+  }
+
+  async updateRatings(
+    updates: { id: string; ratings: RatingSnapshot }[],
+    signal?: AbortSignal,
+  ): Promise<{ indexed: number; unindexed: number }> {
+    if (updates.length === 0) return { indexed: 0, unindexed: 0 };
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    if (signal?.aborted) abort();
+    else signal?.addEventListener('abort', abort, { once: true });
+    // Bound this job's index acknowledgement, not the lifetime of already
+    // submitted engine work. Unconfirmed writes are reported, never retried.
+    const timer = setTimeout(abort, 120_000);
+    try {
+      await this.ensureRatingFields(controller.signal);
+      let indexed = 0;
+      let unindexed = 0;
+      for (let offset = 0; offset < updates.length; offset += 100) {
+        const batch = updates.slice(offset, offset + 100);
+        const documents = await this.client().httpRequest.post<
+          ResourceResults<{ id: string }[]>
+        >({
+          path: `indexes/${ProgramsIndex.name}/documents/fetch`,
+          body: {
+            ids: batch.map((update) => update.id),
+            fields: ['id'],
+            limit: batch.length,
+          },
+          extraRequestInit: { signal: controller.signal },
+        });
+        const existing = new Set(
+          documents.results.map((document) => document.id),
+        );
+        const applicable = batch.filter((update) => existing.has(update.id));
+        unindexed += batch.length - applicable.length;
+        // A metadata refresh must not create incomplete search documents for
+        // legacy/unindexed IDs. A normal index rebuild owns those base fields.
+        if (applicable.length === 0) continue;
+        const task = await this.client().httpRequest.put<EnqueuedTask>({
+          path: `indexes/${ProgramsIndex.name}/documents`,
+          body: applicable.map((update) => ({
+            id: update.id,
+            ...ratingSearchFields(update.ratings),
+          })),
+          extraRequestInit: { signal: controller.signal },
+        });
+        await this.waitForTaskResult(task.taskUid, false, controller.signal);
+        indexed += applicable.length;
+      }
+      return { indexed, unindexed };
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', abort);
+    }
+  }
+
   async indexMovie(programs: (Movie & HasMediaSourceAndLibraryId)[]) {
     if (isEmpty(programs)) {
       return;
     }
+    await this.ensureRatingFields();
 
     return await Promise.all(
       this.client()
@@ -903,6 +1015,7 @@ export class MeilisearchService implements ISearchService {
     if (isEmpty(movies)) {
       return;
     }
+    await this.ensureRatingFields();
 
     return await Promise.all(
       this.#client!.index<ProgramSearchDocument>(
@@ -920,6 +1033,7 @@ export class MeilisearchService implements ISearchService {
     if (programs.length === 0) {
       return;
     }
+    await this.ensureRatingFields();
 
     return await Promise.all(
       this.#client!.index<ProgramSearchDocument>(
@@ -932,6 +1046,7 @@ export class MeilisearchService implements ISearchService {
     if (isEmpty(programs)) {
       return;
     }
+    await this.ensureRatingFields();
 
     return await Promise.all(
       this.client()
@@ -947,6 +1062,7 @@ export class MeilisearchService implements ISearchService {
     if (isEmpty(programs)) {
       return;
     }
+    await this.ensureRatingFields();
 
     return await Promise.all(
       this.client()
@@ -959,6 +1075,7 @@ export class MeilisearchService implements ISearchService {
   }
 
   async indexShow(show: Show & HasMediaSourceAndLibraryId) {
+    await this.ensureRatingFields();
     const externalIds = show.identifiers.map((eid) => ({
       id: eid.id,
       source: eid.type,
@@ -975,6 +1092,7 @@ export class MeilisearchService implements ISearchService {
       title: show.title,
       titleReverse: show.title.split('').reverse().join(''),
       sortTitle: show.sortTitle,
+      ...ratingSearchFields(show.ratings),
       rating: show.rating,
       genres: show.genres,
       actors: show.actors,
@@ -1004,6 +1122,7 @@ export class MeilisearchService implements ISearchService {
   async indexSeason<ShowT extends Show = Show>(
     season: SeasonWithShow<MediaSourceSeason, ShowT>,
   ) {
+    await this.ensureRatingFields();
     const externalIds = season.identifiers.map((eid) => ({
       id: eid.id,
       source: eid.type,
@@ -1026,6 +1145,7 @@ export class MeilisearchService implements ISearchService {
       title: season.title,
       titleReverse: season.title.split('').reverse().join(''),
       sortTitle: season.sortTitle,
+      ...ratingSearchFields(season.ratings),
       director: [],
       rating: null,
       actors: [],
@@ -1076,6 +1196,7 @@ export class MeilisearchService implements ISearchService {
     SeasonT extends Season<ShowT> = Season<ShowT>,
   >(programs: EpisodeWithAncestors2<MediaSourceEpisode, ShowT, SeasonT>[]) {
     if (isEmpty(programs)) return;
+    await this.ensureRatingFields();
 
     const episodeDocuments = programs.map((program) => {
       const document = this.convertProgramToSearchDocument(program);
@@ -1138,6 +1259,7 @@ export class MeilisearchService implements ISearchService {
   }
 
   async indexMusicArtist(artist: MusicArtist & HasMediaSourceAndLibraryId) {
+    await this.ensureRatingFields();
     const externalIds = artist.identifiers.map((eid) => ({
       id: eid.id,
       source: eid.type,
@@ -1154,6 +1276,7 @@ export class MeilisearchService implements ISearchService {
       title: artist.title,
       titleReverse: artist.title.split('').reverse().join(''),
       sortTitle: artist.sortTitle,
+      ...ratingSearchFields(artist.ratings),
       rating: null,
       genres: artist.genres ?? [],
       actors: [],
@@ -1180,6 +1303,7 @@ export class MeilisearchService implements ISearchService {
   async indexMusicAlbum<ArtistT extends MusicArtist = MusicArtist>(
     album: AlbumWithArtist<MediaSourceMusicAlbum, ArtistT>,
   ) {
+    await this.ensureRatingFields();
     const externalIds = album.identifiers.map((eid) => ({
       id: eid.id,
       source: eid.type,
@@ -1202,6 +1326,7 @@ export class MeilisearchService implements ISearchService {
       title: album.title,
       titleReverse: album.title.split('').reverse().join(''),
       sortTitle: album.sortTitle,
+      ...ratingSearchFields(album.ratings),
       director: [],
       rating: null,
       actors: [],
@@ -1249,6 +1374,7 @@ export class MeilisearchService implements ISearchService {
     AlbumT extends MusicAlbum<ArtistT> = MusicAlbum<ArtistT>,
   >(tracks: MusicTrackWithAncestors<MediaSourceMusicTrack, ArtistT, AlbumT>[]) {
     if (isEmpty(tracks)) return;
+    await this.ensureRatingFields();
 
     const episodeDocuments = tracks.map((program) => {
       const document = this.convertProgramToSearchDocument(program);
@@ -1312,6 +1438,7 @@ export class MeilisearchService implements ISearchService {
     programs: (TerminalProgram & HasMediaSourceAndLibraryId)[],
   ) {
     if (isEmpty(programs)) return;
+    await this.ensureRatingFields();
 
     const tasks: Promise<unknown>[] = [];
 
@@ -1469,7 +1596,15 @@ export class MeilisearchService implements ISearchService {
     indexName: IndexName,
     request: SearchRequest<IndexTypeByName<IndexName>>,
   ): Promise<SearchResponse<IndexDocumentTypeT>> {
+    await this.ensureRatingFields();
     const index = IndexesByName[indexName];
+    const sort = request.sort?.map(
+      ({ field, direction }) => `${ratingIndexField(field)}:${direction}`,
+    ) ?? ['sortTitle:asc'];
+    const hasRatingSort = request.sort?.some(
+      ({ field }) => field === 'omnirating' || field.startsWith('score_v1_'),
+    );
+    if (hasRatingSort) sort.push('id:asc');
     let filter: Maybe<string>;
     if (request.filter) {
       filter = MeilisearchService.buildFilterExpression(
@@ -1502,10 +1637,37 @@ export class MeilisearchService implements ISearchService {
       }
     }
 
+    if (hasRatingSort && !isNonEmptyString(request.query)) {
+      // Meilisearch's document-list sort drops null-valued documents. Empty
+      // searches preserve unknown scores and put them last in either direction.
+      await this.ratingSettingsMutex.runExclusive(async () => {
+        const engine = this.client().index(index.name);
+        const stats = await engine.getStats();
+        const pagination = await engine.getPagination();
+        if (stats.numberOfDocuments > (pagination.maxTotalHits ?? 1000)) {
+          const task = await engine.updatePagination({
+            maxTotalHits: stats.numberOfDocuments,
+          });
+          await this.waitForTaskResult(task.taskUid, false);
+        }
+      });
+      const offset = request.paging
+        ? request.paging.page * request.paging.limit
+        : 0;
+      const limit = request.paging?.limit ?? 100;
+      const results = await this.client()
+        .index<IndexDocumentTypeT>(index.name)
+        .search('', { filter, sort, offset, limit });
+      return {
+        type: 'filter',
+        results: results.hits,
+        total: results.estimatedTotalHits ?? 0,
+        offset,
+        limit,
+      };
+    }
+
     if (isNonEmptyString(request.query)) {
-      const sort = request.sort?.map(
-        ({ field, direction }) => `${field}:${direction}`,
-      ) ?? ['sortTitle:asc'];
       const req = {
         filter,
         page: request.paging?.page,
@@ -1535,9 +1697,6 @@ export class MeilisearchService implements ISearchService {
       const offset = request.paging
         ? request.paging.page * request.paging.limit
         : undefined;
-      const sort = request.sort?.map(
-        ({ field, direction }) => `${field}:${direction}`,
-      ) ?? ['sortTitle:asc'];
 
       this.logger.debug(
         'Issuing get documents request: filter: "%s", sort: %O. offset: %d limit %d',
@@ -1829,7 +1988,13 @@ export class MeilisearchService implements ISearchService {
           break;
         }
 
-        v = `${query.fieldSpec.key} ${maybeOpAndValue}`;
+        const field = ratingIndexField(query.fieldSpec.key);
+        const isRating =
+          field === 'omnirating' || field.startsWith('numericRatings.');
+        if (isRating && query.fieldSpec.type !== 'numeric')
+          throw new Error('Rating predicates must be numeric');
+        v = `${field} ${maybeOpAndValue}`;
+        if (isRating) v = `(${field} EXISTS AND ${field} IS NOT NULL AND ${v})`;
         break;
       }
     }
@@ -1948,6 +2113,7 @@ export class MeilisearchService implements ISearchService {
       title: program.title,
       titleReverse: program.title.split('').reverse().join(''),
       sortTitle: program.sortTitle,
+      ...ratingSearchFields(program.ratings),
       type: program.type,
       index:
         program.type === 'episode'
@@ -2081,6 +2247,7 @@ export class MeilisearchService implements ISearchService {
       tagline: program.type === 'movie' ? program.tagline : null,
       title: program.title,
       titleReverse: program.title?.split('').reverse().join(''),
+      ...(program.ratings ? ratingSearchFields(program.ratings) : {}),
       type: program.type,
       index:
         program.type === 'episode'
@@ -2119,17 +2286,30 @@ export class MeilisearchService implements ISearchService {
     }; // satisfies TerminalProgramSearchDocument<typeof program.type>;
   }
 
-  private async syncIndexSettings(index: GenericTunarrSearchIndex) {
+  private async syncIndexSettings(
+    index: GenericTunarrSearchIndex,
+    signal?: AbortSignal,
+  ) {
     const programsIndex = this.client().index(index.name);
 
+    const fields = this.drizzleDB.select().from(RatingField).all();
     const settings: Settings = {
       filterableAttributes: index.filterable,
-      sortableAttributes: index.sortable,
+      sortableAttributes: [
+        ...index.sortable,
+        ...fields.map((field) => ratingIndexField(field.key)),
+      ],
     };
 
-    const task = await programsIndex.updateSettings(settings);
-
-    return this.waitForTaskResult(task.taskUid);
+    const task = signal
+      ? await this.client().httpRequest.patch<EnqueuedTask>({
+          path: `indexes/${index.name}/settings`,
+          body: settings,
+          extraRequestInit: { signal },
+        })
+      : await programsIndex.updateSettings(settings);
+    await this.waitForTaskResult(task.taskUid, false, signal);
+    this.readyRatingKeys = new Set(fields.map((field) => field.key));
   }
 
   async waitForPendingIndexTasks(): Promise<void> {
@@ -2154,13 +2334,15 @@ export class MeilisearchService implements ISearchService {
   private async waitForTaskResult(
     taskId: number,
     canceledIsOk: boolean = false,
+    signal?: AbortSignal,
   ) {
     let status: EnqueuedTask['status'] = 'enqueued';
     let task: Task;
     do {
-      task = await this.client().tasks.getTask(taskId);
+      task = await this.client().tasks.getTask(taskId, { signal });
       status = task.status;
-      await wait(500);
+      if (status === 'enqueued' || status === 'processing')
+        await indexPollDelay(500, undefined, { signal });
     } while (
       status !== 'canceled' &&
       status !== 'failed' &&
@@ -2179,6 +2361,37 @@ export class MeilisearchService implements ISearchService {
   private get dbPath() {
     return path.join(this.serverOptions.databaseDirectory, 'data.ms');
   }
+}
+
+function waitForRatingOperation<T>(
+  promise: Promise<T>,
+  signal?: AbortSignal,
+): Promise<T> {
+  if (!signal) return promise;
+  if (signal.aborted)
+    return Promise.reject(new Error('Rating index operation cancelled'));
+  return new Promise<T>((resolve, reject) => {
+    const cleanup = () => signal.removeEventListener('abort', aborted);
+    const aborted = () => {
+      cleanup();
+      reject(new Error('Rating index operation cancelled'));
+    };
+    signal.addEventListener('abort', aborted, { once: true });
+    promise.then(
+      (value) => {
+        cleanup();
+        resolve(value);
+      },
+      (error) => {
+        cleanup();
+        reject(
+          error instanceof Error
+            ? error
+            : new Error('Ratings search operation failed'),
+        );
+      },
+    );
+  });
 }
 
 function encodeCaseSensitiveId(id: string): SingleCaseString {

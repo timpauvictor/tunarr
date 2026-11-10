@@ -26,6 +26,7 @@ export const ProgramExternalIdSourceTypes = [
   'tvdb',
   'jellyfin',
   'emby',
+  'youtube',
 ] as const;
 
 export type ProgramExternalIdSourceType = TupleToUnion<
@@ -123,7 +124,13 @@ export type MediaSourceName = Tag<string, 'mediaSourceName'>;
 
 // .github/scripts/pr-policy.cjs matches this name to detect new media sources.
 // Update it if you rename this constant.
-export const MediaSourceTypes = ['plex', 'jellyfin', 'emby', 'local'] as const;
+export const MediaSourceTypes = [
+  'plex',
+  'jellyfin',
+  'emby',
+  'local',
+  'youtube',
+] as const;
 export const MediaLibraryTypes = [
   'movies',
   'shows',
@@ -142,6 +149,7 @@ export const MediaSourceType: MediaSourceMap = {
   Jellyfin: 'jellyfin',
   Emby: 'emby',
   Local: 'local',
+  Youtube: 'youtube',
 } as const;
 
 export const ProgramStates = ['ok', 'missing'] as const;

@@ -3,6 +3,7 @@ import { Keyboard, Mouse } from '@mui/icons-material';
 import {
   Alert,
   Box,
+  Button,
   FormControl,
   InputLabel,
   MenuItem,
@@ -12,6 +13,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material';
+import { useLocation } from '@tanstack/react-router';
 import type { MediaSourceId } from '@tunarr/shared';
 import { isNonEmptyString } from '@tunarr/shared/util';
 import { tag } from '@tunarr/types';
@@ -39,6 +41,7 @@ import {
 import { ProgramViewToggleButton } from '../base/ProgramViewToggleButton.tsx';
 import { RouterLink } from '../base/RouterLink.tsx';
 import { LibraryProgramGrid } from '../library/LibraryProgramGrid.tsx';
+import { YouTubeImportDialog } from '../library/YouTubeImportDialog.tsx';
 import { SearchInput } from '../search/SearchInput.tsx';
 import { AddMediaSourceButton } from '../settings/media_source/AddMediaSourceButton.tsx';
 import { CustomShowProgrammingSelector } from './CustomShowProgrammingSelector.tsx';
@@ -58,7 +61,9 @@ export const ProgrammingSelector = ({
   toggleOrSetSelectedProgramsDrawer,
 }: Props) => {
   const { t } = useLingui();
-  const { entityType, onSourceChange } = useProgrammingSelectionContext();
+  const programming = useProgrammingSelectionContext();
+  const { entityType, onSourceChange } = programming;
+  const { pathname } = useLocation();
   const { data: mediaSources, isLoading: mediaSourcesLoading } =
     useMediaSources();
   const sortedMediaSources = useMemo(
@@ -77,6 +82,11 @@ export const ProgrammingSelector = ({
     'text',
   );
   const viewingCustomShows = mediaSource === 'custom-shows';
+  const [youtubeImportOpen, setYouTubeImportOpen] = useState(false);
+
+  useEffect(() => {
+    setYouTubeImportOpen(false);
+  }, [pathname, selectedServer?.id, entityType]);
 
   const { data: libraries, isLoading: librariesLoading } =
     useMediaSourceLibraries(selectedServer?.id ?? '', {
@@ -123,7 +133,8 @@ export const ProgrammingSelector = ({
 
   const renderMediaSourcePrograms = () => {
     const noSyncedLibraries =
-      selectedServer?.type !== 'local' &&
+      selectedServer &&
+      selectedServer.type !== 'local' &&
       !librariesLoading &&
       !some(libraries, (lib) => lib.enabled && !!lib.lastScannedAt);
 
@@ -273,6 +284,15 @@ export const ProgrammingSelector = ({
 
           {renderLibraryChoices()}
 
+          {selectedServer?.type === 'youtube' && (
+            <Button
+              variant="outlined"
+              onClick={() => setYouTubeImportOpen(true)}
+            >
+              <Trans>Import YouTube links</Trans>
+            </Button>
+          )}
+
           {selectedLibrary?.type === 'imported' && (
             <ToggleButtonGroup
               value={queryBuilderType}
@@ -296,6 +316,15 @@ export const ProgrammingSelector = ({
         </Stack>
       </Box>
       {renderMediaSourcePrograms()}
+      {selectedServer?.type === 'youtube' && (
+        <YouTubeImportDialog
+          key={selectedServer.id}
+          open={youtubeImportOpen}
+          onClose={() => setYouTubeImportOpen(false)}
+          source={selectedServer}
+          programming={programming}
+        />
+      )}
     </Box>
   );
 };

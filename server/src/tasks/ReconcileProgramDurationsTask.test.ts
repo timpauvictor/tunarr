@@ -1,18 +1,18 @@
 import type { Kysely } from 'kysely';
-import type { RegenerateChannelLineupCommand } from '@/commands/RegenerateChannelLineupCommand.ts';
+import type { RegenerateChannelLineupCommand } from '@/commands/RegenerateChannelLineupCommand.js';
 import { sumBy } from 'lodash-es';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type {
   Lineup,
   LineupItem,
   OnDemandChannelConfig,
-} from '@/db/derived_types/Lineup.ts';
-import type { IChannelDB } from '@/db/interfaces/IChannelDB.ts';
-import { calculateStartTimeOffsets } from '@/db/lineupUtil.ts';
-import type { DB } from '@/db/schema/db.ts';
-import { GlobalScheduler } from '@/services/Scheduler.ts';
-import type { OnDemandChannelService } from '@/services/OnDemandChannelService.ts';
-import { calculateStreamDuration } from '@/stream/StreamProgramCalculator.ts';
+} from '@/db/derived_types/Lineup.js';
+import type { IChannelDB } from '@/db/interfaces/IChannelDB.js';
+import { calculateStartTimeOffsets } from '@/db/lineupUtil.js';
+import type { DB } from '@/db/schema/db.js';
+import { GlobalScheduler } from '@/services/Scheduler.js';
+import type { OnDemandChannelService } from '@/services/OnDemandChannelService.js';
+import { calculateStreamDuration } from '@/stream/StreamProgramCalculator.js';
 import { ReconcileProgramDurationsTask } from './ReconcileProgramDurationsTask.ts';
 
 const NOW = 1_760_000_000_000;
@@ -56,6 +56,7 @@ function setup({
 
   const channelDB = {
     getAllChannels: vi.fn().mockResolvedValue([channel]),
+    findChannelsForProgramId: vi.fn().mockResolvedValue([channel]),
     loadLineup: vi.fn().mockResolvedValue(lineup),
     loadChannelAndLineup: vi.fn().mockResolvedValue({ channel, lineup }),
     saveLineup: vi.fn().mockResolvedValue(lineup),
@@ -63,14 +64,13 @@ function setup({
     updateLineupConfig: vi.fn().mockResolvedValue(undefined),
   };
 
+  const query = {
+    select: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    execute: vi.fn().mockResolvedValue(programs),
+  };
   const db = {
-    selectFrom: vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          execute: vi.fn().mockResolvedValue(programs),
-        }),
-      }),
-    }),
+    selectFrom: vi.fn().mockReturnValue(query),
   } as unknown as Kysely<DB>;
 
   const onDemandService = {
@@ -97,6 +97,7 @@ function setup({
     channelDB,
     onDemandService,
     regenerateLineup,
+    query,
   };
 }
 
@@ -115,6 +116,31 @@ describe('ReconcileProgramDurationsTask', () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
+
+  test.each([
+    undefined,
+    { type: 'program' as const, programId: 'youtube-program' },
+  ])(
+    'excludes YouTube in global and targeted reconciliation without rewriting saved timing (%j)',
+    async (request) => {
+      const f = setup({
+        items: [{ type: 'content', id: 'youtube-program', durationMs: 1000 }],
+        programs: [],
+        startTime: NOW - 15000,
+        schedule: timeSchedule,
+        scheduleSeed: [7, 8],
+      });
+      const before = structuredClone(f.lineup);
+      await f.task.run(request);
+      expect(f.query.where).toHaveBeenCalledWith('sourceType', '!=', 'youtube');
+      expect(f.lineup).toEqual(before);
+      expect(f.channelDB.saveLineup).not.toHaveBeenCalled();
+      expect(f.channelDB.updateChannelStartTime).not.toHaveBeenCalled();
+      expect(f.channelDB.updateLineupConfig).not.toHaveBeenCalled();
+      expect(f.regenerateLineup.execute).not.toHaveBeenCalled();
+      expect(scheduleOneOff).not.toHaveBeenCalled();
+    },
+  );
 
   test('corrects durations and recomputes startTimeOffsets', async () => {
     const { task, channelDB } = setup({

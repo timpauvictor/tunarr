@@ -3,6 +3,7 @@ import type {
   MediaSourceLibrary,
   Playlist,
   ProgramOrFolder,
+  MediaSourceType,
 } from '@tunarr/types';
 import { type CustomProgram, type MediaSourceSettings } from '@tunarr/types';
 import { type PlexSearch } from '@tunarr/types/api';
@@ -46,7 +47,7 @@ export type ExternalSourceSelectedMedia = {
   libraryId: string;
   id: ItemUuid;
   childCount?: number;
-  type: Plex | Jellyfin | Emby;
+  type: Exclude<MediaSourceType, 'local'>;
 };
 
 export type LocalSourceSelectedMedia = {

@@ -483,11 +483,12 @@ export class XmlTvWriter {
       });
     }
 
-    // Generic fallback: program's own poster
+    // Generic fallback: the program's poster, or a recorded video's thumbnail.
     candidates.push({
       id: program.uuid,
       artwork: program.artwork,
-      types: ['poster'],
+      types:
+        program.type === 'other_video' ? ['poster', 'thumbnail'] : ['poster'],
       source: program,
     });
 

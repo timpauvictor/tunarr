@@ -24,6 +24,7 @@ import { LocalMediaEditDialog } from '../../components/settings/media_source/Loc
 import { MediaSourceLibrariesChip } from '../../components/settings/media_source/MediaSourceLibrariesChip.tsx';
 import { MediaSourceHealthyTableCell } from '../../components/settings/media_source/MediaSourceHealthyTableCell.tsx';
 import { PlexServerEditDialog } from '../../components/settings/media_source/PlexServerEditDialog.tsx';
+import { YouTubeMediaSourceDialog } from '../../components/settings/media_source/YouTubeMediaSourceDialog.tsx';
 import { DataTable } from '../../components/ui/table/DataTable.tsx';
 import { actionsColumn } from '../../components/ui/table/columns.tsx';
 import {
@@ -81,41 +82,52 @@ export default function MediaSourceSettingsPage() {
           enableSorting: false,
         }),
         columnHelper.accessor('name', { header: t`Name` }),
-        columnHelper.accessor('uri', {
-          header: t`URL`,
-          cell: ({ getValue, row }) =>
-            row.original.type === 'local' ? (
-              '-'
-            ) : (
-              <Link
-                href={getValue()}
-                sx={{
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                }}
-                target="_blank"
-              >
-                {getValue()}
-              </Link>
-            ),
-        }),
+        columnHelper.accessor(
+          (source) => ('uri' in source ? source.uri : undefined),
+          {
+            id: 'uri',
+            header: t`URL`,
+            cell: ({ getValue, row }) =>
+              row.original.type === 'local' ||
+              row.original.type === 'youtube' ? (
+                '-'
+              ) : (
+                <Link
+                  href={getValue()}
+                  sx={{
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                  }}
+                  target="_blank"
+                >
+                  {getValue()}
+                </Link>
+              ),
+          },
+        ),
         columnHelper.display({
           id: 'libraries',
           header: t`Libraries`,
-          cell: ({ row }) => (
-            <MediaSourceLibrariesChip
-              mediaSource={row.original}
-              onClick={() => setEditingMediaSourceLibraries(row.original)}
-            />
-          ),
+          cell: ({ row }) =>
+            row.original.type === 'youtube' ? (
+              <Trans>Saved Videos</Trans>
+            ) : (
+              <MediaSourceLibrariesChip
+                mediaSource={row.original}
+                onClick={() => setEditingMediaSourceLibraries(row.original)}
+              />
+            ),
         }),
         columnHelper.display({
           id: 'isHealthy',
           header: t`Healthy?`,
-          cell: ({ row }) => (
-            <MediaSourceHealthyTableCell mediaSource={row.original} />
-          ),
+          cell: ({ row }) =>
+            row.original.type === 'youtube' ? (
+              <Trans>Use Test setup</Trans>
+            ) : (
+              <MediaSourceHealthyTableCell mediaSource={row.original} />
+            ),
         }),
       ]),
       actionsColumn<MediaSourceSettings>({
@@ -129,7 +141,7 @@ export default function MediaSourceSettingsPage() {
                 <Edit />
               </IconButton>
             </Tooltip>
-            {source.type !== 'local' && (
+            {source.type !== 'local' && source.type !== 'youtube' && (
               <>
                 <Tooltip title={t`Refresh Libraries`} placement="top">
                   <IconButton
@@ -233,6 +245,13 @@ export default function MediaSourceSettingsPage() {
       )}
       {editingMediaSource?.type === 'local' && (
         <LocalMediaEditDialog
+          open
+          onClose={() => setEditingMediaSource(null)}
+          source={editingMediaSource}
+        />
+      )}
+      {editingMediaSource?.type === 'youtube' && (
+        <YouTubeMediaSourceDialog
           open
           onClose={() => setEditingMediaSource(null)}
           source={editingMediaSource}

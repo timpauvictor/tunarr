@@ -101,7 +101,9 @@ async function makeApp({
     getStream: vi.fn(() =>
       Promise.resolve(
         Result.success({
-          streamSource: new FileStreamSource('/media/a.mkv'),
+          inputs: [
+            { id: 'main', source: new FileStreamSource('/media/a.mkv') },
+          ],
           streamDetails: {},
         }),
       ),

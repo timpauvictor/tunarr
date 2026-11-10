@@ -6,6 +6,9 @@ import type { ProgramStreamResult } from './types.ts';
 export type StreamFetchRequest = {
   server: MediaSourceWithRelations;
   lineupItem: StreamLineupProgram;
+  signal?: AbortSignal;
+  maxHeight?: number;
+  expiresAt?: number;
 };
 
 export interface StreamDetailsFetcher<RequestType> {

@@ -149,12 +149,15 @@ export const videoApiRouter: RouterPluginAsyncCallback = async (fastify) => {
 
       logger.debug('Starting stream timestamp: %s', dayjs(now).format());
 
+      const playback = new AbortController();
+      res.raw.once('close', () => playback.abort());
       const rawStreamResult = await videoStream.startStream(
         {
           channel: req.query.channel,
           audioOnly: req.query.audioOnly ?? false,
           streamMode: req.query.mode,
           sessionToken: req.query.token,
+          signal: playback.signal,
         },
         now,
         true,
@@ -171,7 +174,7 @@ export const videoApiRouter: RouterPluginAsyncCallback = async (fastify) => {
           .send(rawStreamResult.message);
       }
 
-      req.raw.on('close', () => {
+      res.raw.once('close', () => {
         logger.debug('Client closed video stream, stopping it now.');
         // TODO if HLS stream, check the session to see if we can clean it up
         rawStreamResult.stop();

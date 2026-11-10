@@ -28,6 +28,7 @@ export const ExternalCollection = sqliteTable(
     externalKey: text().notNull(),
     sourceType: text({ enum: MediaSourceTypes }).notNull(),
     title: text().notNull(),
+    kind: text({ enum: ['saved_videos', 'playlist', 'creator_uploads'] }),
   },
   (table) => [
     unique().on(table.mediaSourceId, table.externalKey),

@@ -90,8 +90,10 @@ async function makeRunner({
   materialize,
   hangs = false,
   timeoutMs = 5_000,
+  exitsOnTermination = false,
 }: {
   hangs?: boolean;
+  exitsOnTermination?: boolean;
   timeoutMs?: number;
   exitCode?: number | null;
   stderr?: string;
@@ -120,10 +122,10 @@ async function makeRunner({
     stderr: new EventEmitter(),
   });
 
-  // A hung worker ignores SIGTERM and dies only on SIGKILL.
+  // Model both a cooperative worker and one that needs escalation.
   const killed = vi.fn((signal?: NodeJS.Signals) => {
-    if (signal === 'SIGKILL') {
-      workerProcess.emit('exit', null, 'SIGKILL');
+    if (signal === 'SIGKILL' || exitsOnTermination) {
+      workerProcess.emit('exit', null, signal ?? 'SIGTERM');
     }
   });
   const spawn = vi.fn(async () => {
@@ -159,7 +161,7 @@ async function makeRunner({
     { spawn },
   );
 
-  const run = (channel = makeChannel()) =>
+  const run = (channel = makeChannel(), signal?: AbortSignal) =>
     runner.run({
       channel,
       lineupItem,
@@ -168,6 +170,7 @@ async function makeRunner({
       sessionId: channelUuid,
       timeoutMs,
       subtitleMode: 'burn',
+      ...(signal ? { signal } : {}),
     });
 
   return { run, spawn, killed, outputDirectory, playoutWriter };
@@ -181,6 +184,34 @@ afterEach(async () => {
 });
 
 describe('EtvNextTroubleshootRunner', () => {
+  test('cancels the owning materialized run and reaps its worker before returning', async () => {
+    const { run, spawn, killed, playoutWriter } = await makeRunner({
+      hangs: true,
+      timeoutMs: 60000,
+      exitsOnTermination: true,
+    });
+    const owner = new AbortController();
+    const operation = run(makeChannel(), owner.signal);
+    try {
+      await expect
+        .poll(() => spawn.mock.calls.length, { timeout: 2000 })
+        .toBe(1);
+      owner.abort();
+      await expect(operation).resolves.toMatchObject({
+        success: false,
+        signal: 'CANCELLED',
+      });
+      expect(playoutWriter.materializeProgram).toHaveBeenCalledWith(
+        expect.objectContaining({ signal: owner.signal }),
+      );
+      expect(killed).toHaveBeenCalledTimes(1);
+      expect(killed).toHaveBeenNthCalledWith(1);
+    } finally {
+      owner.abort();
+      await operation.catch(() => undefined);
+    }
+  });
+
   test('reports success and publishes the complete playlist', async () => {
     const { run, spawn, outputDirectory } = await makeRunner();
 

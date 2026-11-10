@@ -40,6 +40,7 @@ import { guideRouter } from './guideApi.js';
 import { hdhrSettingsRouter } from './hdhrSettingsApi.js';
 import { jellyfinApiRouter } from './jellyfinApi.js';
 import { mediaSourceRouter } from './mediaSourceApi.js';
+import { youtubeApi } from './youtubeApi.ts';
 import { plexApiRouter } from './plexApi.ts';
 import { plexSettingsRouter } from './plexSettingsApi.js';
 import { ProgramGroupingApiController } from './programGroupingApi.ts';
@@ -79,6 +80,7 @@ export const apiRouter: RouterPluginAsyncCallback = async (fastify) => {
     .register(fillerListsApi)
     .register(programmingApi)
     .register(mediaSourceRouter)
+    .register(youtubeApi)
     .register(ffmpegSettingsRouter)
     .register(plexSettingsRouter)
     .register(xmlTvSettingsRouter)

@@ -304,6 +304,12 @@ function makeFetcher(program: StreamLineupProgram) {
   return new ProgramStreamDetailsFetcher(
     makeProgramDB(program),
     artworkService,
+    {
+      resolve: () =>
+        Promise.reject(
+          new Error('Unexpected YouTube resolution in a subtitle fixture'),
+        ),
+    },
   );
 }
 

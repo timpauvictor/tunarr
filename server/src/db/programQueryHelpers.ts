@@ -38,6 +38,7 @@ export const AllProgramFields = [
   'program.canonicalId',
   'program.icon',
   'program.summary',
+  'program.youtubeMetadata',
   'program.title',
   'program.type',
   'program.year',
@@ -102,8 +103,8 @@ const ProgramUpsertFields: ProgramUpsertFields[] = AllProgramFields.filter(
 
 export const ProgramUpsertSetClause = mapToObj(ProgramUpsertFields, (f) => ({
   [f]:
-    f === 'ratings'
-      ? sql`coalesce(excluded.ratings, program.ratings)`
+    f === 'ratings' || f === 'youtubeMetadata'
+      ? sql`coalesce(excluded.${sql.identifier(toSnakeCase(f))}, program.${sql.identifier(toSnakeCase(f))})`
       : sql`excluded.${sql.identifier(toSnakeCase(f))}`,
 }));
 

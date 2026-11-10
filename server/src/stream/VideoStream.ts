@@ -47,6 +47,7 @@ type StartVideoStreamRequest = {
   streamMode: ChannelStreamMode;
   sessionToken?: string;
   encoding?: StreamEncoding;
+  signal?: AbortSignal;
 };
 
 /**
@@ -74,11 +75,13 @@ export class VideoStream {
       streamMode,
       sessionToken,
       encoding,
+      signal,
     }: StartVideoStreamRequest,
     startTimestamp: number,
     allowSkip: boolean,
   ): Promise<VideoStreamResult> {
     const start = performance.now();
+    const playbackStartTimeMs = Date.now();
     // const serverCtx = getServerContext();
     const outStream = new PassThrough();
 
@@ -123,6 +126,7 @@ export class VideoStream {
           startTime: startTimestamp,
           sessionToken,
           audioOnly,
+          signal,
         });
         break;
       }
@@ -148,6 +152,9 @@ export class VideoStream {
             },
           );
 
+          playerContext.playbackSignal = signal;
+          playerContext.playbackStartTimeMs = playbackStartTimeMs;
+          playerContext.scheduleTimeMs = startTimestamp;
           let outputFormat: OutputFormat = MpegTsOutputFormat;
           if (streamMode === 'hls_direct' || streamMode === 'hls_direct_v2') {
             switch (ffmpegSettings.hlsDirectOutputFormat) {

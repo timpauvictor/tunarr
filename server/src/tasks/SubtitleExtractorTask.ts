@@ -399,6 +399,13 @@ export class SubtitleExtractorTask extends Task2<
           );
         return client.getSubtitlesByPath(key);
       }
+      case 'youtube':
+        return Result.failure(
+          QueryError.create(
+            'generic_request_error',
+            'YouTube subtitle extraction is not supported.',
+          ),
+        );
       case 'local':
         // Local libraries are scanned off storage Tunarr already has open, so
         // their sidecars are never fetched over the network.
@@ -416,6 +423,9 @@ export class SubtitleExtractorTask extends Task2<
     mediaSource: MediaSourceWithRelations,
     opts: { skipWhenCached?: boolean } = {},
   ) {
+    if (mediaSource.type === 'youtube') {
+      return;
+    }
     const dbProgram = await this.programDB.getProgramById(programId);
     if (!dbProgram) {
       return;
@@ -542,11 +552,11 @@ export class SubtitleExtractorTask extends Task2<
           '-hide_banner',
           '-loglevel',
           'warning',
-          ...(stream.get().streamSource.type === 'http'
+          ...(stream.get().inputs[0].source.type === 'http'
             ? new HttpReconnectOptions().options()
             : []),
           '-i',
-          `${stream.get().streamSource.path}`,
+          `${stream.get().inputs[0].source.path}`,
           ...subtitleOutputArgs,
         ],
         {

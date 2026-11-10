@@ -2,6 +2,7 @@ import type { MediaChapter } from '@tunarr/types';
 import type { Duration } from 'dayjs/plugin/duration.js';
 import type { Dictionary, NonEmptyArray } from 'ts-essentials';
 import type { Maybe } from '../types/util.ts';
+import type { MediaInput } from './MediaInputs.ts';
 
 export type StreamDetails = {
   duration: Duration;
@@ -147,7 +148,7 @@ export type StreamSource =
   | ErrorStreamSource;
 
 export type ProgramStreamResult = {
-  streamSource: StreamSource;
+  inputs: NonEmptyArray<MediaInput>;
   streamDetails: StreamDetails;
 };
 

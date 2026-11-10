@@ -155,8 +155,17 @@ export class SessionManager {
     // Stop outside the channel lock. A stop can wait up to 30s for ffmpeg to
     // exit, and each session has its own directory, so a new tune-in on this
     // channel need not wait for it.
-    const session = await this.removeSession(id, sessionType);
-    await session?.stop();
+    const target =
+      idOrSession instanceof Session
+        ? idOrSession
+        : this.getSession(id, sessionType);
+    // Abort owned preparation before waiting behind its channel startup lock.
+    const stopping = target?.stop();
+    const [, removed] = await Promise.all([
+      stopping,
+      this.removeSession(id, sessionType, target),
+    ]);
+    if (removed && removed !== target) await removed.stop();
   }
 
   /**
@@ -166,22 +175,26 @@ export class SessionManager {
    */
   async endSessionInBackground(session: Session): Promise<void> {
     const { id, sessionType } = session.keyObj;
-    const removed = await this.removeSession(id, sessionType);
-    removed?.stop().catch((e) => {
+    // stop() aborts the playback signal synchronously, before its own lock.
+    // Otherwise removeSession could wait behind the extraction it must cancel.
+    session.stop().catch((e) => {
       this.logger.error(
         this.getLoggerContext(id, e),
         'Error shutting down session',
       );
     });
+    await this.removeSession(id, sessionType, session);
   }
 
   private async removeSession(
     id: string,
     sessionType: SessionType,
+    expected?: Session,
   ): Promise<Maybe<Session>> {
     const lock = await this.#sessionLocker.getOrCreateLock(id);
     return lock.runExclusive(() => {
       const session = this.getSession(id, sessionType);
+      if (expected && session !== expected) return;
       delete this.#sessions[sessionCacheKey(id, sessionType)];
       return session;
     });

@@ -16,7 +16,7 @@ export const ProgramTypeSchema = z.union([
   z.literal('flex'),
 ]);
 
-export const SourceTypeSchema = z.enum(['plex', 'jellyfin', 'emby', 'local']);
+export const SourceTypeSchema = MediaSourceType;
 
 export const ProgramSchema = z.object({
   artistName: z.string().optional(),
@@ -480,9 +480,16 @@ export const MusicVideo = z.object({
   ...WithMediaItemMetadata.shape,
 });
 
+export const YouTubeVideoAttribution = z.object({
+  creatorId: z.string().max(128).optional(),
+  creatorName: z.string().max(1024).optional(),
+});
+
 export const OtherVideoMetadata = z.object({
   ...BaseProgram.shape,
   type: z.literal('other_video'),
+  summary: z.string().nullish(),
+  youtubeMetadata: YouTubeVideoAttribution.nullish(),
 });
 
 export const OtherVideo = z.object({

@@ -101,6 +101,7 @@ export class EtvNextTroubleshootRunner {
     sessionId,
     timeoutMs,
     subtitleMode,
+    signal,
   }: {
     channel: ChannelOrmWithTranscodeConfig;
     lineupItem: StreamLineupItem;
@@ -111,7 +112,9 @@ export class EtvNextTroubleshootRunner {
 
     /** Matches the live channel, so the run burns or converts as it would. */
     subtitleMode: SubtitleMode;
+    signal?: AbortSignal;
   }): Promise<EtvNextTroubleshootRun> {
+    signal?.throwIfAborted();
     const workspace = new EtvNextWorkspace(baseDirectory, sessionId);
     await workspace.initialize();
 
@@ -160,6 +163,7 @@ export class EtvNextTroubleshootRunner {
         channel,
         lineupItem,
         startMs: Date.now(),
+        ...(signal ? { signal } : {}),
       });
     } catch (e) {
       if (e instanceof StreamTerminationRequestedError) {
@@ -179,11 +183,13 @@ export class EtvNextTroubleshootRunner {
     );
 
     const executablePath = await this.binaryResolver.resolveChecked();
+    signal?.throwIfAborted();
     const exit = await this.spawnAndWait({
       executablePath,
       workspace,
       channelNumber: channel.number,
       timeoutMs,
+      signal,
     });
 
     await this.publishVodPlaylist(workspace.outputDirectory);
@@ -207,12 +213,15 @@ export class EtvNextTroubleshootRunner {
     workspace,
     channelNumber,
     timeoutMs,
+    signal,
   }: {
     executablePath: string;
     workspace: EtvNextWorkspace;
     channelNumber: number;
     timeoutMs: number;
+    signal?: AbortSignal;
   }): Promise<{ code: number | null; signal: string | null; stderr: string }> {
+    signal?.throwIfAborted();
     const wrapper = await this.childProcessHelper.spawn(
       executablePath,
       [
@@ -229,6 +238,7 @@ export class EtvNextTroubleshootRunner {
         restartOnFailure: false,
         maxAttempts: 1,
       },
+      { ...process.env, FFREPORT: undefined },
     );
 
     const child = wrapper.process;
@@ -247,14 +257,29 @@ export class EtvNextTroubleshootRunner {
         child.once('exit', (code, signal) => resolve({ code, signal })),
     );
 
+    let abort: (() => void) | undefined;
+    const cancelled = signal
+      ? new Promise<never>((_resolve, reject) => {
+          abort = () => reject(new Error('Troubleshoot request cancelled.'));
+          signal.addEventListener('abort', abort, { once: true });
+          if (signal.aborted) abort();
+        })
+      : undefined;
     try {
-      const { code, signal } = await timeoutPromise(exited, timeoutMs);
-      return { code, signal, stderr: tail(stderr) };
-    } catch {
-      this.logger.error(
-        'A troubleshoot transcode ran past %dms. Stopping the worker.',
+      const exit = await timeoutPromise(
+        cancelled ? Promise.race([exited, cancelled]) : exited,
         timeoutMs,
       );
+      return { ...exit, stderr: tail(stderr) };
+    } catch {
+      if (!signal?.aborted) {
+        this.logger.error(
+          'A troubleshoot transcode ran past %dms. Stopping the worker.',
+          timeoutMs,
+        );
+      }
+    } finally {
+      if (abort) signal?.removeEventListener('abort', abort);
     }
 
     // The caller deletes the workspace once this returns, so the worker has
@@ -265,7 +290,11 @@ export class EtvNextTroubleshootRunner {
       await exitsWithin(exited, WorkerExitTimeoutMs);
     }
 
-    return { code: null, signal: 'TIMEOUT', stderr: tail(stderr) };
+    return {
+      code: null,
+      signal: signal?.aborted ? 'CANCELLED' : 'TIMEOUT',
+      stderr: tail(stderr),
+    };
   }
 
   /**

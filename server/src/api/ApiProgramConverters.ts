@@ -231,6 +231,8 @@ export class ApiProgramConverters {
             ...base,
             type: 'other_video',
             originalTitle: null,
+            summary: program.summary,
+            youtubeMetadata: program.youtubeMetadata,
           }) satisfies OtherVideo,
       )
       .with(

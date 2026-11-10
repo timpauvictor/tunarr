@@ -29,9 +29,17 @@ export const troubleshootApiRouter: RouterPluginCallback = (
         },
       },
     },
-    async (req) => {
+    async (req, res) => {
       const service = container.get(TroubleshootService);
-      return service.runTroubleshoot(req.body);
+      const owner = new AbortController();
+      const abort = () => owner.abort();
+      res.raw.once('close', abort);
+      try {
+        return await service.runTroubleshoot(req.body, owner.signal);
+      } finally {
+        res.raw.removeListener('close', abort);
+        owner.abort();
+      }
     },
   );
 

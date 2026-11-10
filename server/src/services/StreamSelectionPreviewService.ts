@@ -55,6 +55,7 @@ export class StreamSelectionPreviewService {
 
   async preview(
     request: StreamSelectionPreviewRequest,
+    signal?: AbortSignal,
   ): Promise<StreamSelectionPreviewOutcome> {
     const program = await this.programDB.getProgramById(request.programId);
     if (!program) {
@@ -95,10 +96,15 @@ export class StreamSelectionPreviewService {
       };
     }
 
-    const streamResult = await this.streamDetailsFetcher.getStream({
-      lineupItem: { ...program, mediaSourceId: mediaSource.uuid },
-      server: mediaSource,
-    });
+    // Preview consumes track metadata only; revoke its inputs after probing.
+    const owner = new AbortController();
+    const streamResult = await this.streamDetailsFetcher
+      .getStream({
+        lineupItem: { ...program, mediaSourceId: mediaSource.uuid },
+        server: mediaSource,
+        signal: signal ? AbortSignal.any([signal, owner.signal]) : owner.signal,
+      })
+      .finally(() => owner.abort());
     if (streamResult.isFailure()) {
       // WrappedError keeps the original message on its cause.
       const { error } = streamResult;

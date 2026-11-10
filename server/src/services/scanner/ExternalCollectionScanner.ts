@@ -214,6 +214,7 @@ export abstract class ExternalCollectionScanner<
           mediaSourceId: ctx.mediaSource.uuid,
           sourceType: this.sourceType,
           title: collection.title,
+          kind: null,
         };
 
         await this.externalCollectionsRepo.insertCollection(existingCollection);

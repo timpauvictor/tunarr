@@ -157,6 +157,7 @@ export default function SelectedProgrammingList({
       case Jellyfin:
       case Emby:
       case Local:
+      case 'youtube':
         return `${item.type}.${item.mediaSource.id}.${item.id}`;
       case 'custom-show':
         return `custom_${item.customShowId}_${index}`;
@@ -170,6 +171,7 @@ export default function SelectedProgrammingList({
       case Jellyfin:
       case Emby:
       case Local:
+      case 'youtube':
         return (
           <ImportedProgramListItem
             knownMedia={knownMedia}

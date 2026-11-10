@@ -8,6 +8,7 @@ import { safeEqual } from '../../util/basicAuth.ts';
 type EtvNextTokenGrant = {
   channelUuid: string;
   channelNumber: number;
+  signal?: AbortSignal;
 };
 
 type Registration = EtvNextTokenGrant & { token: string };
@@ -29,9 +30,18 @@ export class EtvNextDynamicTokenRegistry {
   #byChannel = new Map<string, Registration>();
 
   /** Mints a token for a channel, replacing any token it already held. */
-  issue(channelUuid: string, channelNumber: number): string {
+  issue(
+    channelUuid: string,
+    channelNumber: number,
+    signal?: AbortSignal,
+  ): string {
     const token = randomBytes(32).toString('base64url');
-    this.#byChannel.set(channelUuid, { channelUuid, channelNumber, token });
+    this.#byChannel.set(channelUuid, {
+      channelUuid,
+      channelNumber,
+      token,
+      signal,
+    });
     return token;
   }
 
@@ -65,6 +75,7 @@ export class EtvNextDynamicTokenRegistry {
         return {
           channelUuid: registration.channelUuid,
           channelNumber: registration.channelNumber,
+          ...(registration.signal ? { signal: registration.signal } : {}),
         };
       }
     }

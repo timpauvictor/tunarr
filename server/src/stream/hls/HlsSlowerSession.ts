@@ -48,12 +48,13 @@ export class HlsSlowerSession extends BaseHlsSession {
     request: StrictOmit<GetPlayerContextRequest, 'channelId'>,
   ): Promise<Result<ProgramStream>> {
     const { startTime: now, sessionToken } = request;
+    const playbackStartTimeMs = (this.transcodedUntil ?? dayjs()).valueOf();
 
     const lineupItemResult = await this.#programCalculator.getCurrentLineupItem(
       {
         allowSkip: true,
         channelId: this.channel.uuid,
-        startTime: (this.transcodedUntil ?? dayjs()).valueOf(),
+        startTime: playbackStartTimeMs,
         sessionToken,
       },
     );
@@ -81,6 +82,11 @@ export class HlsSlowerSession extends BaseHlsSession {
         },
       );
 
+      context.playbackSignal = request.signal
+        ? AbortSignal.any([this.playbackSignal, request.signal])
+        : this.playbackSignal;
+      context.playbackStartTimeMs = playbackStartTimeMs;
+      context.scheduleTimeMs = playbackStartTimeMs;
       let programStream = this.programStreamFactory(context, NutOutputFormat);
 
       let transcodeSessionResult = await programStream.setup();
@@ -122,9 +128,9 @@ export class HlsSlowerSession extends BaseHlsSession {
       });
 
       transcodeSessionResult.forEach((transcodeSession) => {
-        this.transcodedUntil = (this.transcodedUntil ?? dayjs()).add(
-          transcodeSession.streamDuration,
-        );
+        this.transcodedUntil = dayjs(
+          context.playbackStartTimeMs ?? +(this.transcodedUntil ?? dayjs()),
+        ).add(transcodeSession.streamDuration);
       });
 
       return programStream;

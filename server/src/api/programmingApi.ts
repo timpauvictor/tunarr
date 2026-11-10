@@ -436,6 +436,16 @@ export const programmingApi: RouterPluginAsyncCallback = async (fastify) => {
           );
       }
 
+      if (server.type === 'youtube') {
+        return res.send({
+          details: {
+            metadataOnly: true,
+            reason:
+              'YouTube tracks are resolved only for active playback. Library and guide reads do not probe media.',
+          },
+          ffprobeDetails: null,
+        });
+      }
       const ffprobe = container.get<FfprobeStreamDetails>(FfprobeStreamDetails);
 
       const result = await container
@@ -450,7 +460,8 @@ export const programmingApi: RouterPluginAsyncCallback = async (fastify) => {
         return res.status(500).send(result.error.message);
       }
 
-      const { streamDetails, streamSource } = result.get();
+      const { streamDetails, inputs } = result.get();
+      const streamSource = inputs[0].source;
 
       const ffprobeDetails = (
         await ffprobe.getStream({
@@ -465,13 +476,18 @@ export const programmingApi: RouterPluginAsyncCallback = async (fastify) => {
       if (streamSource.type === 'http') {
         streamSource.redact();
       }
-      if (ffprobeDetails?.streamSource.type === 'http') {
-        ffprobeDetails.streamSource.redact();
+      const probedSource = ffprobeDetails?.inputs[0].source;
+      if (probedSource?.type === 'http') {
+        probedSource.redact();
       }
-
       return res.send({
-        details: result.get(),
-        ffprobeDetails,
+        details: { streamDetails, streamSource },
+        ffprobeDetails: ffprobeDetails
+          ? {
+              streamDetails: ffprobeDetails.streamDetails,
+              streamSource: probedSource,
+            }
+          : undefined,
       });
     },
   );

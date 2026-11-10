@@ -33,6 +33,7 @@ import type {
   MediaSourceType,
 } from './schema/base.js';
 import { ChannelPrograms } from './schema/ChannelPrograms.ts';
+import { ExternalCollection } from './schema/ExternalCollection.ts';
 import type { DB } from './schema/db.ts';
 import type { MediaSourceWithRelations } from './schema/derivedTypes.js';
 import type { DrizzleDBAccess } from './schema/index.ts';
@@ -217,6 +218,25 @@ export class MediaSourceDB {
 
     if (isNil(mediaSource)) {
       throw new Error("Server doesn't exist.");
+    }
+
+    if (mediaSource.type !== updateReq.type) {
+      throw new Error('A media source cannot change its type.');
+    }
+    if (updateReq.type === 'youtube') {
+      await this.drizzleDB
+        .update(MediaSource)
+        .set({
+          name: tag<MediaSourceName>(updateReq.name),
+          updatedAt: +dayjs(),
+        })
+        .where(eq(MediaSource.uuid, id));
+      return {
+        programIds: [],
+        groupingIds: [],
+        restoredProgramIds: [],
+        restoredGroupingIds: [],
+      };
     }
 
     if (updateReq.type === 'local') {
@@ -484,13 +504,16 @@ export class MediaSourceDB {
       .then((_) => _?.count ?? 0);
 
     const now = +dayjs();
+    const remote = 'uri' in server ? server : undefined;
     const newServer = this.drizzleDB.transaction((tx) => {
       const newServer = tx
         .insert(MediaSource)
         .values({
           uuid: tag<MediaSourceId>(v4()),
           name,
-          uri: server.type === 'local' ? '' : trimEnd(server.uri, '/'),
+          // Empty legacy SQL columns represent absent transport settings, as
+          // they already do for local sources. YouTube's API has no such fields.
+          uri: remote ? trimEnd(remote.uri, '/') : '',
           sendChannelUpdates: false,
           sendGuideUpdates: sendGuideUpdates,
           createdAt: now,
@@ -498,18 +521,12 @@ export class MediaSourceDB {
           index,
           type: server.type,
           userId:
-            server.type === 'local'
-              ? null
-              : isNonEmptyString(server.userId)
-                ? server.userId
-                : null,
+            remote && isNonEmptyString(remote.userId) ? remote.userId : null,
           username:
-            server.type === 'local'
-              ? null
-              : isNonEmptyString(server.username)
-                ? server.username
-                : null,
-          accessToken: server.type === 'local' ? '' : server.accessToken,
+            remote && isNonEmptyString(remote.username)
+              ? remote.username
+              : null,
+          accessToken: remote ? remote.accessToken : '',
           mediaType: server.type === 'local' ? server.mediaType : null,
           clientIdentifier:
             server.type === 'plex' ? server.clientIdentifier : null,
@@ -517,6 +534,31 @@ export class MediaSourceDB {
         .returning({ uuid: MediaSource.uuid })
         .get();
 
+      if (server.type === 'youtube') {
+        const libraryId = v4();
+        tx.insert(MediaSourceLibrary)
+          .values({
+            uuid: libraryId,
+            mediaSourceId: newServer.uuid,
+            externalKey: 'saved-videos',
+            name: 'Saved Videos',
+            mediaType: 'other_videos',
+            enabled: true,
+            lastScannedAt: new Date(now),
+          })
+          .run();
+        tx.insert(ExternalCollection)
+          .values({
+            uuid: v4(),
+            mediaSourceId: newServer.uuid,
+            libraryId,
+            externalKey: 'saved-videos',
+            title: 'Saved Videos',
+            sourceType: 'youtube',
+            kind: 'saved_videos',
+          })
+          .run();
+      }
       if (server.type === 'local') {
         tx.insert(MediaSourceLibrary)
           .values(

@@ -117,7 +117,10 @@ async function trace(subtitleDetails: SubtitleStreamDetails[]) {
       externalKey: 'key',
       sourceType: 'jellyfin',
     },
-    streamDetails: { streamSource: {}, streamDetails },
+    streamDetails: {
+      inputs: [{ id: 'main', source: {} }],
+      streamDetails,
+    },
     result,
     errors,
   });

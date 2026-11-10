@@ -37,6 +37,7 @@ import type { StrictExtract } from 'ts-essentials';
 import { match, P } from 'ts-pattern';
 import { v4 } from 'uuid';
 import z from 'zod/v4';
+import { YouTubeAdapter } from '../external/youtube/YouTubeAdapter.ts';
 import { MaterializeProgramsCommand } from '../commands/MaterializeProgramsCommand.ts';
 import { DeleteMediaSourceCommand } from '../commands/media_source/DeleteMediaSourceCommand.ts';
 import { container } from '../container.ts';
@@ -671,6 +672,14 @@ export const mediaSourceRouter: RouterPluginAsyncCallback = async (
               )
             ).ping();
           })
+          .with({ type: 'youtube' }, async () => {
+            const health = await container
+              .get(YouTubeAdapter)
+              .health(AbortSignal.timeout(10_000));
+            return health.available
+              ? { healthy: true }
+              : { healthy: false, status: 'unreachable' };
+          })
           .with({ type: 'local' }, async (source) => {
             // TODO: Check all paths.
             let ok = true;
@@ -1143,6 +1152,27 @@ export const mediaSourceRouter: RouterPluginAsyncCallback = async (
             { type: 'plex' | 'jellyfin' | 'emby' }
           >,
       )
+      .with({ type: 'youtube' }, (source) => ({
+        id: source.uuid,
+        type: source.type,
+        name: source.name,
+        pathReplacements: [],
+        libraries: source.libraries.map((library) => ({
+          id: library.uuid,
+          type: source.type,
+          name: library.name,
+          externalKey: library.externalKey,
+          mediaType: library.mediaType,
+          enabled: library.enabled,
+          isLocked:
+            entityLocker.isLibraryLocked(library) ||
+            entityLocker.isMediaSourceLocked(source),
+          lastScannedAt: nullToUndefined(library.lastScannedAt)?.valueOf(),
+          unavailableSince: nullToUndefined(
+            library.unavailableSince,
+          )?.valueOf(),
+        })),
+      }))
       .with({ type: 'local', mediaType: P.nonNullable }, (source) => {
         // A local source's `paths` is `libraries.map(l => l.externalKey)`, and
         // the response schema requires it non-empty. Say so here, where the

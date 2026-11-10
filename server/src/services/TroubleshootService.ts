@@ -99,6 +99,23 @@ export class TroubleshootService {
 
   async runTroubleshoot(
     request: TroubleshootRequest,
+    signal?: AbortSignal,
+  ): Promise<TroubleshootResult> {
+    const owner = new AbortController();
+    const ownedSignal = signal
+      ? AbortSignal.any([signal, owner.signal])
+      : owner.signal;
+    try {
+      ownedSignal.throwIfAborted();
+      return await this.runOwnedTroubleshoot(request, ownedSignal);
+    } finally {
+      owner.abort();
+    }
+  }
+
+  private async runOwnedTroubleshoot(
+    request: TroubleshootRequest,
+    signal: AbortSignal,
   ): Promise<TroubleshootResult> {
     this.logger.info('Starting troubleshoot for program %s', request.programId);
     const errors: string[] = [];
@@ -137,6 +154,29 @@ export class TroubleshootService {
       return result;
     }
 
+    // Resolve the requested profile before probing so YouTube uses its ceiling.
+    const channel = await this.channelDB.getChannelOrm(request.channelId);
+    const lineup = await this.channelDB.loadLineup(request.channelId);
+    if (!channel) {
+      errors.push(`Channel not found: ${request.channelId}`);
+      return result;
+    }
+    let transcodeConfig = channel.transcodeConfig;
+    if (isNonEmptyString(request.transcodeConfigId)) {
+      const override = await this.transcodeConfigDB.getById(
+        request.transcodeConfigId,
+      );
+      if (override) {
+        transcodeConfig = override;
+      } else {
+        errors.push(
+          `Transcode config override not found: ${request.transcodeConfigId}, using channel default`,
+        );
+      }
+    }
+    result.transcodeConfig = transcodeConfigOrmToDto(transcodeConfig);
+    result.channelConfig = ormChannelToApiChannel({ channel, lineup });
+
     let streamDetails: ProgramStreamResult;
 
     try {
@@ -164,6 +204,9 @@ export class TroubleshootService {
           mediaSourceId: mediaSource.uuid,
         },
         server: mediaSource,
+        signal,
+        maxHeight: transcodeConfig.resolution.heightPx,
+        expiresAt: Date.now() + request.testDurationSeconds * 2000 + 60000,
       });
 
       if (streamResult.isFailure()) {
@@ -180,9 +223,9 @@ export class TroubleshootService {
         type: program.type,
         duration: program.duration,
         sourceType: mediaSource.type,
-        streamSourceType: streamDetails.streamSource.type,
+        streamSourceType: streamDetails.inputs[0].source.type,
         streamSourcePath: redactMediaServerSecrets(
-          streamDetails.streamSource.path,
+          streamDetails.inputs[0].source.path,
         ),
         videoStreams:
           streamDetails.streamDetails.videoDetails?.map((v) => ({
@@ -233,32 +276,6 @@ export class TroubleshootService {
       return result;
     }
 
-    // Stage 3: Load Channel & Transcode Config
-    const channel = await this.channelDB.getChannelOrm(request.channelId);
-    const lineup = await this.channelDB.loadLineup(request.channelId);
-
-    if (!channel) {
-      errors.push(`Channel not found: ${request.channelId}`);
-      return result;
-    }
-
-    let transcodeConfig = channel.transcodeConfig;
-    if (isNonEmptyString(request.transcodeConfigId)) {
-      const override = await this.transcodeConfigDB.getById(
-        request.transcodeConfigId,
-      );
-      if (override) {
-        transcodeConfig = override;
-      } else {
-        errors.push(
-          `Transcode config override not found: ${request.transcodeConfigId}, using channel default`,
-        );
-      }
-    }
-
-    result.transcodeConfig = transcodeConfigOrmToDto(transcodeConfig);
-    result.channelConfig = ormChannelToApiChannel({ channel, lineup });
-
     // The worker builds its own pipeline from channel.json, so everything
     // below — the CEL trace and Tunarr's FFmpeg session — would describe work
     // that never happens on this channel.
@@ -277,6 +294,7 @@ export class TroubleshootService {
         lineup,
         program,
         streamDetails,
+        signal,
       });
     }
 
@@ -335,12 +353,20 @@ export class TroubleshootService {
         appendSegments: true,
       });
 
-      const programStream = this.programStreamFactory(
-        new PlayerContext(lineupItem, channel, channel, transcodeConfig, {
+      const context = new PlayerContext(
+        lineupItem,
+        channel,
+        channel,
+        transcodeConfig,
+        {
           audioOnly: false,
           realtime: false,
           streamMode: channel.streamMode,
-        }),
+        },
+      );
+      context.playbackSignal = signal;
+      const programStream = this.programStreamFactory(
+        context,
         hlsOutputFormat,
         {
           startTime: dayjs.duration(startTimeMs),
@@ -635,6 +661,7 @@ export class TroubleshootService {
     lineup,
     program,
     streamDetails,
+    signal,
   }: {
     request: TroubleshootRequest;
     result: TroubleshootResult;
@@ -643,6 +670,7 @@ export class TroubleshootService {
     lineup: Lineup;
     program: TroubleshootProgram;
     streamDetails: ProgramStreamResult;
+    signal: AbortSignal;
   }): Promise<TroubleshootResult> {
     await this.traceStreamSelection({
       channel,
@@ -690,6 +718,7 @@ export class TroubleshootService {
         baseDirectory: tempDir,
         sessionId,
         timeoutMs: request.testDurationSeconds * 2 * 1000 + 30000,
+        signal,
         subtitleMode: this.featureFlagService.get('webvttSidecarEnabled')
           ? 'convert'
           : 'burn',

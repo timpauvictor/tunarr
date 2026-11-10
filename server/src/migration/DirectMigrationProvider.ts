@@ -263,6 +263,12 @@ export class DirectMigrationProvider implements MigrationProvider {
         migration1794256505: makeMigrationFromSqlFile(
           './sql/0056_plex_ratings.sql',
         ),
+        // Rebuilds source/program constraints. Copy migration restores all
+        // existing joins after SQLite's transactional table-rebuild cascades.
+        migration1794315861: makeMigrationFromSqlFile(
+          './sql/0057_youtube_source.sql',
+          true,
+        ),
       } satisfies Record<string, TunarrDatabaseMigration>,
       wrapWithTransaction,
     );

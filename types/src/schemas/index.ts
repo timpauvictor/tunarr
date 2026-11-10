@@ -22,3 +22,4 @@ export * from './nativePlaybackSchemas.js';
 export * from './streamSelectionPreviewSchemas.js';
 export * from './streamSelectionSchema.js';
 export * from './troubleshootSchemas.js';
+export * from './youtubeSchema.js';

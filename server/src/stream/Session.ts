@@ -82,6 +82,12 @@ export abstract class Session<
   protected channel: ChannelOrmWithTranscodeConfig;
   protected connectionTracker: ConnectionTracker<StreamConnectionDetails>;
 
+  private readonly playbackLifetime = new AbortController();
+
+  get playbackSignal(): AbortSignal {
+    return this.playbackLifetime.signal;
+  }
+
   #state: SessionState = 'init';
   #uniqueId: string;
 
@@ -187,6 +193,8 @@ export abstract class Session<
    * participants.
    */
   async stop(options: StopOptions = {}) {
+    // Stop owned preparation before waiting for the startup lock.
+    this.playbackLifetime.abort();
     // Cancel any pending delayed cleanup so it cannot fire after this
     // session has been replaced by a new one at the same key.
     this.connectionTracker.cancelCleanup();

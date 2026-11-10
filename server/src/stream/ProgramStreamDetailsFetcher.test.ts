@@ -12,6 +12,7 @@ import type {
 import { fileExists } from '../util/fsUtil.ts';
 import { ProgramStreamDetailsFetcher } from './ProgramStreamDetailsFetcher.ts';
 import { FileStreamSource, HttpStreamSource } from './types.ts';
+import type { YouTubePlaybackResolver } from './YouTubePlaybackResolver.ts';
 
 vi.mock('@/util/logging/LoggerFactory.js', () => {
   const logger = {
@@ -197,16 +198,23 @@ function makeProgramDB(program: ProgramWithRelationsOrm): IProgramDB {
   } as unknown as IProgramDB;
 }
 
+function makeFetcher(programDB: IProgramDB, artworkService: ArtworkService) {
+  return new ProgramStreamDetailsFetcher(programDB, artworkService, {
+    resolve: vi
+      .fn<YouTubePlaybackResolver['resolve']>()
+      .mockRejectedValue(
+        new Error('Unexpected YouTube resolution in a legacy-source fixture'),
+      ),
+  });
+}
+
 describe('ProgramStreamDetailsFetcher', () => {
   describe('getStream constructs valid HTTP URLs for remote streams', () => {
     it('constructs a valid Plex stream URL preserving the http:// protocol', async () => {
       const serverPath = '/library/parts/1014/1222133011/file.avi';
       const program = makeProgram('plex', serverPath);
       const programDB = makeProgramDB(program);
-      const fetcher = new ProgramStreamDetailsFetcher(
-        programDB,
-        makeArtworkService(),
-      );
+      const fetcher = makeFetcher(programDB, makeArtworkService());
 
       const server = makeServer({
         type: 'plex',
@@ -220,7 +228,7 @@ describe('ProgramStreamDetailsFetcher', () => {
 
       expect(result.isSuccess()).toBe(true);
 
-      const streamSource = result.get().streamSource;
+      const streamSource = result.get().inputs[0].source;
       expect(streamSource).toBeInstanceOf(HttpStreamSource);
       expect(streamSource.type).toBe('http');
 
@@ -236,10 +244,7 @@ describe('ProgramStreamDetailsFetcher', () => {
       const serverPath = 'abc123def456';
       const program = makeProgram('jellyfin', serverPath);
       const programDB = makeProgramDB(program);
-      const fetcher = new ProgramStreamDetailsFetcher(
-        programDB,
-        makeArtworkService(),
-      );
+      const fetcher = makeFetcher(programDB, makeArtworkService());
 
       const server = makeServer({
         type: 'jellyfin',
@@ -253,7 +258,7 @@ describe('ProgramStreamDetailsFetcher', () => {
 
       expect(result.isSuccess()).toBe(true);
 
-      const streamSource = result.get().streamSource;
+      const streamSource = result.get().inputs[0].source;
       expect(streamSource).toBeInstanceOf(HttpStreamSource);
 
       const url = (streamSource as HttpStreamSource).path;
@@ -268,10 +273,7 @@ describe('ProgramStreamDetailsFetcher', () => {
       const serverPath = 'xyz789';
       const program = makeProgram('emby', serverPath);
       const programDB = makeProgramDB(program);
-      const fetcher = new ProgramStreamDetailsFetcher(
-        programDB,
-        makeArtworkService(),
-      );
+      const fetcher = makeFetcher(programDB, makeArtworkService());
 
       const server = makeServer({
         type: 'emby',
@@ -285,7 +287,7 @@ describe('ProgramStreamDetailsFetcher', () => {
 
       expect(result.isSuccess()).toBe(true);
 
-      const streamSource = result.get().streamSource;
+      const streamSource = result.get().inputs[0].source;
       expect(streamSource).toBeInstanceOf(HttpStreamSource);
 
       const url = (streamSource as HttpStreamSource).path;
@@ -300,10 +302,7 @@ describe('ProgramStreamDetailsFetcher', () => {
       const serverPath = '/library/parts/1014/file.avi';
       const program = makeProgram('plex', serverPath);
       const programDB = makeProgramDB(program);
-      const fetcher = new ProgramStreamDetailsFetcher(
-        programDB,
-        makeArtworkService(),
-      );
+      const fetcher = makeFetcher(programDB, makeArtworkService());
 
       const server = makeServer({
         type: 'plex',
@@ -317,7 +316,7 @@ describe('ProgramStreamDetailsFetcher', () => {
 
       expect(result.isSuccess()).toBe(true);
 
-      const url = (result.get().streamSource as HttpStreamSource).path;
+      const url = (result.get().inputs[0].source as HttpStreamSource).path;
       // Should not have double slashes between host and path
       expect(url).not.toMatch(/:\d+\/\//);
       expect(url).toContain('http://');
@@ -339,10 +338,7 @@ describe('ProgramStreamDetailsFetcher', () => {
       const serverPath = '/library/parts/1014/1222133011/file.avi';
       const program = makeProgram('plex', serverPath);
       const programDB = makeProgramDB(program);
-      const fetcher = new ProgramStreamDetailsFetcher(
-        programDB,
-        makeArtworkService(),
-      );
+      const fetcher = makeFetcher(programDB, makeArtworkService());
 
       const server = makeServer({
         type: 'plex',
@@ -356,7 +352,7 @@ describe('ProgramStreamDetailsFetcher', () => {
 
       expect(result.isSuccess()).toBe(true);
 
-      const url = (result.get().streamSource as HttpStreamSource).path;
+      const url = (result.get().inputs[0].source as HttpStreamSource).path;
       expect(url).toContain('http://');
       expect(url).not.toContain('\\');
       expect(url).toBe(
@@ -368,10 +364,7 @@ describe('ProgramStreamDetailsFetcher', () => {
       const serverPath = 'abc123def456';
       const program = makeProgram('jellyfin', serverPath);
       const programDB = makeProgramDB(program);
-      const fetcher = new ProgramStreamDetailsFetcher(
-        programDB,
-        makeArtworkService(),
-      );
+      const fetcher = makeFetcher(programDB, makeArtworkService());
 
       const server = makeServer({
         type: 'jellyfin',
@@ -385,7 +378,7 @@ describe('ProgramStreamDetailsFetcher', () => {
 
       expect(result.isSuccess()).toBe(true);
 
-      const url = (result.get().streamSource as HttpStreamSource).path;
+      const url = (result.get().inputs[0].source as HttpStreamSource).path;
       expect(url).toContain('http://');
       expect(url).not.toContain('\\');
       expect(url).toBe(
@@ -397,10 +390,7 @@ describe('ProgramStreamDetailsFetcher', () => {
       const serverPath = 'xyz789';
       const program = makeProgram('emby', serverPath);
       const programDB = makeProgramDB(program);
-      const fetcher = new ProgramStreamDetailsFetcher(
-        programDB,
-        makeArtworkService(),
-      );
+      const fetcher = makeFetcher(programDB, makeArtworkService());
 
       const server = makeServer({
         type: 'emby',
@@ -414,7 +404,7 @@ describe('ProgramStreamDetailsFetcher', () => {
 
       expect(result.isSuccess()).toBe(true);
 
-      const url = (result.get().streamSource as HttpStreamSource).path;
+      const url = (result.get().inputs[0].source as HttpStreamSource).path;
       expect(url).toContain('http://');
       expect(url).not.toContain('\\');
       expect(url).toBe(
@@ -453,10 +443,7 @@ describe('ProgramStreamDetailsFetcher', () => {
       artworkService: ArtworkService,
       program = makeAudioOnlyProgram(),
     ) {
-      const fetcher = new ProgramStreamDetailsFetcher(
-        makeProgramDB(program),
-        artworkService,
-      );
+      const fetcher = makeFetcher(makeProgramDB(program), artworkService);
       const result = await fetcher.getStream({
         server: makeServer({ type: 'local', uri: '' }),
         lineupItem: program.externalIds[0] as any,
@@ -635,10 +622,7 @@ describe('ProgramStreamDetailsFetcher', () => {
     it('does not look up artwork for programs with video', async () => {
       const program = makeProgram('local', '');
       const artworkService = makeArtworkService();
-      const fetcher = new ProgramStreamDetailsFetcher(
-        makeProgramDB(program),
-        artworkService,
-      );
+      const fetcher = makeFetcher(makeProgramDB(program), artworkService);
 
       const result = await fetcher.getStream({
         server: makeServer({ type: 'local', uri: '' }),

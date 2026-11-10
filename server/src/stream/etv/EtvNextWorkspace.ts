@@ -100,6 +100,8 @@ export class EtvNextWorkspace {
   /** Wipes and recreates the channel's directories. */
   async initialize(): Promise<void> {
     await fs.rm(this.root, { recursive: true, force: true, maxRetries: 2 });
+    // Live playouts and native reports may hold session capabilities.
+    await fs.mkdir(this.root, { recursive: true, mode: 0o700 });
     await fs.mkdir(this.playoutDirectory, { recursive: true });
     await fs.mkdir(this.outputDirectory, { recursive: true });
   }

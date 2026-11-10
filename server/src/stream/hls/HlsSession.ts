@@ -1,6 +1,6 @@
 import type { ISettingsDB } from '@/db/interfaces/ISettingsDB.js';
 import type { ChannelOrmWithTranscodeConfig } from '@/db/schema/derivedTypes.js';
-import type { FfmpegTranscodeSession } from '@/ffmpeg/FfmpegTrancodeSession.js';
+import type { ProgramStream } from '@/stream/ProgramStream.js';
 import type { SegmentStreamEnds } from '@/ffmpeg/GetSegmentStreamEnds.js';
 import { GetSegmentStreamEndsTask } from '@/ffmpeg/GetSegmentStreamEnds.js';
 import { MeasureAudioEncoderLeadTask } from '@/ffmpeg/MeasureAudioEncoderLeadTask.js';
@@ -68,7 +68,7 @@ export interface HlsSessionOptions extends BaseHlsSessionOptions {
 export class HlsSession extends BaseHlsSession<HlsSessionOptions> {
   #playlistStart?: Dayjs;
   #hlsPlaylistMutator: HlsPlaylistMutator = new HlsPlaylistMutator();
-  #currentSession: Maybe<FfmpegTranscodeSession>;
+  #currentProgram: Maybe<ProgramStream>;
   #lastDelete: Dayjs = dayjs().subtract(1, 'year');
   #lastSubtitleDelete: Dayjs = dayjs().subtract(1, 'year');
   #audioEncoderLead?: Promise<number>;
@@ -383,13 +383,15 @@ export class HlsSession extends BaseHlsSession<HlsSessionOptions> {
     const subtitleSegmentStartNumber =
       await this.getLastSubtitleSegmentNumber();
 
+    const playbackStartTimeMs = +(this.transcodedUntil ?? dayjs());
+    const scheduleTimeMs = await this.onDemandService.getLiveTimestamp(
+      this.channel.uuid,
+      playbackStartTimeMs,
+    );
     const lineupItemResult = await this.programCalculator.getCurrentLineupItem({
       allowSkip: true,
       channelId: this.channel.uuid,
-      startTime: await this.onDemandService.getLiveTimestamp(
-        this.channel.uuid,
-        +(this.transcodedUntil ?? dayjs()),
-      ),
+      startTime: scheduleTimeMs,
     });
 
     const transcodeResult = await lineupItemResult.mapAsync(async (result) => {
@@ -409,6 +411,8 @@ export class HlsSession extends BaseHlsSession<HlsSessionOptions> {
         },
       );
 
+      context.playbackStartTimeMs = playbackStartTimeMs;
+      context.scheduleTimeMs = scheduleTimeMs;
       let programStream = this.getProgramStream(
         context,
         ptsOffset,
@@ -423,6 +427,7 @@ export class HlsSession extends BaseHlsSession<HlsSessionOptions> {
         this.emit('error', this.error);
       });
 
+      this.#currentProgram = programStream;
       let transcodeSessionResult = await programStream.setup();
 
       if (transcodeSessionResult.isFailure()) {
@@ -431,11 +436,12 @@ export class HlsSession extends BaseHlsSession<HlsSessionOptions> {
           'Error while starting program stream. Attempting to subtitute with error stream',
         );
 
+        programStream.shutdown();
         programStream = this.getProgramStream(
           PlayerContext.error(
-            result.lineupItem.streamDuration ?? result.lineupItem.duration,
+            context.lineupItem.streamDuration,
             transcodeSessionResult.error,
-            result.channelContext,
+            context.targetChannel,
             this.channel,
             realtime,
             this.channel.transcodeConfig,
@@ -445,6 +451,7 @@ export class HlsSession extends BaseHlsSession<HlsSessionOptions> {
           subtitleSegmentStartNumber,
         );
 
+        this.#currentProgram = programStream;
         transcodeSessionResult = await programStream.setup();
 
         if (transcodeSessionResult.isFailure()) {
@@ -461,10 +468,9 @@ export class HlsSession extends BaseHlsSession<HlsSessionOptions> {
       }
 
       transcodeSessionResult.forEach((transcodeSession) => {
-        this.transcodedUntil = (this.transcodedUntil ?? dayjs()).add(
-          transcodeSession.streamDuration,
-        );
-        this.#currentSession = transcodeSession;
+        this.transcodedUntil = dayjs(
+          context.playbackStartTimeMs ?? +(this.transcodedUntil ?? dayjs()),
+        ).add(transcodeSession.streamDuration);
         this.#currentSubtitleRendition = programStream.renditions?.subtitle;
         this.#currentAudioRenditions = programStream.renditions?.audio ?? [];
       });
@@ -473,7 +479,7 @@ export class HlsSession extends BaseHlsSession<HlsSessionOptions> {
         // await this.trimPlaylistAndDeleteSegments();
       }
       await programStream.start();
-      return programStream.transcodeSession!.wait();
+      return programStream.wait();
     });
 
     if (transcodeResult.isFailure()) {
@@ -513,6 +519,7 @@ export class HlsSession extends BaseHlsSession<HlsSessionOptions> {
     ptsOffset: Maybe<number>,
     subtitleSegmentStartNumber: Maybe<number>,
   ) {
+    context.playbackSignal = this.playbackSignal;
     const hlsOptions = this.getHlsOptions();
 
     const outputFormat =
@@ -730,10 +737,12 @@ export class HlsSession extends BaseHlsSession<HlsSessionOptions> {
   }
 
   protected async stopStream(options: StopOptions): Promise<void> {
-    if (this.#currentSession) {
-      this.#currentSession.kill();
-      await this.waitForExit(this.#currentSession, options);
+    const current = this.#currentProgram?.transcodeSession;
+    this.#currentProgram?.shutdown();
+    if (current) {
+      await this.waitForExit(current, options);
     }
+    this.#currentProgram = undefined;
 
     this.logger.debug(
       `Cleaning out stream path for session: %s`,

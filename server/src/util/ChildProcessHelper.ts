@@ -15,6 +15,7 @@ import PQueue from 'p-queue';
 import type { TypedEventEmitter } from '../types/eventEmitter.ts';
 
 import { LastNBytesStream } from './LastNBytesStream.ts';
+import { redactMediaServerSecrets } from './redactSecrets.ts';
 import { InjectLogger } from './inject.ts';
 import type { Logger } from './logging/LoggerFactory.ts';
 
@@ -74,7 +75,11 @@ export class ChildProcessWrapper extends ITypedEventEmitter {
       throw new Error('Cannot start sub process');
     }
 
-    this.logger.debug('Starting process: %s %O', this.path, this.args);
+    this.logger.debug(
+      'Starting process: %s %s',
+      this.path,
+      redactMediaServerSecrets(this.args.join(' ')),
+    );
     const proc = spawn(this.path, this.args, {
       ...(this.opts.additionalOpts ?? {}),
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -106,7 +111,9 @@ export class ChildProcessWrapper extends ITypedEventEmitter {
       );
 
       if (!this.wasAborted && code !== 0) {
-        const bufferedBytes = bufferedOut.getLastN().toString('utf-8');
+        const bufferedBytes = redactMediaServerSecrets(
+          bufferedOut.getLastN().toString('utf-8'),
+        );
         this.logger.error(bufferedBytes);
       }
 
@@ -157,7 +164,7 @@ export class ChildProcessHelper {
         }
 
         this.logger.debug(
-          `Executing child process: "${sanitizedPath}" ${args.join(' ')}`,
+          `Executing child process: "${sanitizedPath}" ${redactMediaServerSecrets(args.join(' '))}`,
         );
 
         return await new Promise((resolve, reject) => {
@@ -187,7 +194,7 @@ export class ChildProcessHelper {
       throw new Error(`Path at ${sanitizedPath} does not exist`);
     }
     this.logger.debug(
-      `Spawning child process: "${sanitizedPath}" ${args.join(' ')}`,
+      `Spawning child process: "${sanitizedPath}" ${redactMediaServerSecrets(args.join(' '))}`,
     );
 
     const controller = new AbortController();

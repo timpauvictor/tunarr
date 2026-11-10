@@ -4,7 +4,6 @@ import type {
   FfprobeSubtitleStream,
   FfprobeVideoStream,
 } from '@/types/ffmpeg.js';
-import type { Maybe } from '@/types/util.js';
 import dayjs from '@/util/dayjs.js';
 import {
   isNonEmptyArray,
@@ -26,6 +25,44 @@ import type {
   VideoStreamDetails,
 } from './types.ts';
 import { FileStreamSource, HttpStreamSource } from './types.ts';
+
+export function videoStreamDetailsFromProbe(
+  video: FfprobeVideoStream,
+): VideoStreamDetails {
+  const displayAspectRatio =
+    video.display_aspect_ratio ?? `${video.coded_width / video.coded_height}`;
+  return {
+    sampleAspectRatio: isNonEmptyString(video.sample_aspect_ratio)
+      ? video.sample_aspect_ratio
+      : '1:1',
+    scanType:
+      video.field_order === 'interlaced'
+        ? 'interlaced'
+        : video.field_order === 'progressive'
+          ? 'progressive'
+          : 'unknown',
+    width: video.width,
+    height: video.height,
+    framerate: video.r_frame_rate ?? undefined,
+    displayAspectRatio,
+    anamorphic: extractIsAnamorphic(
+      video.width,
+      video.height,
+      displayAspectRatio,
+    ),
+    pixelFormat: video.pix_fmt,
+    bitDepth: video.bits_per_raw_sample,
+    bitrate: video.bit_rate,
+    codec: video.codec_name,
+    profile: video.profile?.toLowerCase(),
+    streamIndex: video.index,
+    colorPrimaries: video.color_primaries,
+    colorRange: video.color_range,
+    colorSpace: video.color_space,
+    colorTransfer: video.color_transfer,
+    isAttachedPic: false,
+  };
+}
 
 export function audioStreamDetailsFromProbe(
   audioStream: FfprobeAudioStream,
@@ -90,44 +127,9 @@ export class FfprobeStreamDetails
       (stream): stream is FfprobeVideoStream => stream.codec_type === 'video',
     );
 
-    let videoDetails: Maybe<VideoStreamDetails>;
-    if (videoStream) {
-      const displayAspectRatio =
-        videoStream.display_aspect_ratio ??
-        `${videoStream.coded_width / videoStream.coded_height}`;
-      videoDetails = {
-        sampleAspectRatio: isNonEmptyString(videoStream?.sample_aspect_ratio)
-          ? videoStream.sample_aspect_ratio
-          : '1:1',
-        scanType:
-          videoStream.field_order === 'interlaced'
-            ? 'interlaced'
-            : videoStream.field_order === 'progressive'
-              ? 'progressive'
-              : 'unknown',
-        width: videoStream.width,
-        height: videoStream.height,
-        framerate: videoStream.r_frame_rate ?? undefined,
-        displayAspectRatio,
-        // chapters
-        anamorphic: extractIsAnamorphic(
-          videoStream.width,
-          videoStream.height,
-          displayAspectRatio,
-        ),
-        pixelFormat: videoStream.pix_fmt,
-        bitDepth: videoStream.bits_per_raw_sample,
-        bitrate: videoStream.bit_rate,
-        codec: videoStream.codec_name,
-        profile: videoStream.profile?.toLowerCase(),
-        streamIndex: videoStream.index,
-        colorPrimaries: videoStream.color_primaries,
-        colorRange: videoStream.color_range,
-        colorSpace: videoStream.color_space,
-        colorTransfer: videoStream.color_transfer,
-        isAttachedPic: false,
-      } satisfies VideoStreamDetails;
-    }
+    const videoDetails = videoStream
+      ? videoStreamDetailsFromProbe(videoStream)
+      : undefined;
 
     const audioStreamDetails = map(
       filter(
@@ -194,9 +196,14 @@ export class FfprobeStreamDetails
           },
         ),
       },
-      streamSource: path.startsWith('http')
-        ? new HttpStreamSource(path)
-        : new FileStreamSource(path),
+      inputs: [
+        {
+          id: 'main',
+          source: path.startsWith('http')
+            ? new HttpStreamSource(path)
+            : new FileStreamSource(path),
+        },
+      ],
     });
   }
 }

@@ -123,6 +123,38 @@ export async function listDossierFiles(dossierPath: string): Promise<string[]> {
     );
 }
 
+/** Publishes only redacted, bounded copies outside the live private workspace. */
+export async function retainRedactedDossiers(
+  source: string,
+  destination: string,
+): Promise<void> {
+  const dossiers = (await listDossiers(source)).slice(0, DossierRetentionCount);
+  for (const dossier of dossiers) {
+    const sourceDirectory = path.join(source, dossier.name);
+    for (const file of await listDossierFiles(sourceDirectory)) {
+      const original = path.join(sourceDirectory, file);
+      const target = path.join(destination, dossier.name, file);
+      const stat = await fs.stat(original);
+      const retained = await fs.stat(target).catch(() => undefined);
+      if (retained && retained.mtimeMs >= stat.mtimeMs) {
+        continue;
+      }
+      // Reports are diagnostic data, not a media archive. Do not load an
+      // arbitrarily large native artifact into the server or retain its body.
+      const content =
+        stat.size <= 4 * 1024 * 1024
+          ? redactDossierFile(await fs.readFile(original))
+          : 'Diagnostic file omitted because it exceeded the 4 MiB retention limit.\n';
+      await fs.mkdir(path.dirname(target), { recursive: true, mode: 0o700 });
+      const temporary = target + '.tmp';
+      await fs.writeFile(temporary, content, { mode: 0o600 });
+      await fs.rename(temporary, target);
+      await fs.utimes(target, stat.atime, stat.mtime);
+    }
+  }
+  await pruneDossiers(destination);
+}
+
 /**
  * Prepares one dossier file for the diagnostics zip.
  *

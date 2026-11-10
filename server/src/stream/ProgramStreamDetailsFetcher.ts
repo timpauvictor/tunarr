@@ -11,7 +11,7 @@ import {
   trimEnd,
   trimStart,
 } from 'lodash-es';
-import { match } from 'ts-pattern';
+import { match, P } from 'ts-pattern';
 import type { IProgramDB } from '../db/interfaces/IProgramDB.ts';
 import type {
   MediaSourceWithRelations,
@@ -29,6 +29,7 @@ import type { Logger } from '../util/logging/LoggerFactory.ts';
 import { makeLocalUrl } from '../util/serverUtil.ts';
 import type { StreamFetchRequest } from './ExternalStreamDetailsFetcher.ts';
 import { PathCalculator } from './PathCalculator.ts';
+import { YouTubePlaybackResolver } from './YouTubePlaybackResolver.ts';
 import type {
   AudioStreamDetails,
   ProgramStreamResult,
@@ -47,11 +48,16 @@ export class ProgramStreamDetailsFetcher {
   constructor(
     @inject(KEYS.ProgramDB) private programDB: IProgramDB,
     @inject(ArtworkService) private artworkService: ArtworkService,
+    @inject(YouTubePlaybackResolver)
+    private youtubeResolver: Pick<YouTubePlaybackResolver, 'resolve'>,
   ) {}
 
   async getStream({
     lineupItem,
     server,
+    signal,
+    maxHeight,
+    expiresAt,
   }: StreamFetchRequest): Promise<Result<ProgramStreamResult>> {
     const program = await this.programDB.getStreamProgramById(lineupItem.uuid);
 
@@ -59,6 +65,26 @@ export class ProgramStreamDetailsFetcher {
       return Result.forError(
         new Error(
           `Could not find program with ID ${lineupItem.uuid} when trying to start stream! This is bad!`,
+        ),
+      );
+    }
+
+    if (server.type === 'youtube') {
+      if (
+        !signal ||
+        program.sourceType !== 'youtube' ||
+        program.mediaSourceId !== server.uuid
+      ) {
+        return Result.failure(
+          'YouTube playback details require an active, matching playback owner.',
+        );
+      }
+      return Result.attemptAsync(() =>
+        this.youtubeResolver.resolve(
+          program.externalKey,
+          signal,
+          maxHeight ?? 1080,
+          expiresAt,
         ),
       );
     }
@@ -247,7 +273,10 @@ export class ProgramStreamDetailsFetcher {
         path: file.path,
       };
 
-      return Result.success({ streamDetails, streamSource });
+      return Result.success({
+        streamDetails,
+        inputs: [{ id: 'main', source: streamSource }],
+      });
     } else {
       const filePath = head(firstVersion.mediaFiles)?.path;
       const serverPath = // details.serverPath ??
@@ -259,7 +288,10 @@ export class ProgramStreamDetailsFetcher {
         filePath,
         serverPath,
       );
-      return Result.success({ streamDetails, streamSource });
+      return Result.success({
+        streamDetails,
+        inputs: [{ id: 'main', source: streamSource }],
+      });
     }
   }
 
@@ -415,8 +447,8 @@ export class ProgramStreamDetailsFetcher {
               }&static=true`,
             ),
         )
-        .with({ type: 'local' }, () => {
-          throw new Error(`Remote paths are not supported for local media`);
+        .with({ type: P.union('local', 'youtube') }, () => {
+          throw new Error('This media source does not use server file paths.');
         })
         .exhaustive();
     } else {

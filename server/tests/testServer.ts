@@ -10,6 +10,7 @@ import { SubtitleExtractorTask } from '../src/tasks/SubtitleExtractorTask.ts';
 import { UpdateXmlTvTask } from '../src/tasks/UpdateXmlTvTask.ts';
 import { copyPreMigratedDb } from '../src/testing/testDbFactory.ts';
 import { autoFactoryKey, KEYS } from '../src/types/inject.ts';
+import type { ServerType } from '../src/types/serverType.ts';
 
 // Make this a fixture
 export let dbResult: tmp.DirectoryResult;
@@ -33,7 +34,7 @@ export type InitTestAppOptions = {
 export async function initTestApp(
   port: number,
   { registerGuideTask = false }: InitTestAppOptions = {},
-): Promise<Server> {
+): Promise<ServerType> {
   dbResult = await tmp.dir({ unsafeCleanup: true });
   await copyPreMigratedDb(dbResult.path);
   setServerOptions({

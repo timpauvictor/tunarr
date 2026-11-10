@@ -48,7 +48,7 @@ export class FfmpegTranscodeSession extends events.EventEmitter<FfmpegEvents> {
     });
   }
 
-  start(sink?: PassThrough) {
+  start(sink?: PassThrough, endSinkOnCompletion = true) {
     const out = sink ?? new PassThrough();
     if (this.state !== State.Idle) {
       throw new Error(
@@ -65,7 +65,9 @@ export class FfmpegTranscodeSession extends events.EventEmitter<FfmpegEvents> {
 
     this.process.on('end', () => {
       this.state = State.Ended;
-      out.push(null);
+      if (endSinkOnCompletion) {
+        out.push(null);
+      }
     });
 
     this.process.on('error', (err) => {

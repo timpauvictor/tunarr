@@ -385,16 +385,24 @@ export const streamSelectionRouter: RouterPluginCallback = (
       },
     },
     async (req, res) => {
-      const outcome = await container
-        .get(StreamSelectionPreviewService)
-        .preview(req.body);
-      switch (outcome.type) {
-        case 'success':
-          return res.send(outcome.result);
-        case 'not_found':
-          return res.status(404).send({ message: outcome.message });
-        case 'streams_unavailable':
-          return res.status(502).send({ message: outcome.message });
+      const owner = new AbortController();
+      const abort = () => owner.abort();
+      res.raw.once('close', abort);
+      try {
+        const outcome = await container
+          .get(StreamSelectionPreviewService)
+          .preview(req.body, owner.signal);
+        switch (outcome.type) {
+          case 'success':
+            return res.send(outcome.result);
+          case 'not_found':
+            return res.status(404).send({ message: outcome.message });
+          case 'streams_unavailable':
+            return res.status(502).send({ message: outcome.message });
+        }
+      } finally {
+        res.raw.removeListener('close', abort);
+        owner.abort();
       }
     },
   );

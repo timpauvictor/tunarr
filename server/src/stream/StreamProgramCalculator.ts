@@ -618,6 +618,21 @@ export class StreamProgramCalculator {
   }
 }
 
+// Preparation can finish after a requested playback point. Keep buffered
+// future points unchanged and advance only elapsed wall time, never the lineup.
+export function playbackPreparationTiming(
+  startMs: number,
+  remainingMs: number,
+  nowMs: number,
+) {
+  const elapsedMs = Math.max(0, nowMs - startMs);
+  return {
+    elapsedMs,
+    startMs: startMs + elapsedMs,
+    remainingMs: Math.max(0, remainingMs - elapsedMs),
+  };
+}
+
 export function calculateStreamDuration(
   now: number,
   channelStartTime: number,

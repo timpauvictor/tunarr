@@ -116,6 +116,7 @@ export const removeMediaSourceSelectedMedia = (
           case Plex:
           case Jellyfin:
           case Emby:
+          case 'youtube':
             return some(grouped[media.type], {
               id: media.id,
               mediaSourceId: media.mediaSource.id,

@@ -97,7 +97,9 @@ function makeWriter({
         streamFails
           ? Result.failure<never>('unreadable')
           : Result.success({
-              streamSource: new FileStreamSource('/media/a.mkv'),
+              inputs: [
+                { id: 'main', source: new FileStreamSource('/media/a.mkv') },
+              ],
               streamDetails,
             }),
       ),
@@ -165,6 +167,41 @@ function makeWriter({
     logger,
   };
 }
+
+describe('materializeProgram', () => {
+  test('starts a named diagnostic window after delayed media preparation without changing its media range', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(startMs);
+    const f = makeWriter({ items: [programItem(5000)] });
+    const probe = f.streamDetailsFetcher.getStream.getMockImplementation();
+    if (!probe) throw new Error('Missing fixture probe');
+    f.streamDetailsFetcher.getStream.mockImplementationOnce(() => {
+      vi.setSystemTime(startMs + 6000);
+      return probe();
+    });
+    const owner = new AbortController();
+    try {
+      const window = await f.writer.materializeProgram({
+        channel,
+        lineupItem: programItem(5000),
+        startMs,
+        signal: owner.signal,
+      });
+      expect(window.startMs).toBe(startMs + 6000);
+      expect(window.finishMs).toBe(startMs + 11000);
+      expect(window.items).toHaveLength(1);
+      expect(window.items[0]).toMatchObject({
+        start: new Date(startMs + 6000).toISOString(),
+        finish: new Date(startMs + 11000).toISOString(),
+        source: { source_type: 'local', in_point_ms: 0, out_point_ms: 5000 },
+      });
+      expect(f.programCalculator.getCurrentLineupItem).not.toHaveBeenCalled();
+    } finally {
+      owner.abort();
+      vi.useRealTimers();
+    }
+  });
+});
 
 describe('materializeWindow', () => {
   test('walks the schedule forward, advancing by each item stream duration', async () => {

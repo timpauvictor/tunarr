@@ -251,6 +251,9 @@ export class ReconcileProgramDurationsTask extends Task2<
         .selectFrom('program')
         .select(['uuid', 'duration'])
         .where('uuid', 'in', idChunk)
+        // Remote video metadata is not authority to rewrite a saved slot.
+        // This also applies to global reconciliation after another source scans.
+        .where('sourceType', '!=', 'youtube')
         .execute();
       for (const program of programs) {
         programDurations.set(program.uuid, program.duration);

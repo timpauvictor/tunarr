@@ -28,7 +28,7 @@ export type MediaSourceSettings = z.infer<typeof MediaSourceSettingsSchema>;
 
 export type RemoteMediaSourceSettings = Exclude<
   MediaSourceSettings,
-  { type: 'local' }
+  { type: 'local' | 'youtube' }
 >;
 
 export type MediaSourceLibrary = z.infer<typeof MediaSourceLibrarySchema>;

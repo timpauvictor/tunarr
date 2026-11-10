@@ -507,6 +507,16 @@ describe('Plex ratings-only refresh', () => {
       () => undefined,
       reconcileFactory,
       f.service,
+      {
+        importVideo: () =>
+          Promise.reject(
+            new Error('Unexpected YouTube import in a ratings fixture'),
+          ),
+        refresh: () =>
+          Promise.reject(
+            new Error('Unexpected YouTube refresh in a ratings fixture'),
+          ),
+      },
     );
     try {
       f.setHandler((key, _req, _res) => key === '101');

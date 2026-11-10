@@ -1,5 +1,10 @@
 import type { MediaSourceId } from '@tunarr/shared';
-import type { PlexRatingsRefreshStatus } from '@tunarr/types/schemas';
+import type {
+  PlexRatingsRefreshStatus,
+  YouTubeImportResponse,
+} from '@tunarr/types/schemas';
+import { YouTubeImportService } from '../YouTubeImportService.ts';
+import type { MediaSourceLibrary } from '../../db/schema/MediaSourceLibrary.ts';
 import { PlexRatingsRefreshService } from './PlexRatingsRefreshService.ts';
 import { E_ALREADY_LOCKED, tryAcquire } from 'async-mutex';
 import { inject, injectable } from 'inversify';
@@ -11,6 +16,7 @@ import { autoFactoryKey, KEYS } from '../../types/inject.ts';
 import { Result } from '../../types/result.ts';
 import type { Maybe } from '../../types/util.ts';
 import { InjectLogger } from '../../util/inject.ts';
+import { caughtErrorToError } from '../../util/index.ts';
 import type { Logger } from '../../util/logging/LoggerFactory.ts';
 import { EntityMutex } from '../EntityMutex.ts';
 import { GlobalScheduler } from '../Scheduler.ts';
@@ -44,6 +50,11 @@ export class MediaSourceScanCoordinator {
     private reconcileDurationsTaskFactory: () => ReconcileProgramDurationsTask,
     @inject(PlexRatingsRefreshService)
     private ratingsRefresh: PlexRatingsRefreshService,
+    @inject(YouTubeImportService)
+    private youtubeImports: Pick<
+      YouTubeImportService,
+      'importVideo' | 'refresh'
+    >,
   ) {}
 
   async addLocal({
@@ -155,6 +166,27 @@ export class MediaSourceScanCoordinator {
     }
 
     const mediaSourceType = library.mediaSource.type;
+    if (mediaSourceType === 'youtube') {
+      try {
+        const operation = await this.queueYouTubeOperation(
+          library,
+          new AbortController().signal,
+          (signal) =>
+            this.youtubeImports.refresh(library, signal, (percent) =>
+              this.progressService.scanProgress(library.uuid, percent),
+            ),
+        );
+        void operation.finished.catch(() =>
+          this.logger.warn(
+            'YouTube metadata refresh failed for library %s; saved programs and schedules were retained.',
+            library.uuid,
+          ),
+        );
+        return true;
+      } catch {
+        return false;
+      }
+    }
     if (mediaSourceType === 'local') {
       this.logger.error('Scanning local libraries is not supported by scanner');
       return false;
@@ -226,6 +258,116 @@ export class MediaSourceScanCoordinator {
       }
       return false;
     }
+  }
+
+  async importYouTubeVideo(
+    sourceId: string,
+    videoId: string,
+    signal: AbortSignal,
+  ): Promise<YouTubeImportResponse> {
+    const source = await this.mediaSourceDB.getById(sourceId as MediaSourceId);
+    const library = source?.libraries.find(
+      (library) => library.externalKey === 'saved-videos',
+    );
+    if (
+      !source ||
+      source.type !== 'youtube' ||
+      !library ||
+      !library.enabled ||
+      library.unavailableSince
+    ) {
+      throw new Error('YouTube source or Saved Videos library is unavailable.');
+    }
+    const operation = await this.queueYouTubeOperation(
+      library,
+      signal,
+      (owner) => this.youtubeImports.importVideo(library, videoId, owner),
+    );
+    return operation.finished;
+  }
+
+  private async queueYouTubeOperation<T>(
+    library: MediaSourceLibrary,
+    signal: AbortSignal,
+    action: (signal: AbortSignal) => Promise<T>,
+  ): Promise<{ finished: Promise<T> }> {
+    signal.throwIfAborted();
+    const release = await tryAcquire(
+      await this.entityMutex.getLockForLibrary(library),
+    ).acquire();
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    signal.addEventListener('abort', abort, { once: true });
+    if (signal.aborted) {
+      abort();
+    }
+    let started = false;
+    let finished = false;
+    const finish = () => {
+      if (finished) {
+        return;
+      }
+      finished = true;
+      signal.removeEventListener('abort', abort);
+      if (
+        MediaSourceScanCoordinator.signalById.get(library.uuid) === controller
+      ) {
+        MediaSourceScanCoordinator.signalById.delete(library.uuid);
+      }
+      this.progressService.scanEnded(library.uuid);
+      release();
+    };
+    MediaSourceScanCoordinator.signalById.set(library.uuid, controller);
+    this.progressService.scanQueued(library.uuid);
+    return {
+      finished: new Promise<T>((resolve, reject) => {
+        const cancelQueued = () => {
+          if (!started) {
+            finish();
+            reject(new Error('YouTube import cancelled.'));
+          }
+        };
+        controller.signal.addEventListener('abort', cancelQueued, {
+          once: true,
+        });
+        if (controller.signal.aborted) {
+          cancelQueued();
+        }
+        void MediaSourceScanCoordinator.queue
+          .add(async () => {
+            started = true;
+            if (finished) {
+              return;
+            }
+            try {
+              controller.signal.throwIfAborted();
+              const current = await this.mediaSourceDB.getLibrary(library.uuid);
+              if (
+                !current ||
+                current.mediaSourceId !== library.mediaSourceId ||
+                current.mediaSource.type !== 'youtube' ||
+                !current.enabled ||
+                current.unavailableSince
+              ) {
+                throw new Error('YouTube library is unavailable.');
+              }
+              controller.signal.throwIfAborted();
+              this.progressService.scanStarted(library.uuid);
+              resolve(await action(controller.signal));
+            } catch (error) {
+              reject(caughtErrorToError(error));
+            } finally {
+              controller.signal.removeEventListener('abort', cancelQueued);
+              finish();
+            }
+          })
+          .catch((error) => {
+            controller.signal.removeEventListener('abort', cancelQueued);
+            finish();
+            reject(caughtErrorToError(error));
+          });
+      }),
+    };
   }
 
   async addRatingsRefresh(

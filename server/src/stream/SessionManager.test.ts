@@ -91,6 +91,25 @@ class FailingStartSession extends StubHlsSession {
   }
 }
 
+/** Models an extractor that completes after the owning startup is cancelled. */
+class CancellationAwareStartSession extends StubHlsSession {
+  private enteredWork?: () => void;
+  readonly entered = new Promise<void>((resolve) => {
+    this.enteredWork = resolve;
+  });
+  nativeStarted = false;
+  protected override async startInternal() {
+    await new Promise<void>((resolve) => {
+      this.playbackSignal.addEventListener('abort', () => resolve(), {
+        once: true,
+      });
+      this.enteredWork?.();
+    });
+    this.playbackSignal.throwIfAborted();
+    this.nativeStarted = true;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Mock logger
 // ---------------------------------------------------------------------------
@@ -167,6 +186,51 @@ function makeSessionManager(
 const connection = { ip: '127.0.0.1' };
 
 describe('SessionManager', () => {
+  it.each(['foreground', 'background'] as const)(
+    'cancels startup before the manager lock and preserves a queued replacement (%s)',
+    async (mode) => {
+      let active: CancellationAwareStartSession | undefined;
+      const manager = makeSessionManager((channel, options) => {
+        if (!active) {
+          active = new CancellationAwareStartSession(channel, options);
+          return active;
+        }
+        return new StubHlsSession(channel, options);
+      });
+      const initial = manager.getOrCreateHlsSession(
+        channelUuid,
+        'first',
+        connection,
+      );
+      await vi.waitFor(() => expect(active).toBeDefined());
+      if (!active) throw new Error('Missing starting session');
+      await active.entered;
+      const starting = active;
+      const replacement = manager.getOrCreateHlsSession(
+        channelUuid,
+        'second',
+        connection,
+      );
+      const stopping =
+        mode === 'foreground'
+          ? manager.endSession(starting)
+          : manager.endSessionInBackground(starting);
+      try {
+        expect(starting.playbackSignal.aborted).toBe(true);
+        await stopping;
+        expect((await initial).isFailure()).toBe(true);
+        const ready = await replacement;
+        expect(ready.isSuccess()).toBe(true);
+        expect(starting.nativeStarted).toBe(false);
+        expect(manager.getHlsSession(channelUuid)).toBe(ready.get());
+        await manager.endSession(ready.get());
+      } finally {
+        await starting.stop();
+        await Promise.allSettled([initial, replacement, stopping]);
+      }
+    },
+  );
+
   beforeEach(() => {
     vi.useFakeTimers();
   });

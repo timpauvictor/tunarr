@@ -23,7 +23,11 @@ import {
   DynamicWindowMs,
   dynamicResolverUri,
 } from './EtvNextDynamicPlayout.ts';
-import { dossierDirectory, pruneDossiers } from './EtvNextDossiers.ts';
+import {
+  dossierDirectory,
+  pruneDossiers,
+  retainRedactedDossiers,
+} from './EtvNextDossiers.ts';
 import type { EtvNextDynamicTokenRegistry } from './EtvNextDynamicTokenRegistry.ts';
 import { StreamTerminationRequestedError } from './EtvNextPlayoutItemMapper.ts';
 import { createMultivariantPlaylist } from './EtvNextPlaylistCreator.ts';
@@ -122,6 +126,9 @@ export class EtvNextSession extends Session<EtvNextSessionOptions> {
   public readonly sessionType = 'etv_next' as const;
 
   #workspace: EtvNextWorkspace;
+  #rawReportsDirectory?: string;
+  #retainedReportsDirectory?: string;
+  #reportPublication?: Promise<void>;
   #process?: ChildProcessWrapper;
   #ignoredSettings: string[] = [];
 
@@ -232,6 +239,7 @@ export class EtvNextSession extends Session<EtvNextSessionOptions> {
       // before it starts counting.
       await this.#workspace.recordHeartbeat();
 
+      this.playbackSignal.throwIfAborted();
       this.#process = await this.childProcessHelper.spawn(
         executablePath,
         [
@@ -251,7 +259,9 @@ export class EtvNextSession extends Session<EtvNextSessionOptions> {
           restartOnFailure: false,
           maxAttempts: 1,
         },
-        workerEnv,
+        // Reports can contain input bearer headers. Only the configured private
+        // report directory may capture them, never a parent FFREPORT path.
+        { ...process.env, ...workerEnv, FFREPORT: undefined },
       );
     } catch (e) {
       // A token outliving the worker it was minted for would keep granting
@@ -286,6 +296,7 @@ export class EtvNextSession extends Session<EtvNextSessionOptions> {
       const token = this.tokenRegistry.issue(
         this.channel.uuid,
         this.channel.number,
+        this.playbackSignal,
       );
       this.#dynamicToken = token;
 
@@ -298,6 +309,7 @@ export class EtvNextSession extends Session<EtvNextSessionOptions> {
       channel: this.channel,
       startMs: Date.now(),
       windowMs: this.#windowMs,
+      signal: this.playbackSignal,
     });
 
     if (window.items.length === 0) {
@@ -391,6 +403,8 @@ export class EtvNextSession extends Session<EtvNextSessionOptions> {
         }
       }
 
+      await this.#reportPublication;
+      await this.#publishReports();
       await this.#workspace.cleanup();
     } catch (e) {
       this.logger.warn(e, 'Could not clean up the ErsatzTV next workspace');
@@ -428,7 +442,11 @@ export class EtvNextSession extends Session<EtvNextSessionOptions> {
    * session Tunarr still considers live.
    */
   override recordHeartbeat(token: string) {
+    if (this.#stopping) {
+      return;
+    }
     super.recordHeartbeat(token);
+    void this.#publishReports();
     this.#workspace.recordHeartbeat().catch((e: unknown) => {
       this.logger.warn(e, 'Could not touch the ErsatzTV next heartbeat file');
     });
@@ -518,9 +536,15 @@ export class EtvNextSession extends Session<EtvNextSessionOptions> {
 
     try {
       const directory = dossierDirectory(this.channel.uuid, reportsDirectory);
-      await fs.mkdir(directory, { recursive: true });
+      await fs.mkdir(directory, { recursive: true, mode: 0o700 });
       await pruneDossiers(directory);
-      return directory;
+      this.#retainedReportsDirectory = directory;
+      this.#rawReportsDirectory = path.join(this.#workspace.root, 'reports');
+      await fs.mkdir(this.#rawReportsDirectory, {
+        recursive: true,
+        mode: 0o700,
+      });
+      return this.#rawReportsDirectory;
     } catch (e) {
       this.logger.warn(
         e,
@@ -529,6 +553,25 @@ export class EtvNextSession extends Session<EtvNextSessionOptions> {
       );
       return;
     }
+  }
+
+  #publishReports(): Promise<void> {
+    if (this.#reportPublication) {
+      return this.#reportPublication;
+    }
+    const source = this.#rawReportsDirectory;
+    const destination = this.#retainedReportsDirectory;
+    if (!source || !destination) {
+      return Promise.resolve();
+    }
+    this.#reportPublication = retainRedactedDossiers(source, destination)
+      .catch((error) =>
+        this.logger.warn(error, 'Could not retain redacted worker diagnostics'),
+      )
+      .finally(() => {
+        this.#reportPublication = undefined;
+      });
+    return this.#reportPublication;
   }
 
   /**
@@ -741,6 +784,7 @@ export class EtvNextSession extends Session<EtvNextSessionOptions> {
         startMs: rebuildFromMs,
         windowMs: targetFinishMs - rebuildFromMs,
         idSeed: this.#itemsEmitted,
+        signal: this.playbackSignal,
       });
 
       if (window.items.length === 0) {

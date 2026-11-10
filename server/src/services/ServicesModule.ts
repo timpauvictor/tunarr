@@ -51,6 +51,11 @@ import { EmptyTrashService } from './EmptyTrashService.ts';
 import { MediaSourceProgressService } from './scanner/MediaSourceProgressService.ts';
 import { MediaSourceScanCoordinator } from './scanner/MediaSourceScanCoordinator.ts';
 import { PlexRatingsRefreshService } from './scanner/PlexRatingsRefreshService.ts';
+import { YouTubeAdapter } from '../external/youtube/YouTubeAdapter.ts';
+import { YouTubeMediaRelay } from '../stream/YouTubeMediaRelay.ts';
+import { YouTubePlaybackResolver } from '../stream/YouTubePlaybackResolver.ts';
+import { YouTubeImportService } from './YouTubeImportService.ts';
+import { ProgramConverter } from '../db/converters/ProgramConverter.ts';
 import type {
   GenericMediaSourceScanner,
   GenericMediaSourceScannerFactory,
@@ -229,6 +234,13 @@ export const ServicesModule = new ContainerModule(({ bind }) => {
   bind(EmptyTrashService).toSelf().inSingletonScope();
   bind(MediaSourceScanCoordinator).toSelf().inSingletonScope();
   bind(PlexRatingsRefreshService).toSelf().inSingletonScope();
+  bind(YouTubeAdapter).toSelf().inSingletonScope();
+  bind(YouTubeMediaRelay)
+    .toDynamicValue(() => new YouTubeMediaRelay())
+    .inSingletonScope();
+  bind(ProgramConverter).toSelf().inSingletonScope();
+  bind(YouTubeImportService).toSelf().inSingletonScope();
+  bind(YouTubePlaybackResolver).toSelf().inSingletonScope();
 
   bind(CelEvaluationService).toSelf().inSingletonScope();
   bind(StreamSelectionProfileResolver).toSelf().inSingletonScope();

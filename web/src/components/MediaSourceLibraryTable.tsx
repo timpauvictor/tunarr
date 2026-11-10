@@ -2,6 +2,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { HourglassTop, Radar, Refresh } from '@mui/icons-material';
 import {
   Box,
+  Button,
   Card,
   CardContent,
   Chip,
@@ -43,6 +44,7 @@ import { useStoreBackedTableSettings } from '../hooks/useTableSettings.ts';
 import { UnavailableLibraryIcon } from './UnavailableLibraryIndicator.tsx';
 import { NetworkIcon } from './util/NetworkIcon.tsx';
 import { PlexRatingsRefreshAction } from './library/PlexRatingsRefreshAction.tsx';
+import { YouTubeImportDialog } from './library/YouTubeImportDialog.tsx';
 
 type MediaSourceLibraryRow = MediaSourceLibrary & {
   mediaSource: MediaSourceSettings;
@@ -53,7 +55,40 @@ type ActionCellProps = {
   library: MediaSourceLibraryRow;
 };
 
-const MediaSourceLibraryTableActionCell = ({
+function YouTubeLibraryImportAction({
+  source,
+}: {
+  source: Extract<MediaSourceSettings, { type: 'youtube' }>;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span onClick={(event) => event.stopPropagation()}>
+      <Button
+        size="small"
+        onClick={(event) => {
+          event.preventDefault();
+          setOpen(true);
+        }}
+      >
+        <Trans>Import YouTube video</Trans>
+      </Button>
+      <YouTubeImportDialog
+        open={open}
+        onClose={() => setOpen(false)}
+        source={source}
+      />
+    </span>
+  );
+}
+
+const MediaSourceLibraryTableActionCell = (props: ActionCellProps) =>
+  props.mediaSource.type === 'youtube' ? (
+    <YouTubeLibraryImportAction source={props.mediaSource} />
+  ) : (
+    <ScannableLibraryActionCell {...props} />
+  );
+
+const ScannableLibraryActionCell = ({
   mediaSource,
   library,
 }: ActionCellProps) => {
@@ -214,7 +249,7 @@ const LibraryEnabledSwitch = ({
   const { t } = useLingui();
   const updateLibraryMutation = useUpdateLibraryMutation();
 
-  if (library.type === 'local') {
+  if (library.type === 'local' || library.mediaSource.type === 'youtube') {
     return null;
   }
 
@@ -365,7 +400,7 @@ export const MediaSourceLibraryTable = () => {
       {
         header: '',
         id: 'actions',
-        size: 110,
+        size: 180,
         enableColumnFilter: false,
         enableColumnActions: false,
         muiTableBodyCellProps: {

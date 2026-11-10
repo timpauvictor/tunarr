@@ -107,7 +107,13 @@ export const FfmpegSettingsSchema = z.object({
 
 // .github/scripts/pr-policy.cjs matches this name to detect new media sources.
 // Update it if you rename this constant.
-export const MediaSourceType = z.enum(['plex', 'jellyfin', 'emby', 'local']);
+export const MediaSourceType = z.enum([
+  'plex',
+  'jellyfin',
+  'emby',
+  'local',
+  'youtube',
+]);
 
 export const MediaSourceContentType = z.enum([
   'movies',
@@ -138,6 +144,7 @@ export const MediaSourceLibrarySchema = z.object({
         JellyfinServerSettingsSchema.omit({ libraries: true }),
         EmbyServerSettingsSchema.omit({ libraries: true }),
         LocalMediaSourceSchema.omit({ libraries: true, paths: true }),
+        YouTubeMediaSourceSchema.omit({ libraries: true }),
       ])
       .optional();
   },
@@ -191,11 +198,18 @@ export const LocalMediaSourceSchema = z.object({
   paths: z.array(z.string().min(1)).nonempty(),
 });
 
+export const YouTubeMediaSourceSchema = z.object({
+  ...BaseMediaSourceSettingsSchema.shape,
+  type: z.literal('youtube'),
+  pathReplacements: z.array(MediaSourcePathReplacement).max(0).default([]),
+});
+
 export const MediaSourceSettingsSchema = z.discriminatedUnion('type', [
   PlexServerSettingsSchema,
   JellyfinServerSettingsSchema,
   EmbyServerSettingsSchema,
   LocalMediaSourceSchema,
+  YouTubeMediaSourceSchema,
 ]);
 
 export const PlexStreamSettingsSchema = z.object({

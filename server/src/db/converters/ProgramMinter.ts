@@ -9,7 +9,7 @@ import type {
   Resolution,
   TerminalProgram,
 } from '@tunarr/types';
-import { isTerminalItemType } from '@tunarr/types';
+import { isTerminalItemType, tag } from '@tunarr/types';
 import {
   isValidMultiExternalIdType,
   isValidSingleExternalIdType,
@@ -30,7 +30,7 @@ import type {
 import type { Nilable } from '../../types/util.ts';
 import { isNonEmptyString } from '../../util/index.ts';
 import type { NewArtwork } from '../schema/Artwork.ts';
-import type { MediaSourceType } from '../schema/base.ts';
+import type { MediaSourceType, MediaSourceName } from '../schema/base.ts';
 import type { CreditType, NewCredit } from '../schema/Credit.ts';
 import type { MediaSourceOrm } from '../schema/MediaSource.ts';
 import type { MediaSourceLibrary } from '../schema/MediaSourceLibrary.ts';
@@ -497,11 +497,18 @@ export class ProgramDaoMinter {
         ? dayjs(video.releaseDate)?.format()
         : null,
       duration: video.duration ?? 0,
-      externalSourceId: mediaSource.name,
+      // The legacy name-based unique index still serves older sources. For
+      // YouTube its required column is derived from stable source identity.
+      externalSourceId:
+        video.sourceType === 'youtube'
+          ? tag<MediaSourceName>(mediaSource.uuid)
+          : mediaSource.name,
       mediaSourceId: mediaSource.uuid,
       libraryId: mediaLibrary.uuid,
       title: video.title,
       type: ProgramType.OtherVideo,
+      summary: video.summary,
+      youtubeMetadata: video.youtubeMetadata,
       year: video.year,
       createdAt: now,
       updatedAt: now,

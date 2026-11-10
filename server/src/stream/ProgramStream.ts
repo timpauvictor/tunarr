@@ -28,6 +28,10 @@ import { ProgramStreamDetailsFetcher } from './ProgramStreamDetailsFetcher.ts';
 import type { ProgramStreamPlugin } from './plugins/ProgramStreamPlugin.ts';
 import type { StreamRenditions } from './types.ts';
 import { WatermarkResolver } from './WatermarkResolver.ts';
+import {
+  StreamProgramCalculator,
+  playbackPreparationTiming,
+} from './StreamProgramCalculator.ts';
 
 type ProgramStreamEvents = {
   // Emitted when the stream has reached a fatal error point
@@ -46,6 +50,12 @@ export class ProgramStream extends events.EventEmitter<ProgramStreamEvents> {
   private hadError: boolean = false;
   private _transcodeSession: Maybe<FfmpegTranscodeSession>;
   private _renditions?: StreamRenditions;
+  private readonly lifetime = new AbortController();
+  private mediaAttempt?: AbortController;
+  private replacement?: Promise<void>;
+  private recalculatedStartup = false;
+  private shortfallMs = 0;
+  private readonly contextAbort = () => this.shutdown();
 
   constructor(
     @injected(KEYS.SettingsDB) protected settingsDB: ISettingsDB,
@@ -57,6 +67,8 @@ export class ProgramStream extends events.EventEmitter<ProgramStreamEvents> {
     private programStreamDetails: ProgramStreamDetailsFetcher,
     @multiInjected(KEYS.ProgramStreamPlugin)
     private streamPlugins: ProgramStreamPlugin[],
+    @injected(StreamProgramCalculator)
+    private calculator: StreamProgramCalculator,
     @assisted public context: PlayerContext,
     @assisted protected outputFormat: OutputFormat,
     @assisted public opts?: Partial<StreamOptions>,
@@ -65,6 +77,9 @@ export class ProgramStream extends events.EventEmitter<ProgramStreamEvents> {
   }
 
   async setup(): Promise<Result<FfmpegTranscodeSession>> {
+    this.context.playbackSignal?.addEventListener('abort', this.contextAbort, {
+      once: true,
+    });
     if (this.isInitialized()) {
       return Result.success(this._transcodeSession!);
     }
@@ -75,6 +90,13 @@ export class ProgramStream extends events.EventEmitter<ProgramStreamEvents> {
       Result.forError<TranscodeSessionResult>(caughtErrorToError(e)),
     );
 
+    if (result.isFailure()) {
+      this.mediaAttempt?.abort();
+      this.context.playbackSignal?.removeEventListener(
+        'abort',
+        this.contextAbort,
+      );
+    }
     result.forEach((value) => {
       this.transcodeSession = value.session;
       this._renditions = value.renditions;
@@ -113,14 +135,84 @@ export class ProgramStream extends events.EventEmitter<ProgramStreamEvents> {
       );
     }
 
+    const youtube = server.type === 'youtube';
+    // Live consumers provide a schedule clock. A named diagnostic run does not
+    // follow that schedule and must not change programs while it prepares.
+    const followsSchedule =
+      youtube && this.context.playbackStartTimeMs !== undefined;
+    const plannedStartMs = this.context.playbackStartTimeMs ?? Date.now();
+    const scheduleTimeMs = this.context.scheduleTimeMs ?? plannedStartMs;
+    this.mediaAttempt?.abort();
+    this.mediaAttempt = new AbortController();
+    const signal = AbortSignal.any([
+      this.lifetime.signal,
+      this.mediaAttempt.signal,
+      ...(this.context.playbackSignal ? [this.context.playbackSignal] : []),
+    ]);
+    signal.throwIfAborted();
     const streamDetailsResult = await this.programStreamDetails.getStream({
       server,
       lineupItem: lineupItem.program,
+      ...(youtube
+        ? {
+            signal,
+            maxHeight: this.context.transcodeConfig.resolution.heightPx,
+            ...(followsSchedule
+              ? { expiresAt: plannedStartMs + lineupItem.streamDuration }
+              : {}),
+          }
+        : {}),
     });
-
+    this.lifetime.signal.throwIfAborted();
+    this.context.playbackSignal?.throwIfAborted();
+    if (followsSchedule) {
+      const timing = playbackPreparationTiming(
+        plannedStartMs,
+        lineupItem.streamDuration,
+        Date.now(),
+      );
+      this.context.playbackStartTimeMs = timing.startMs;
+      this.context.scheduleTimeMs = scheduleTimeMs + timing.elapsedMs;
+      if (timing.remainingMs <= 0) {
+        this.mediaAttempt.abort();
+        if (this.recalculatedStartup) {
+          return Result.failure(
+            'Playback preparation crossed another schedule boundary.',
+          );
+        }
+        this.recalculatedStartup = true;
+        const next = await this.calculator.getCurrentLineupItem({
+          channelId: this.context.sourceChannel.uuid,
+          startTime: this.context.scheduleTimeMs,
+          allowSkip: true,
+          recordPlayHistory: false,
+        });
+        if (next.isFailure()) {
+          return next.recast();
+        }
+        this.context.lineupItem = next.get().lineupItem;
+        this.context.targetChannel = next.get().channelContext;
+        return this.setupInternal();
+      }
+      let offset = (lineupItem.startOffset ?? 0) + timing.elapsedMs;
+      if (
+        lineupItem.type === 'commercial' &&
+        lineupItem.infiniteLoop &&
+        lineupItem.program.duration > 0
+      ) {
+        offset %= lineupItem.program.duration;
+      }
+      lineupItem = {
+        ...lineupItem,
+        streamDuration: timing.remainingMs,
+        startOffset: offset,
+      };
+      this.context.lineupItem = lineupItem;
+    }
     if (streamDetailsResult.isFailure()) {
       return streamDetailsResult.recast();
     }
+    signal.throwIfAborted();
 
     const watermark = await this.getWatermark();
     const ffmpeg = this.ffmpegFactory(
@@ -128,9 +220,20 @@ export class ProgramStream extends events.EventEmitter<ProgramStreamEvents> {
       this.context.sourceChannel,
     );
 
-    // TODO: check if this was killed before actually starting.
-
-    const { streamDetails, streamSource } = streamDetailsResult.get();
+    signal.throwIfAborted();
+    const { streamDetails, inputs } = streamDetailsResult.get();
+    this.shortfallMs =
+      youtube && !lineupItem.infiniteLoop
+        ? Math.max(
+            0,
+            lineupItem.streamDuration -
+              Math.max(
+                0,
+                streamDetails.duration.asMilliseconds() -
+                  (lineupItem.startOffset ?? 0),
+              ),
+          )
+        : 0;
     streamDetails.duration = dayjs.duration(lineupItem.streamDuration);
 
     const start = dayjs.duration(lineupItem.startOffset ?? 0);
@@ -145,14 +248,15 @@ export class ProgramStream extends events.EventEmitter<ProgramStreamEvents> {
       ...(this.opts ?? {}),
     };
     const sessionResult = await ffmpeg.createStreamSession({
-      stream: {
-        source: streamSource,
-        details: streamDetails,
-      },
+      stream: { inputs, details: streamDetails },
       options: resolvedOptions,
       lineupItem,
     });
 
+    if (signal.aborted) {
+      sessionResult?.session.kill();
+      signal.throwIfAborted();
+    }
     if (!sessionResult) {
       return Result.forError(new Error('Unable to create ffmpeg process'));
     }
@@ -251,14 +355,42 @@ export class ProgramStream extends events.EventEmitter<ProgramStreamEvents> {
   }
 
   async start(sink?: PassThrough) {
+    this.lifetime.signal.throwIfAborted();
+    this.context.playbackSignal?.throwIfAborted();
     if (!this.isInitialized()) {
-      await this.setup();
+      const setup = await this.setup();
+      if (setup.isFailure()) {
+        this.outStream = sink ?? new PassThrough();
+        this.hadError = true;
+        await this.tryReplaceWithErrorStream(this.outStream);
+        return this.outStream;
+      }
     }
 
-    return (this.outStream = this._transcodeSession?.start(sink));
+    this.lifetime.signal.throwIfAborted();
+    this.context.playbackSignal?.throwIfAborted();
+    return (this.outStream = this._transcodeSession?.start(sink, false));
+  }
+
+  async wait() {
+    while (this._transcodeSession) {
+      const current = this._transcodeSession;
+      const exit = await current.wait();
+      await this.replacement;
+      if (this._transcodeSession === current || this.lifetime.signal.aborted) {
+        return exit;
+      }
+    }
+    return;
   }
 
   shutdown(): void {
+    this.lifetime.abort();
+    this.context.playbackSignal?.removeEventListener(
+      'abort',
+      this.contextAbort,
+    );
+    this.mediaAttempt?.abort();
     if (this.isInitialized()) {
       this.transcodeSession!.kill();
     }
@@ -277,8 +409,21 @@ export class ProgramStream extends events.EventEmitter<ProgramStreamEvents> {
 
   set transcodeSession(session: FfmpegTranscodeSession) {
     this._transcodeSession = session;
-    this._transcodeSession.on('end', () => this.shutdownInternal());
+    const attempt = this.mediaAttempt;
+    this._transcodeSession.on('end', () => {
+      attempt?.abort();
+      this.shutdownInternal();
+      if (this._transcodeSession === session) {
+        const shortfall = this.shortfallMs;
+        this.shortfallMs = 0;
+        this.replaceStream(this.completeSession(session, shortfall));
+      }
+    });
     this._transcodeSession.on('error', () => {
+      attempt?.abort();
+      if (this._transcodeSession !== session || this.lifetime.signal.aborted) {
+        return;
+      }
       if (this.hadError) {
         // We're streaming the error and something went wrong with that..
         // time to just bail.
@@ -289,44 +434,103 @@ export class ProgramStream extends events.EventEmitter<ProgramStreamEvents> {
         const failedStream = this._transcodeSession;
         failedStream?.kill();
         if (!this.opts?.disableErrorStream) {
-          this.tryReplaceWithErrorStream(this.outStream).catch((e) => {
-            this.logger.error(e, 'Error while setting up ');
-          });
+          this.replaceStream(this.tryReplaceWithErrorStream(this.outStream));
         }
       }
     });
   }
 
-  private async tryReplaceWithErrorStream(sink?: PassThrough) {
+  private replaceStream(operation: Promise<void>) {
+    this.replacement = operation.catch((error) => {
+      this.logger.error(error, 'Could not replace the playback stream');
+      this.shutdown();
+      this.outStream?.push(null);
+      this.emit('error');
+    });
+  }
+
+  private async completeSession(
+    session: FfmpegTranscodeSession,
+    shortfall: number,
+  ) {
+    const output = session.process.stdout;
+    if (output && !output.readableEnded && !output.destroyed) {
+      await new Promise<void>((resolve) => {
+        const finish = () => {
+          output.removeListener('end', finish);
+          output.removeListener('close', finish);
+          output.removeListener('error', finish);
+          resolve();
+        };
+        output.once('end', finish);
+        output.once('close', finish);
+        output.once('error', finish);
+      });
+    }
+    if (this._transcodeSession !== session) {
+      return;
+    }
+    if (
+      shortfall > 0 &&
+      !this.lifetime.signal.aborted &&
+      !this.context.playbackSignal?.aborted
+    ) {
+      this.hadError = true;
+      await this.tryReplaceWithErrorStream(this.outStream, shortfall);
+    } else {
+      this.outStream?.push(null);
+      this.context.playbackSignal?.removeEventListener(
+        'abort',
+        this.contextAbort,
+      );
+    }
+  }
+
+  private async tryReplaceWithErrorStream(
+    sink?: PassThrough,
+    durationMs?: number,
+  ) {
+    this.shortfallMs = 0;
     const out = sink ?? new PassThrough();
     try {
-      const errorResult = await this.getErrorStream(this.context);
+      const errorResult = await this.getErrorStream(this.context, durationMs);
+      if (
+        this.lifetime.signal.aborted ||
+        this.context.playbackSignal?.aborted
+      ) {
+        errorResult?.session.kill();
+        return;
+      }
 
       if (isUndefined(errorResult)) {
         out.push(null);
         return;
       }
 
-      errorResult.session.start(out);
+      this.context.playbackSignal?.addEventListener(
+        'abort',
+        this.contextAbort,
+        { once: true },
+      );
       this.transcodeSession = errorResult.session;
-
-      this.transcodeSession.on('end', () => {
-        out.push(null);
-      });
+      this.transcodeSession.start(out, false);
     } catch (e) {
       this.logger.error(e, 'Error while trying to spawn error stream! YIKES');
       throw e;
     }
   }
 
-  private getErrorStream(context: PlayerContext) {
+  private getErrorStream(context: PlayerContext, durationMs?: number) {
     const ffmpeg = this.ffmpegFactory(
       context.transcodeConfig,
       context.sourceChannel,
     );
 
+    const plannedEnd =
+      (context.playbackStartTimeMs ?? Date.now()) +
+      context.lineupItem.streamDuration;
     const duration = dayjs.duration(
-      dayjs(this.transcodeSession?.streamEndTime).diff(),
+      durationMs ?? Math.max(0, plannedEnd - Date.now()),
     );
 
     return ffmpeg.createPlaceholderSession({
@@ -335,7 +539,8 @@ export class ProgramStream extends events.EventEmitter<ProgramStreamEvents> {
       subtitle: 'Check server logs for details',
       duration,
       outputFormat: this.outputFormat,
-      realtime: true,
+      realtime: context.realtime,
+      ptsOffset: this.opts?.ptsOffset,
     });
   }
 

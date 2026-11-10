@@ -3,7 +3,7 @@ import JellyfinIcon from '@/assets/jellyfin.svg?react';
 import PlexIcon from '@/assets/plex.svg?react';
 import { usePlexLogin } from '@/hooks/plex/usePlexLogin.tsx';
 import { Trans } from '@lingui/react/macro';
-import { Add, Computer } from '@mui/icons-material';
+import { Add, Computer, YouTube } from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -21,6 +21,7 @@ import { EmbyServerEditDialog } from './EmbyServerEditDialog.tsx';
 import { JellyfinServerEditDialog } from './JelllyfinServerEditDialog.tsx';
 import { LocalMediaEditDialog } from './LocalMediaEditDialog.tsx';
 import { PlexServerEditDialog } from './PlexServerEditDialog.tsx';
+import { YouTubeMediaSourceDialog } from './YouTubeMediaSourceDialog.tsx';
 
 type Props = {
   ButtonProps?: ButtonProps;
@@ -30,10 +31,7 @@ export function AddMediaSourceButton({ ButtonProps }: Props) {
   const [manualAddPopoverRef, setManualAddPopoverRef] =
     useState<HTMLButtonElement | null>(null);
 
-  const [plexEditDialogOpen, setPlexEditDialogOpen] = useState(false);
-  const [jellyfinEditDialogOpen, setJellyfinEditDialogOpen] = useState(false);
-  const [embyEditDialogOpen, setEmbyEditDialogOpen] = useState(false);
-  const [localEditDialogOpen, setLocalEditDialogOpen] = useState(false);
+  const [selectedDialog, setSelectedDialog] = useState<MediaSourceType>();
   const { startDiscovery, isPending } = usePlexLogin();
 
   const open = !isNull(manualAddPopoverRef);
@@ -54,20 +52,7 @@ export function AddMediaSourceButton({ ButtonProps }: Props) {
   };
 
   const handleOpenMediaSourceDialog = (source: MediaSourceType) => {
-    switch (source) {
-      case 'plex':
-        setPlexEditDialogOpen(true);
-        break;
-      case 'jellyfin':
-        setJellyfinEditDialogOpen(true);
-        break;
-      case 'emby':
-        setEmbyEditDialogOpen(true);
-        break;
-      case 'local':
-        setLocalEditDialogOpen(true);
-        break;
-    }
+    setSelectedDialog(source);
     closeManualAddButtonMenu();
   };
 
@@ -151,22 +136,34 @@ export function AddMediaSourceButton({ ButtonProps }: Props) {
             <Trans>Local</Trans>
           </ListItemText>
         </MenuItem>
+        <MenuItem onClick={() => handleOpenMediaSourceDialog('youtube')}>
+          <ListItemIcon>
+            <YouTube />
+          </ListItemIcon>
+          <ListItemText>
+            <Trans>YouTube</Trans>
+          </ListItemText>
+        </MenuItem>
       </Menu>
       <PlexServerEditDialog
-        open={plexEditDialogOpen}
-        onClose={() => setPlexEditDialogOpen(false)}
+        open={selectedDialog === 'plex'}
+        onClose={() => setSelectedDialog(undefined)}
       />
       <JellyfinServerEditDialog
-        open={jellyfinEditDialogOpen}
-        onClose={() => setJellyfinEditDialogOpen(false)}
+        open={selectedDialog === 'jellyfin'}
+        onClose={() => setSelectedDialog(undefined)}
       />
       <EmbyServerEditDialog
-        open={embyEditDialogOpen}
-        onClose={() => setEmbyEditDialogOpen(false)}
+        open={selectedDialog === 'emby'}
+        onClose={() => setSelectedDialog(undefined)}
       />
       <LocalMediaEditDialog
-        open={localEditDialogOpen}
-        onClose={() => setLocalEditDialogOpen(false)}
+        open={selectedDialog === 'local'}
+        onClose={() => setSelectedDialog(undefined)}
+      />
+      <YouTubeMediaSourceDialog
+        open={selectedDialog === 'youtube'}
+        onClose={() => setSelectedDialog(undefined)}
       />
     </Box>
   );

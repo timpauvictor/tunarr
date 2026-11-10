@@ -194,6 +194,56 @@ describe('YouTube media boundary', () => {
     });
   });
 
+  test('retries through one refreshed capture and stops when that attempt is exhausted', async () => {
+    let failFresh = false;
+    let renewals = 0;
+    const transport = vi.fn<YouTubeMediaTransport>(
+      async (url, method, headers, signal) => {
+        if (
+          url.searchParams.get('private-signature') !== 'fresh' ||
+          failFresh
+        ) {
+          return { statusCode: 403, headers: {}, body: Readable.from([]) };
+        }
+        return bytes(url, method, headers, signal);
+      },
+    );
+    await withRelay(transport, async ({ relay, owner, baseUrl }) => {
+      const lease = relay.register({
+        url: mediaUrl,
+        signal: owner.signal,
+        baseUrl,
+        refresh: async () => {
+          if (renewals > 0) {
+            owner.abort();
+            return false;
+          }
+          renewals++;
+          lease.replace({
+            url: 'https://a.googlevideo.com/videoplayback?private-signature=fresh',
+            headers: {},
+          });
+          return true;
+        },
+      });
+      const options = {
+        headers: { ...lease.source.extraHeaders, Range: 'bytes=1-3' },
+      };
+      const response = await fetch(lease.source.path, options);
+      expect(response.status).toBe(206);
+      expect(await response.text()).toBe('bcd');
+      expect(renewals).toBe(1);
+      expect(transport).toHaveBeenCalledTimes(2);
+      failFresh = true;
+      const failed = await fetch(lease.source.path, options);
+      expect(failed.status).toBeGreaterThanOrEqual(400);
+      await failed.text();
+      expect(renewals).toBe(1);
+      expect(transport).toHaveBeenCalledTimes(3);
+      expect(relay.status).toEqual({ inputs: 0, requests: 0 });
+    });
+  });
+
   test('the real HTTPS transport blocks a private DNS answer at socket lookup', async () => {
     // Vitest infers dns.lookup's scalar overload; production calls all:true.
     const answers = [{ address: '127.0.0.1', family: 4 }];

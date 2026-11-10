@@ -17,7 +17,10 @@ import { MediaSourceLibrary } from './MediaSourceLibrary.ts';
 import { MediaSourceLibraryReplacePath } from './MediaSourceLibraryReplacePath.ts';
 import { Program } from './Program.ts';
 
-export type RemoteMediaSourceType = StrictExclude<MediaSourceType, 'local'>;
+export type RemoteMediaSourceType = StrictExclude<
+  MediaSourceType,
+  'local' | 'youtube'
+>;
 
 export const MediaSource = sqliteTable(
   'media_source',

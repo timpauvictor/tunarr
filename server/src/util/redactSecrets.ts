@@ -10,10 +10,7 @@ export function hasMediaBearerCredential(args: readonly string[]): boolean {
 
 export function redactMediaServerSecrets(text: string): string {
   return text
-    .replace(
-      /(\bAuthorization:\s*Bearer\s+)[A-Za-z0-9._~+/=-]+/gi,
-      '$1REDACTED',
-    )
+    .replace(/(\bBearer\s+)[A-Za-z0-9._~+/=-]+/gi, '$1REDACTED')
     .replace(/(X-Plex-Token[:=]\s*)[A-Za-z0-9_-]+/g, '$1REDACTED')
     .replace(/(X-Emby-Token[:=]\s*)[A-Za-z0-9_-]+/g, '$1REDACTED')
     .replace(/(api_key=)[A-Za-z0-9_-]+/g, '$1REDACTED')

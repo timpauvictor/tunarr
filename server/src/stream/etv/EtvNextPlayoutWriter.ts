@@ -15,8 +15,11 @@ import { InjectLogger } from '../../util/inject.ts';
 import type { Logger } from '../../util/logging/LoggerFactory.ts';
 import { makeLocalUrl } from '../../util/serverUtil.ts';
 import { ProgramStreamDetailsFetcher } from '../ProgramStreamDetailsFetcher.ts';
-import { StreamProgramCalculator } from '../StreamProgramCalculator.ts';
-import type { StreamDetails, StreamSource } from '../types.ts';
+import {
+  StreamProgramCalculator,
+  playbackPreparationTiming,
+} from '../StreamProgramCalculator.ts';
+import type { StreamDetails } from '../types.ts';
 import { WatermarkResolver } from '../WatermarkResolver.ts';
 import type {
   PlayoutItemMapping,
@@ -214,23 +217,33 @@ export class EtvNextPlayoutWriter {
     channel,
     lineupItem,
     startMs,
+    signal,
   }: {
     channel: ChannelOrmWithTranscodeConfig;
     lineupItem: StreamLineupItem;
     startMs: number;
+    signal?: AbortSignal;
   }): Promise<MaterializedWindow> {
-    const stream = await this.resolveStream(channel, lineupItem);
+    signal?.throwIfAborted();
+    const stream = await this.resolveStream(channel, lineupItem, undefined, {
+      signal,
+      expiresAt: Date.now() + lineupItem.streamDuration + 60_000,
+    });
+    signal?.throwIfAborted();
+    // A named diagnostic is not a live slot: preparation must not consume its
+    // short materialized window before the worker can select it.
+    const readyStartMs = Math.max(startMs, Date.now());
     const { item, ignored } = this.mapOrDegrade({
       ...this.screenOptions(channel),
       id: `${channel.uuid}-troubleshoot`,
-      startMs,
+      startMs: readyStartMs,
       lineupItem,
       stream,
     });
 
     return {
-      startMs,
-      finishMs: startMs + Math.floor(lineupItem.streamDuration),
+      startMs: readyStartMs,
+      finishMs: readyStartMs + Math.floor(lineupItem.streamDuration),
       items: [item],
       ignored,
     };
@@ -241,11 +254,13 @@ export class EtvNextPlayoutWriter {
     startMs,
     windowMs = DefaultWindowMs,
     idSeed = 0,
+    signal,
   }: {
     channel: ChannelOrmWithTranscodeConfig;
     startMs: number;
     windowMs?: number;
     idSeed?: number;
+    signal?: AbortSignal;
   }): Promise<MaterializedWindow> {
     const endMs = startMs + windowMs;
     const screens = this.screenOptions(channel);
@@ -283,6 +298,15 @@ export class EtvNextPlayoutWriter {
       }
 
       const { lineupItem, channelContext } = lineupResult.get();
+      signal?.throwIfAborted();
+      if (
+        isContentBackedLineupItem(lineupItem) &&
+        lineupItem.program.sourceType === 'youtube'
+      ) {
+        throw new Error(
+          'YouTube requires dynamic ErsatzTV playout; static pre-resolved windows are not supported.',
+        );
+      }
 
       // The mapper floors each item to whole milliseconds, so the cursor
       // advances by the same amount to keep items back to back.
@@ -374,10 +398,12 @@ export class EtvNextPlayoutWriter {
     channel,
     startMs,
     untilMs,
+    signal,
   }: {
     channel: ChannelOrmWithTranscodeConfig;
     startMs: number;
     untilMs?: number;
+    signal?: AbortSignal;
   }): Promise<PlayoutItemMapping> {
     const screens = this.screenOptions(channel);
 
@@ -403,45 +429,83 @@ export class EtvNextPlayoutWriter {
     }
 
     try {
-      // On-demand channels run on their own cursor, so the transcode position
-      // has to be translated before the schedule is asked about it.
-      const scheduleNowMs = await this.onDemandService.getLiveTimestamp(
-        channel.uuid,
-        startMs,
-      );
-
-      const resolution = await this.resolvePlayableItem(
-        channel.uuid,
-        scheduleNowMs,
-        startMs,
-      );
-
-      if ('failure' in resolution) {
-        return this.safeResolverErrorItem({
+      let playbackAt = startMs;
+      for (let pass = 0; pass < 2; pass++) {
+        signal?.throwIfAborted();
+        const scheduleNowMs = await this.onDemandService.getLiveTimestamp(
+          channel.uuid,
+          playbackAt,
+        );
+        const resolution = await this.resolvePlayableItem(
+          channel.uuid,
+          scheduleNowMs,
+          playbackAt,
+        );
+        if ('failure' in resolution) {
+          return this.safeResolverErrorItem({
+            id,
+            startMs: playbackAt,
+            untilMs,
+            screens,
+            message:
+              resolution.failure === 'unreadable'
+                ? 'The channel schedule could not be read'
+                : 'The channel schedule produced only items too short to play',
+          });
+        }
+        let { lineupItem } = resolution;
+        const stream = await this.resolveStream(
+          channel,
+          lineupItem,
+          resolution.channelContext,
+          {
+            signal,
+            expiresAt: playbackAt + lineupItem.streamDuration,
+          },
+        );
+        signal?.throwIfAborted();
+        if (
+          isContentBackedLineupItem(lineupItem) &&
+          lineupItem.program.sourceType === 'youtube'
+        ) {
+          const timing = playbackPreparationTiming(
+            playbackAt,
+            lineupItem.streamDuration,
+            Date.now(),
+          );
+          if (timing.remainingMs <= 0) {
+            playbackAt = Date.now();
+            continue;
+          }
+          let offset = (lineupItem.startOffset ?? 0) + timing.elapsedMs;
+          if (
+            lineupItem.type === 'commercial' &&
+            lineupItem.infiniteLoop &&
+            lineupItem.program.duration > 0
+          ) {
+            offset %= lineupItem.program.duration;
+          }
+          lineupItem = {
+            ...lineupItem,
+            startOffset: offset,
+            streamDuration: timing.remainingMs,
+          };
+          playbackAt = timing.startMs;
+        }
+        return this.mapOrDegrade({
+          ...screens,
           id,
-          startMs,
-          untilMs,
-          screens,
-          message:
-            resolution.failure === 'unreadable'
-              ? 'The channel schedule could not be read'
-              : 'The channel schedule produced only items too short to play',
+          startMs: playbackAt,
+          lineupItem,
+          stream,
         });
       }
-
-      const { lineupItem, channelContext } = resolution;
-      const stream = await this.resolveStream(
-        channel,
-        lineupItem,
-        channelContext,
-      );
-
-      return this.mapOrDegrade({
-        ...screens,
+      return this.safeResolverErrorItem({
         id,
-        startMs,
-        lineupItem,
-        stream,
+        startMs: playbackAt,
+        untilMs,
+        screens,
+        message: 'Playback preparation crossed another schedule boundary',
       });
     } catch (e) {
       if (e instanceof StreamTerminationRequestedError) {
@@ -712,15 +776,8 @@ export class EtvNextPlayoutWriter {
     channel: ChannelOrmWithTranscodeConfig,
     lineupItem: StreamLineupItem,
     scheduleChannel: ChannelOrm = channel,
-  ): Promise<
-    | {
-        source: StreamSource;
-        details?: StreamDetails;
-        selection?: PlayoutTrackSelection;
-        watermark?: ResolvedWatermark;
-      }
-    | undefined
-  > {
+    playback?: { signal?: AbortSignal; expiresAt: number },
+  ): Promise<ToPlayoutItemArgs['stream']> {
     if (!isContentBackedLineupItem(lineupItem)) {
       return;
     }
@@ -742,6 +799,13 @@ export class EtvNextPlayoutWriter {
     const result = await this.streamDetailsFetcher.getStream({
       server,
       lineupItem: contentItem.program,
+      ...(server.type === 'youtube'
+        ? {
+            signal: playback?.signal,
+            expiresAt: playback?.expiresAt,
+            maxHeight: channel.transcodeConfig.resolution.heightPx,
+          }
+        : {}),
     });
 
     if (result.isFailure()) {
@@ -753,7 +817,7 @@ export class EtvNextPlayoutWriter {
       return;
     }
 
-    const { streamSource, streamDetails } = result.get();
+    const { inputs, streamDetails } = result.get();
     const selection = await this.selectTracks(
       channel,
       contentItem,
@@ -767,7 +831,7 @@ export class EtvNextPlayoutWriter {
     );
 
     return {
-      source: streamSource,
+      inputs,
       details: streamDetails,
       selection,
       watermark,

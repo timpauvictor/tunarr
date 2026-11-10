@@ -122,7 +122,12 @@ function createService(opts: HarnessOptions = {}) {
   const audio = opts.audio ?? [engAudio, jpnAudio];
   const subtitles = opts.subtitles ?? [engSubtitle];
   const streamResult: ProgramStreamResult = {
-    streamSource: new HttpStreamSource('http://example.com/video.mkv'),
+    inputs: [
+      {
+        id: 'main',
+        source: new HttpStreamSource('http://example.com/video.mkv'),
+      },
+    ],
     streamDetails: {
       duration: dayjs.duration(1, 'hour'),
       audioDetails: isNonEmptyArray(audio) ? audio : undefined,

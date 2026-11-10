@@ -7,6 +7,9 @@ import type { StreamEncoding } from '../ffmpeg/types.ts';
 import type { GetCurrentLineupItemRequest } from './StreamProgramCalculator.ts';
 
 export class PlayerContext {
+  playbackSignal?: AbortSignal;
+  playbackStartTimeMs?: number;
+  scheduleTimeMs?: number;
   /**
    *
    * @param lineupItem  What is being played
@@ -77,4 +80,5 @@ export type PlayerContextStreamSettings = {
 
 export type GetPlayerContextRequest = GetCurrentLineupItemRequest & {
   audioOnly: boolean;
+  signal?: AbortSignal;
 };

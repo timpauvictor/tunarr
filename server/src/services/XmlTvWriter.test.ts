@@ -656,6 +656,25 @@ describe('XmlTvWriter', () => {
   describe('resolveArtworkUrl', () => {
     const resolveArtworkUrl = XmlTvWriter.resolveArtworkUrl;
 
+    test.each([true, false])(
+      'uses stored recorded-video thumbnails without deriving missing YouTube artwork (%s)',
+      (hasArtwork) => {
+        const programId = v4();
+        const program = makeProgram({
+          uuid: programId,
+          type: 'other_video',
+          sourceType: 'youtube',
+          mediaSourceId: v4(),
+          artwork: hasArtwork ? [makeArtwork('thumbnail')] : [],
+        });
+        expect(resolveArtworkUrl(program, { useShowPoster: false })).toBe(
+          hasArtwork
+            ? `{{host}}/api/programs/${programId}/artwork/thumbnail`
+            : undefined,
+        );
+      },
+    );
+
     describe('movies', () => {
       test('returns poster artwork URL when available', () => {
         const programId = v4();
@@ -926,7 +945,7 @@ describe('XmlTvWriter', () => {
         expect(url).toBe(`{{host}}/api/programs/${programId}/artwork/poster`);
       });
 
-      test('other_video returns undefined when no poster artwork', () => {
+      test('other_video uses its stored thumbnail when no poster exists', () => {
         const programId = v4();
         const program = makeProgram({
           uuid: programId,
@@ -935,7 +954,9 @@ describe('XmlTvWriter', () => {
         });
 
         const url = resolveArtworkUrl(program, { useShowPoster: false });
-        expect(url).toBeUndefined();
+        expect(url).toBe(
+          `{{host}}/api/programs/${programId}/artwork/thumbnail`,
+        );
       });
     });
 

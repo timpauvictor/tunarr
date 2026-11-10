@@ -80,6 +80,7 @@ export class MediaSourceLibraryRefresher {
         await this.handleEmby(source);
         break;
       case 'local':
+      case 'youtube':
         break;
     }
 

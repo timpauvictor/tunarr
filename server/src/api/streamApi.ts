@@ -678,12 +678,15 @@ export const streamApi: RouterPluginAsyncCallback = async (fastify) => {
       // and the client will detect the mismatch when the queue expires.
       const now = Date.now();
 
+      const playback = new AbortController();
+      res.raw.once('close', () => playback.abort());
       const rawStreamResult = await videoStream.startStream(
         {
           channel: req.params.id,
           audioOnly: false,
           streamMode: 'mpegts',
           encoding: { mode: 'remux' },
+          signal: playback.signal,
         },
         now,
         false,
@@ -702,7 +705,7 @@ export const streamApi: RouterPluginAsyncCallback = async (fastify) => {
           .send(rawStreamResult.message);
       }
 
-      req.raw.on('close', () => {
+      res.raw.once('close', () => {
         logger.debug(
           { channel: req.params.id, t: itemStartedAtMs },
           'Native item stream client disconnected, stopping stream.',

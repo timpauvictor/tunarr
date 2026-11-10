@@ -2331,7 +2331,7 @@ export class MeilisearchService implements ISearchService {
     );
   }
 
-  private async waitForTaskResult(
+  async waitForTaskResult(
     taskId: number,
     canceledIsOk: boolean = false,
     signal?: AbortSignal,

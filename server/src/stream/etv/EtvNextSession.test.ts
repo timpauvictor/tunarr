@@ -238,6 +238,7 @@ async function makeSession({
 }
 
 afterEach(async () => {
+  vi.unstubAllEnvs();
   await Promise.all(
     tempDirs.map((dir) => fs.rm(dir, { recursive: true, force: true })),
   );
@@ -758,6 +759,7 @@ describe('the dynamic playout window', () => {
   // The secret reaches the worker through its environment, so it is never
   // written to a file the way the rest of the playout is.
   test('hands the worker a token no file carries', async () => {
+    vi.stubEnv('FFREPORT', 'file=outside-the-private-workspace.log');
     const { session, transcodeDirectory, childProcessHelper, tokenRegistry } =
       await makeSession({ playoutMode: 'dynamic' });
 
@@ -765,14 +767,20 @@ describe('the dynamic playout window', () => {
 
     const env = childProcessHelper.spawn.mock.calls[0]?.[3];
     const token = env?.[DynamicTokenEnvVar];
+    expect(env?.FFREPORT).toBeUndefined();
     expect(token).toBeDefined();
     expect(tokenRegistry.resolve(token)).toEqual({
       channelUuid,
       channelNumber: 7,
+      signal: session.playbackSignal,
     });
+    expect(session.playbackSignal.aborted).toBe(false);
 
     const { items } = await readWindow(transcodeDirectory);
     expect(JSON.stringify(items)).not.toContain(token);
+    await session.stop();
+    expect(session.playbackSignal.aborted).toBe(true);
+    expect(tokenRegistry.resolve(token)).toBeUndefined();
   });
 
   // The worker clamps every resolved item's finish to the placeholder's, so a
@@ -909,7 +917,7 @@ describe('the dynamic playout window', () => {
 // The worker writes one dossier per failed item, and tells Tunarr nothing
 // about them, so the folder is prepared and capped at spawn.
 describe('diagnostic dossiers', () => {
-  test('point the worker at a folder outside the workspace', async () => {
+  test('keep raw reports in the private live workspace', async () => {
     const reportsDirectory = await makeTempDir();
     const { session, transcodeDirectory } = await makeSession({
       reportsDirectory,
@@ -925,8 +933,45 @@ describe('diagnostic dossiers', () => {
     ) as { ffmpeg: { reports_folder?: string } };
 
     expect(config.ffmpeg.reports_folder).toBe(
-      path.join(reportsDirectory, channelUuid),
+      path.join(transcodeDirectory, workspaceName, 'reports'),
     );
+    if (process.platform !== 'win32') {
+      expect(
+        (await fs.stat(path.join(transcodeDirectory, workspaceName))).mode &
+          0o777,
+      ).toBe(0o700);
+    }
+  });
+
+  test('retain only redacted copies after the workspace is torn down', async () => {
+    const reportsDirectory = await makeTempDir();
+    const { session, transcodeDirectory } = await makeSession({
+      reportsDirectory,
+    });
+    await session.start();
+    const liveReports = path.join(
+      transcodeDirectory,
+      workspaceName,
+      'reports',
+      '7_secret',
+    );
+    await fs.mkdir(liveReports, { recursive: true });
+    await fs.writeFile(
+      path.join(liveReports, 'playout.json'),
+      JSON.stringify({
+        headers: { Authorization: 'Bearer private-session-capability' },
+      }),
+    );
+    await session.stop();
+    const retained = await fs.readFile(
+      path.join(reportsDirectory, channelUuid, '7_secret', 'playout.json'),
+      'utf8',
+    );
+    expect(retained).not.toContain('private-session-capability');
+    expect(retained).toContain('Bearer REDACTED');
+    await expect(
+      fs.stat(path.join(transcodeDirectory, workspaceName)),
+    ).rejects.toThrow();
   });
 
   test('survive the workspace being torn down', async () => {

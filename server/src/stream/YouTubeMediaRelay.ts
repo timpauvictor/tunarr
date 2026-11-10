@@ -145,7 +145,35 @@ const requestMedia: YouTubeMediaTransport = (url, method, headers, signal) =>
     request.end();
   });
 
+export function validateYouTubeMediaHeaders(
+  headers: Record<string, string>,
+): Record<string, string> {
+  const allowed = new Set([
+    'user-agent',
+    'accept',
+    'accept-language',
+    'origin',
+    'referer',
+    'sec-fetch-mode',
+  ]);
+  const forwarded: Record<string, string> = {};
+  for (const [name, value] of Object.entries(headers)) {
+    if (
+      !allowed.has(name.toLowerCase()) ||
+      typeof value !== 'string' ||
+      value.length > 8192 ||
+      /[\r\n]/.test(value)
+    ) {
+      throw new Error('Unsupported YouTube media header.');
+    }
+    forwarded[name.toLowerCase()] = value;
+  }
+  return forwarded;
+}
+
 type MediaLease = {
+  generation: number;
+  refresh?: (generation: number, canRenew: boolean) => Promise<boolean>;
   url: URL;
   headers: Record<string, string>;
   key: Buffer;
@@ -170,12 +198,18 @@ export class YouTubeMediaRelay {
     headers = {},
     signal,
     baseUrl,
+    refresh,
   }: {
     url: string;
     headers?: Record<string, string>;
     signal: AbortSignal;
     baseUrl: string;
-  }): { source: HttpStreamSource; release: () => void } {
+    refresh?: (generation: number, canRenew: boolean) => Promise<boolean>;
+  }): {
+    source: HttpStreamSource;
+    release: () => void;
+    replace: (input: { url: string; headers: Record<string, string> }) => void;
+  } {
     const target = validateYouTubeMediaUrl(url);
     const base = URL.parse(baseUrl);
     if (
@@ -190,29 +224,12 @@ export class YouTubeMediaRelay {
     if (signal.aborted || this.inputs.size >= MaxInputs) {
       throw new Error('Media input admission refused.');
     }
-    const allowed = new Set([
-      'user-agent',
-      'accept',
-      'accept-language',
-      'origin',
-      'referer',
-      'sec-fetch-mode',
-    ]);
-    const forwarded: Record<string, string> = {};
-    for (const [name, value] of Object.entries(headers)) {
-      if (
-        !allowed.has(name.toLowerCase()) ||
-        typeof value !== 'string' ||
-        value.length > 8192 ||
-        /[\r\n]/.test(value)
-      ) {
-        throw new Error('Unsupported YouTube media header.');
-      }
-      forwarded[name.toLowerCase()] = value;
-    }
+    const forwarded = validateYouTubeMediaHeaders(headers);
     const id = randomBytes(16).toString('hex');
     const key = randomBytes(32);
     const lease: MediaLease = {
+      generation: 0,
+      refresh,
       url: target,
       headers: forwarded,
       key,
@@ -234,6 +251,17 @@ export class YouTubeMediaRelay {
         Authorization: 'Bearer ' + key.toString('hex'),
       }),
       release,
+      replace: (input) => {
+        signal.throwIfAborted();
+        if (!this.inputs.has(id)) {
+          throw new Error('The input owner has ended.');
+        }
+        const nextUrl = validateYouTubeMediaUrl(input.url);
+        const nextHeaders = validateYouTubeMediaHeaders(input.headers);
+        lease.url = nextUrl;
+        lease.headers = nextHeaders;
+        lease.generation++;
+      },
     };
   }
 
@@ -286,48 +314,75 @@ export class YouTubeMediaRelay {
     this.requests++;
     let body: Readable | undefined;
     try {
-      let destination = lease.url;
-      for (let redirects = 0; ; redirects++) {
-        controller.signal.throwIfAborted();
-        const upstream = await this.transport(
-          destination,
-          request.method,
-          { ...lease.headers, ...(range ? { range } : {}) },
-          controller.signal,
-        );
-        body = upstream.body;
-        if ([301, 302, 303, 307, 308].includes(upstream.statusCode)) {
-          body.destroy();
-          const location = upstream.headers.location;
-          if (redirects >= MaxRedirects || typeof location !== 'string') {
-            throw new Error('Invalid media redirect.');
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const generation = lease.generation;
+        let canRenew = true;
+        try {
+          let destination = lease.url;
+          for (let redirects = 0; ; redirects++) {
+            controller.signal.throwIfAborted();
+            const upstream = await this.transport(
+              destination,
+              request.method,
+              { ...lease.headers, ...(range ? { range } : {}) },
+              controller.signal,
+            );
+            body = upstream.body;
+            if ([301, 302, 303, 307, 308].includes(upstream.statusCode)) {
+              body.destroy();
+              const location = upstream.headers.location;
+              if (redirects >= MaxRedirects || typeof location !== 'string') {
+                canRenew = false;
+                throw new Error('Invalid media redirect.');
+              }
+              destination = validateYouTubeMediaUrl(
+                new URL(location, destination).href,
+              );
+              continue;
+            }
+            if (
+              ![200, 206, 416].includes(upstream.statusCode) ||
+              (range && upstream.statusCode === 200)
+            ) {
+              canRenew = [403, 410, 500, 502, 503, 504].includes(
+                upstream.statusCode,
+              );
+              throw new Error(
+                'Media upstream unavailable or not range-seekable.',
+              );
+            }
+            const headers: Record<string, string> = {
+              'cache-control': 'no-store',
+            };
+            for (const name of [
+              'content-type',
+              'content-length',
+              'content-range',
+              'accept-ranges',
+            ]) {
+              const value = upstream.headers[name];
+              if (typeof value === 'string') {
+                headers[name] = value;
+              }
+            }
+            response.writeHead(upstream.statusCode, headers);
+            await pipeline(body, response, { signal: controller.signal });
+            return;
           }
-          destination = validateYouTubeMediaUrl(
-            new URL(location, destination).href,
-          );
-          continue;
-        }
-        if (
-          ![200, 206, 416].includes(upstream.statusCode) ||
-          (range && upstream.statusCode === 200)
-        ) {
-          throw new Error('Media upstream unavailable or not range-seekable.');
-        }
-        const headers: Record<string, string> = { 'cache-control': 'no-store' };
-        for (const name of [
-          'content-type',
-          'content-length',
-          'content-range',
-          'accept-ranges',
-        ]) {
-          const value = upstream.headers[name];
-          if (typeof value === 'string') {
-            headers[name] = value;
+        } catch {
+          body?.destroy();
+          const renewed =
+            !controller.signal.aborted && lease.refresh
+              ? await lease.refresh(generation, canRenew && attempt === 0)
+              : false;
+          if (!renewed || attempt > 0 || !canRenew) {
+            throw new Error('Media input unavailable.');
+          }
+          if (response.headersSent) {
+            response.destroy();
+            return;
           }
         }
-        response.writeHead(upstream.statusCode, headers);
-        await pipeline(body, response, { signal: controller.signal });
-        break;
       }
     } catch {
       if (!response.headersSent && !response.destroyed) {

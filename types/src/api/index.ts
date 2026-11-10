@@ -38,6 +38,7 @@ import {
   JellyfinServerSettingsSchema,
   LocalMediaSourceSchema,
   PlexServerSettingsSchema,
+  YouTubeMediaSourceSchema,
 } from '../schemas/settingsSchemas.js';
 import { MaterializedSlot, RandomSlotScheduleSchema } from './RandomSlots.js';
 import { MaterializedTimeSlot, TimeSlotScheduleSchema } from './TimeSlots.js';
@@ -210,6 +211,7 @@ export const UpdateMediaSourceRequestSchema = z.discriminatedUnion('type', [
   }),
   EmbyServerSettingsSchema.omit({ libraries: true }),
   LocalMediaSourceSchema.omit({ libraries: true }),
+  YouTubeMediaSourceSchema.omit({ libraries: true }),
 ]);
 
 export type UpdateMediaSourceRequest = z.infer<
@@ -241,6 +243,7 @@ export const InsertMediaSourceRequestSchema = z.discriminatedUnion('type', [
     accessToken: true,
   }),
   LocalMediaSourceSchema.omit({ id: true, libraries: true }),
+  YouTubeMediaSourceSchema.omit({ id: true, libraries: true }),
 ]);
 
 export type InsertMediaSourceRequest = z.infer<

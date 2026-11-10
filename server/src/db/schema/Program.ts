@@ -1,5 +1,7 @@
 import type { TupleToUnion } from '@tunarr/types';
 import type { RatingSnapshot } from '@tunarr/types/schemas';
+import type { YouTubeVideoAttribution } from '@tunarr/types/schemas';
+import type { z } from 'zod/v4';
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { inArray, relations } from 'drizzle-orm';
 import {
@@ -91,6 +93,9 @@ export const Program = sqliteTable(
     showTitle: text(),
     sourceType: text({ enum: MediaSourceTypes }).notNull(),
     summary: text(),
+    youtubeMetadata: text({ mode: 'json' }).$type<
+      z.infer<typeof YouTubeVideoAttribution>
+    >(),
     plot: text(),
     tagline: text(),
     title: text().notNull(),

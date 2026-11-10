@@ -218,6 +218,7 @@ export class EtvNextApiController implements ApiController {
               channel,
               startMs: nowMs ?? wallClockMs,
               untilMs,
+              ...(grant.signal ? { signal: grant.signal } : {}),
             },
           );
 
@@ -236,6 +237,14 @@ export class EtvNextApiController implements ApiController {
             .getEtvNextSession(grant.channelUuid)
             ?.recordResolvedItem(Date.parse(item.finish));
 
+          if (
+            grant.signal?.aborted ||
+            !this.tokenRegistry.resolve(
+              parseBearerToken(singleHeader(req.headers.authorization)),
+            )
+          ) {
+            return res.status(401).send();
+          }
           return res.send(item);
         } catch (e) {
           if (!(e instanceof StreamTerminationRequestedError)) {

@@ -45,10 +45,11 @@ This is a monorepo with four main packages:
 
 ### Plans
 
-- Write all plans, designs, and audits to `plans/` at the repo root. Never use `.claude/plans/`.
-- Write issue investigations to `plans/investigations/`, named `issue-<n>-<slug>-YYYY-MM-DD.md`. These report whether a bug is real and why. A design that follows from one goes in `plans/`.
-- Name files `<topic>.md`, adding a date suffix (`-YYYY-MM-DD`) for point-in-time reports.
-- `.claude/settings.json` sets `plansDirectory` to `plans`, so plan-mode plans land there too.
+- Use the current project's Librarian vault for new plans, designs, audits, issue investigations, research and execution checkpoints. Use Shared only for explicitly cross-project notes. Never use `.claude/plans/` or create a second canonical copy in `plans/`.
+- Existing repository plans and external planning artifacts retain their current ownership until an explicitly accepted successor replaces them. Do not bulk-import, move or delete them during setup. Keep issue investigations separate from implementation designs and identify the issue number in the note title.
+- Start Pi inside this Git repository so Librarian resolves its project identity correctly. Identity lives privately in the Git common directory; no tracked opt-in marker or machine-specific vault configuration belongs here.
+- Follow the installed Librarian tools for scoped search, checksum-bound reads, immutable note writes and separate publication/Git/remote backup receipts. If the vault is unavailable, retain an unsaved draft and report the blocker rather than writing a fallback repository plan.
+- `.claude/settings.json` may retain its existing `plansDirectory` compatibility setting; it does not override Librarian ownership for new plans.
 
 ### PR Review Labels
 

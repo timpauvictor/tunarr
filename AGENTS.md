@@ -2,6 +2,13 @@
 
 Instructions for AI coding agents working in this repository. Project conventions, commands, and architecture are in `CLAUDE.md`.
 
+## Personal-fork workflow
+
+- This is the user's personal fork. The upstream contribution policy below applies when submitting work upstream; upstream design approval is not required for authorized work in this fork.
+- During authorized implementation, create appropriate topic branches, stage scoped changes, commit and push without asking for permission again. Use an explicit remote and branch destination.
+- Preserve unrelated work and run the relevant focused checks before delivery. Do not include secrets, local runtime data or unrelated changes in commits.
+- This standing Git permission does not authorize deployment, releases, destructive history changes or protected-primary integration. Those actions retain their separate approval requirements.
+
 ## Contribution policy
 
 Tunarr accepts AI-assisted contributions under the "Pull Request Policy" and "AI Use" sections of `docs/dev/contributing.md`. Follow it on the user's behalf.

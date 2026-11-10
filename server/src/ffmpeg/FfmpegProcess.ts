@@ -12,6 +12,10 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type stream from 'node:stream';
 import { LastNBytesStream } from '../util/LastNBytesStream.ts';
+import {
+  hasMediaBearerCredential,
+  redactMediaServerSecrets,
+} from '../util/redactSecrets.ts';
 
 export type FfmpegEvents = {
   // Emitted when the process ended with a code === 0, i.e. it exited
@@ -73,10 +77,10 @@ export class FfmpegProcess extends events.EventEmitter<FfmpegEvents> {
       return this.#processHandle!.stdout;
     }
 
-    const argsWithTokenRedacted = this.ffmpegArgs
-      .join(' ')
-      .replaceAll(/(X-Plex-Token=)([A-z0-9_\\-]+)/g, '$1REDACTED')
-      .replaceAll(/(X-Emby-Token[:=]\s*)([A-z0-9_\\-]+)/g, '$1REDACTED');
+    const argsWithTokenRedacted = redactMediaServerSecrets(
+      this.ffmpegArgs.join(' '),
+    );
+    const hasBearerCredential = hasMediaBearerCredential(this.ffmpegArgs);
 
     this.#logger.debug(
       `Starting ffmpeg with args: "%s"`,
@@ -88,7 +92,12 @@ export class FfmpegProcess extends events.EventEmitter<FfmpegEvents> {
       ...this.environmentVariables,
     };
 
-    if (this.ffmpegSettings.enableFileLogging) {
+    // Raw reports and console piping can expose input headers. Keep session
+    // credentials out of those unfiltered outputs.
+    if (hasBearerCredential) {
+      delete env.FFREPORT;
+    }
+    if (this.ffmpegSettings.enableFileLogging && !hasBearerCredential) {
       const normalizedName = this.ffmpegName.toLowerCase().replaceAll(' ', '-');
       let logPath = path.join(
         this.logDirectory,
@@ -117,7 +126,7 @@ export class FfmpegProcess extends events.EventEmitter<FfmpegEvents> {
     this.#running = true;
 
     // Pipe to our own stderr if enabled
-    if (this.ffmpegSettings.enableLogging) {
+    if (this.ffmpegSettings.enableLogging && !hasBearerCredential) {
       this.#processHandle.stderr.pipe(process.stderr, { end: false });
     }
 
@@ -177,7 +186,9 @@ export class FfmpegProcess extends events.EventEmitter<FfmpegEvents> {
           outPath,
         );
 
-        const bufferedBytes = bufferedOut.getLastN().toString('utf-8');
+        const bufferedBytes = hasBearerCredential
+          ? 'Raw FFmpeg error output omitted because the input uses a session credential.'
+          : redactMediaServerSecrets(bufferedOut.getLastN().toString('utf-8'));
         this.#logger.error(bufferedBytes);
         fs.writeFile(
           outPath,

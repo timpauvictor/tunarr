@@ -22,6 +22,7 @@ export type StreamDetails = {
 };
 
 export type VideoStreamDetails = {
+  inputId?: string;
   codec: Maybe<string>;
   profile: Maybe<string>;
   width: number;
@@ -43,6 +44,7 @@ export type VideoStreamDetails = {
 };
 
 export type AudioStreamDetails = {
+  inputId?: string;
   channels?: number;
   codec?: string;
   index: number;
@@ -60,6 +62,7 @@ export type AudioStreamDetails = {
 export type SubtitleType = 'embedded' | 'external';
 
 export type SubtitleStreamDetails = {
+  inputId?: string;
   type: SubtitleType;
   title?: string;
   description?: string;

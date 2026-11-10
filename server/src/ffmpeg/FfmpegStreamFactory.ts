@@ -16,6 +16,9 @@ import type {
   SubtitleRenditionInfo,
 } from '@/stream/types.js';
 import { FileStreamSource, HttpStreamSource } from '@/stream/types.js';
+import type { MediaInput } from '../stream/MediaInputs.ts';
+import { mediaInputs, selectMediaInput } from '../stream/MediaInputs.ts';
+import type { NonEmptyArray } from 'ts-essentials';
 import type { Maybe, Nullable } from '@/types/util.js';
 import {
   isDefined,
@@ -304,8 +307,7 @@ export class FfmpegStreamFactory {
   }
 
   async createStreamSession({
-    // TODO Fix these dumb params
-    stream: { source: streamSource, details: streamDetails },
+    stream,
     options: {
       ptsOffset,
       startTime,
@@ -321,9 +323,15 @@ export class FfmpegStreamFactory {
     },
     lineupItem,
   }: StreamSessionCreateArgs): Promise<Maybe<TranscodeSessionResult>> {
-    if (streamSource.type !== 'http' && streamSource.type !== 'file') {
-      throw new Error('Unsupported stream source format: ' + streamSource.type);
-    }
+    const streamDetails = stream.details;
+    const inputs = mediaInputs(stream);
+    const streamSource = selectMediaInput(
+      inputs,
+      streamDetails.videoDetails?.[0]?.inputId ??
+        (streamDetails.videoDetails
+          ? undefined
+          : streamDetails.audioDetails?.[0]?.inputId),
+    ).source;
 
     const isRemux = encoding?.mode === 'remux';
     // Passthrough mode: copy all video/audio streams from the source without
@@ -331,6 +339,9 @@ export class FfmpegStreamFactory {
     // Subtitles are still processed as WebVTT sidecar when available.
     const isPassthrough =
       isRemux || outputFormat.type === OutputFormatTypes.HlsDirectV2;
+    if (isPassthrough && inputs.length > 1) {
+      throw new Error('Split media inputs require a transcode stream mode.');
+    }
     const playbackParams = isPassthrough
       ? null
       : new FfmpegPlaybackParamsCalculator(
@@ -356,6 +367,7 @@ export class FfmpegStreamFactory {
         await this.buildTranscodeInputs(
           streamSource,
           streamDetails,
+          inputs,
           lineupItem,
           playbackParams!,
           { duration, streamMode, watermark },
@@ -498,6 +510,7 @@ export class FfmpegStreamFactory {
   private async buildTranscodeInputs(
     streamSource: HttpStreamSource | FileStreamSource,
     streamDetails: StreamDetails,
+    inputs: NonEmptyArray<MediaInput>,
     lineupItem: ContentBackedStreamLineupItem,
     playbackParams: FfmpegPlaybackParams,
     options: {
@@ -536,7 +549,7 @@ export class FfmpegStreamFactory {
         });
 
       audioInput = new AudioInputSource(
-        streamSource,
+        selectMediaInput(inputs, audioStream.inputId).source,
         [
           AudioStream.create({
             index: audioStream.index,
@@ -564,7 +577,9 @@ export class FfmpegStreamFactory {
         // with the media source.
         const source = match(subtitleStream.path)
           .with(P.string, (path) => new FileStreamSource(path))
-          .otherwise(() => streamSource);
+          .otherwise(
+            () => selectMediaInput(inputs, subtitleStream.inputId).source,
+          );
 
         // If the subtitle source differs from the video source, the
         // subtitle lives in a separate file (e.g. an extracted .srt) and

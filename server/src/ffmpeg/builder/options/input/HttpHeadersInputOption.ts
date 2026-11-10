@@ -9,17 +9,22 @@ export class HttpHeadersInputOption extends InputOption {
   }
 
   options(inputSource: InputSource<MediaStream>): string[] {
-    const opts: string[] = [];
     if (inputSource.source.type !== 'http') {
-      return opts;
+      return [];
     }
-
-    for (const [key, value] of Object.entries(
-      inputSource.source.extraHeaders,
-    )) {
-      opts.push('-headers', `'${key}: ${value}'`);
+    const headers = Object.entries(inputSource.source.extraHeaders);
+    for (const [name, value] of headers) {
+      if (/[\r\n]/.test(name) || /[\r\n]/.test(value)) {
+        throw new Error('Invalid media input header.');
+      }
     }
-
-    return opts;
+    // spawn receives arguments directly, not through a shell. Literal quotes
+    // become part of the header name, and repeated -headers lose earlier ones.
+    return headers.length > 0
+      ? [
+          '-headers',
+          headers.map(([name, value]) => `${name}: ${value}\r\n`).join(''),
+        ]
+      : [];
   }
 }

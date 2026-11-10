@@ -1,10 +1,10 @@
-import type { ContentBackedStreamLineupItem } from '@/db/derived_types/StreamLineup.ts';
+import type { ContentBackedStreamLineupItem } from '@/db/derived_types/StreamLineup.js';
 import type {
   ISettingsDB,
   ReadableFfmpegSettings,
-} from '@/db/interfaces/ISettingsDB.ts';
-import type { ChannelOrm } from '@/db/schema/Channel.ts';
-import type { TranscodeConfigOrm } from '@/db/schema/TranscodeConfig.ts';
+} from '@/db/interfaces/ISettingsDB.js';
+import type { ChannelOrm } from '@/db/schema/Channel.js';
+import type { TranscodeConfigOrm } from '@/db/schema/TranscodeConfig.js';
 import {
   AudioFormats,
   HlsDirectOutputFormat,
@@ -13,35 +13,40 @@ import {
   VideoFormats,
   VideoPresets,
   defaultHlsOptions,
-} from '@/ffmpeg/builder/constants.ts';
-import type { PipelineBuilder } from '@/ffmpeg/builder/pipeline/PipelineBuilder.ts';
-import type { PipelineBuilderFactory } from '@/ffmpeg/builder/pipeline/PipelineBuilderFactory.ts';
-import { FrameState } from '@/ffmpeg/builder/state/FrameState.ts';
-import { FfmpegState } from '@/ffmpeg/builder/state/FfmpegState.ts';
-import type { FfmpegInfo, FfmpegVersionResult } from '@/ffmpeg/ffmpegInfo.ts';
-import type { StreamSelector } from '@/ffmpeg/StreamSelector.ts';
-import type { FeatureFlagService } from '@/services/FeatureFlagService.ts';
+} from '@/ffmpeg/builder/constants.js';
+import type { PipelineBuilder } from '@/ffmpeg/builder/pipeline/PipelineBuilder.js';
+import type { PipelineBuilderFactory } from '@/ffmpeg/builder/pipeline/PipelineBuilderFactory.js';
+import { FrameState } from '@/ffmpeg/builder/state/FrameState.js';
+import { FfmpegState } from '@/ffmpeg/builder/state/FfmpegState.js';
+import type { FfmpegInfo, FfmpegVersionResult } from '@/ffmpeg/ffmpegInfo.js';
+import type { StreamSelector } from '@/ffmpeg/StreamSelector.js';
+import type { FeatureFlagService } from '@/services/FeatureFlagService.js';
 import type { SessionConcatStreamMode } from '@tunarr/types/schemas';
-import type { StreamDetails, SubtitleStreamDetails } from '@/stream/types.ts';
-import { FileStreamSource, HttpStreamSource } from '@/stream/types.ts';
-import type { SubtitlesInputSource } from '@/ffmpeg/builder/input/SubtitlesInputSource.ts';
-import type { VideoInputSource } from '@/ffmpeg/builder/input/VideoInputSource.ts';
+import type {
+  AudioStreamDetails,
+  StreamDetails,
+  SubtitleStreamDetails,
+} from '@/stream/types.js';
+import { FileStreamSource, HttpStreamSource } from '@/stream/types.js';
+import type { SubtitlesInputSource } from '@/ffmpeg/builder/input/SubtitlesInputSource.js';
+import type { VideoInputSource } from '@/ffmpeg/builder/input/VideoInputSource.js';
 import {
   AudioInputSource,
   NullAudioInputSource,
-} from '@/ffmpeg/builder/input/AudioInputSource.ts';
-import type { FfprobeMediaInfo } from '@/types/ffmpeg.ts';
+} from '@/ffmpeg/builder/input/AudioInputSource.js';
+import type { FfprobeMediaInfo } from '@/types/ffmpeg.js';
 import {
   StillImageStream,
   SubtitleMethods,
-} from '@/ffmpeg/builder/MediaStream.ts';
-import { InfiniteLoopInputOption } from '@/ffmpeg/builder/options/input/InfiniteLoopInputOption.ts';
+} from '@/ffmpeg/builder/MediaStream.js';
+import { InfiniteLoopInputOption } from '@/ffmpeg/builder/options/input/InfiniteLoopInputOption.js';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration.js';
 import { describe, expect, test, vi } from 'vitest';
 import { FfmpegStreamFactory } from './FfmpegStreamFactory.ts';
+import type { StreamSessionCreateArgs } from './types.ts';
 
-vi.mock('@/util/serverUtil.ts', () => ({
+vi.mock('@/util/serverUtil.js', () => ({
   makeLocalUrl: (path: string) => `http://localhost:8000${path}`,
 }));
 
@@ -148,10 +153,10 @@ function makeStreamDetails(): StreamDetails {
         anamorphic: false,
         bitrate: 5000,
         isAttachedPic: false,
-        colorRange: null,
-        colorSpace: null,
-        colorTransfer: null,
-        colorPrimaries: null,
+        colorRange: undefined,
+        colorSpace: undefined,
+        colorTransfer: undefined,
+        colorPrimaries: undefined,
       },
     ],
     audioDetails: [
@@ -176,7 +181,7 @@ function makeLineupItem(): ContentBackedStreamLineupItem {
       mediaSourceId: 'source-id',
       externalIds: [],
     },
-  } as ContentBackedStreamLineupItem;
+  } as unknown as ContentBackedStreamLineupItem;
 }
 
 /**
@@ -241,7 +246,7 @@ function createCapturingPipelineBuilderFactory(): {
       },
     } as unknown as PipelineBuilder);
 
-    return builderProxy as ReturnType<PipelineBuilderFactory>;
+    return builderProxy as unknown as ReturnType<PipelineBuilderFactory>;
   };
 
   return {
@@ -286,10 +291,11 @@ function makeMockFeatureFlagService(
 
 function makeMockStreamSelector(
   subtitleStream: SubtitleStreamDetails | null = null,
+  audioStream: AudioStreamDetails = { index: 1, codec: 'aac', channels: 2 },
 ): StreamSelector {
   return {
     selectAudioAndSubtitleStreams: vi.fn().mockImplementation(async () => ({
-      audioStream: { index: 1, codec: 'aac', channels: 2 },
+      audioStream,
       subtitleStream,
     })),
     selectSubtitleStream: vi
@@ -299,6 +305,67 @@ function makeMockStreamSelector(
 }
 
 describe('FfmpegStreamFactory', () => {
+  test('binds split tracks to their own sources, headers and indices and rejects copy-all', async () => {
+    const details = makeStreamDetails();
+    const video = details.videoDetails?.[0];
+    if (!video) throw new Error('Missing fixture video');
+    video.inputId = 'picture';
+    const audio = { inputId: 'sound', index: 0, codec: 'aac', channels: 2 };
+    details.audioDetails = [audio];
+    const videoSource = new HttpStreamSource('http://fixture/video', {
+      Authorization: 'video-key',
+    });
+    const audioSource = new HttpStreamSource('http://fixture/audio', {
+      Authorization: 'audio-key',
+    });
+    const capture = createCapturingPipelineBuilderFactory();
+    const sut = new FfmpegStreamFactory(
+      makeMockFfmpegInfo(),
+      makeMockSettingsDB(makeFfmpegSettings()),
+      capture.factory,
+      makeMockFeatureFlagService(),
+      makeMockStreamSelector(null, audio),
+      makeTranscodeConfig(),
+      makeChannel(),
+    );
+    const stream: StreamSessionCreateArgs['stream'] = {
+      inputs: [
+        { id: 'sound', source: audioSource },
+        { id: 'picture', source: videoSource },
+      ],
+      details,
+    };
+    const options = {
+      startTime: dayjs.duration(3000),
+      duration: dayjs.duration(2000),
+      outputFormat: MpegTsOutputFormat,
+      streamMode: 'hls' as const,
+    };
+    await sut.createStreamSession({
+      stream,
+      options,
+      lineupItem: makeLineupItem(),
+    });
+    expect(capture.getCapturedVideoInput()?.source).toBe(videoSource);
+    expect(capture.getCapturedAudioInput()?.source).toBe(audioSource);
+    expect(capture.getCapturedAudioInput()?.streams[0]?.index).toBe(0);
+    expect(capture.getCapturedFfmpegState()?.start?.asMilliseconds()).toBe(
+      3000,
+    );
+    await expect(
+      sut.createStreamSession({
+        stream: {
+          inputs: [
+            { id: 'picture', source: videoSource },
+            { id: 'sound', source: audioSource },
+          ],
+          details,
+        },
+        options: { ...options, encoding: { mode: 'remux' } },
+        lineupItem: makeLineupItem(),
+      }),
+    ).rejects.toThrow('Split media inputs require a transcode');
+  });
   describe('videoPreset wiring into FrameState', () => {
     test('createStreamSession passes videoPreset=veryfast for software h264', async () => {
       const config = makeTranscodeConfig({
@@ -495,8 +562,8 @@ describe('FfmpegStreamFactory', () => {
 
       const ffmpegSettings = {
         ...makeFfmpegSettings(),
-        deinterlaceFilter: 'yadif=0',
-        scalingAlgorithm: 'lanczos',
+        deinterlaceFilter: 'yadif=0' as const,
+        scalingAlgorithm: 'lanczos' as const,
       };
       const sut = new FfmpegStreamFactory(
         makeMockFfmpegInfo(),
@@ -1405,7 +1472,8 @@ describe('FfmpegStreamFactory', () => {
         // Critical: the stream must be treated as external with index 0, since
         // the standalone .srt only has one stream. Using the original container
         // index (2) would produce -map 2:2 which matches nothing.
-        const stream = subtitleInput!.streams[0];
+        const stream = subtitleInput?.streams[0];
+        if (!stream) throw new Error('Missing fixture subtitle stream');
         expect(stream.inputKind).toBe('external');
         expect(stream.index).toBe(0);
       });
@@ -1665,7 +1733,7 @@ function createConcatRecordingBuilderFactory(): {
       },
     } as unknown as PipelineBuilder);
 
-    return builderProxy as ReturnType<PipelineBuilderFactory>;
+    return builderProxy as unknown as ReturnType<PipelineBuilderFactory>;
   };
 
   return { factory, getCalledMethod: () => calledMethod };

@@ -5,11 +5,8 @@ import type {
 } from '@tunarr/types/schemas';
 import type { Duration } from 'dayjs/plugin/duration.js';
 import type { ContentBackedStreamLineupItem } from '../db/derived_types/StreamLineup.ts';
-import type {
-  StreamDetails,
-  StreamRenditions,
-  StreamSource,
-} from '../stream/types.ts';
+import type { MediaInputSet } from '../stream/MediaInputs.ts';
+import type { StreamDetails, StreamRenditions } from '../stream/types.ts';
 import type { OutputFormat } from './builder/constants.ts';
 import type { FfmpegTranscodeSession } from './FfmpegTrancodeSession.ts';
 
@@ -68,8 +65,7 @@ export const ConcatStreamModeToChildMode: Record<
 } as const;
 
 export type StreamSessionCreateArgs = {
-  stream: {
-    source: StreamSource;
+  stream: MediaInputSet & {
     details: StreamDetails;
   };
   options: StreamOptions;

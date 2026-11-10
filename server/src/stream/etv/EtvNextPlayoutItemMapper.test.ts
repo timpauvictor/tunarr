@@ -16,6 +16,7 @@ import { FileStreamSource, HttpStreamSource } from '../types.ts';
 import type {
   PlayoutTrackSelection,
   ResolvedWatermark,
+  ToPlayoutItemArgs,
 } from './EtvNextPlayoutItemMapper.ts';
 import {
   escapeFilterGraphValue,
@@ -61,6 +62,78 @@ const map = (
     resolution,
     ...overrides,
   });
+
+describe('split media inputs', () => {
+  test('maps input-bound tracks with their own headers, indices and identical seek ranges', () => {
+    const video = {
+      inputId: 'picture',
+      codec: 'h264',
+      profile: undefined,
+      width: 160,
+      height: 90,
+      framerate: 25,
+      scanType: 'progressive' as const,
+      pixelFormat: 'yuv420p',
+      bitDepth: 8,
+      streamIndex: 2,
+      displayAspectRatio: '16:9',
+      anamorphic: false,
+      bitrate: undefined,
+      isAttachedPic: false,
+      colorRange: undefined,
+      colorSpace: undefined,
+      colorTransfer: undefined,
+      colorPrimaries: undefined,
+    };
+    const audio = { inputId: 'sound', index: 5, codec: 'aac', channels: 2 };
+    const stream: NonNullable<ToPlayoutItemArgs['stream']> = {
+      inputs: [
+        {
+          id: 'sound',
+          source: new HttpStreamSource('http://fixture/audio', {
+            Authorization: 'audio-key',
+          }),
+        },
+        {
+          id: 'picture',
+          source: new HttpStreamSource('http://fixture/video', {
+            Authorization: 'video-key',
+          }),
+        },
+      ],
+      details: {
+        duration: dayjs.duration(8000),
+        videoDetails: [video],
+        audioDetails: [audio],
+      },
+      selection: { audioStream: audio },
+    };
+    const { item } = map(
+      programItem({ startOffset: 3000, streamDuration: 2000 }),
+      stream,
+    );
+    expect(item.source).toEqual({
+      source_type: 'http',
+      uri: 'http://fixture/video',
+      headers: ['Authorization: video-key'],
+      in_point_ms: 3000,
+      out_point_ms: 5000,
+    });
+    expect(item.tracks?.video).toEqual({ stream_index: 2 });
+    expect(item.tracks?.audio).toEqual({
+      stream_index: 5,
+      source: {
+        source_type: 'http',
+        uri: 'http://fixture/audio',
+        headers: ['Authorization: audio-key'],
+        in_point_ms: 3000,
+        out_point_ms: 5000,
+      },
+    });
+    video.inputId = 'missing';
+    expect(() => map(programItem(), stream)).toThrow('selected track');
+  });
+});
 
 describe('timing', () => {
   test('emits RFC3339 bounds in UTC with millisecond precision', () => {

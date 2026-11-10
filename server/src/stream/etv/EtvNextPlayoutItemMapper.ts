@@ -12,6 +12,9 @@ import {
 } from '@/util/index.js';
 import type { Resolution, Watermark } from '@tunarr/types';
 import dayjs from 'dayjs';
+import type { NonEmptyArray } from 'ts-essentials';
+import type { MediaInput, MediaInputSet } from '../MediaInputs.ts';
+import { mediaInputs, selectMediaInput } from '../MediaInputs.ts';
 import type { Maybe } from '../../types/util.ts';
 import type {
   AudioStreamDetails,
@@ -232,21 +235,42 @@ type MediaRange = { inPointMs: number; outPointMs: number };
 function contentTracks(
   selection: PlayoutTrackSelection | undefined,
   range: MediaRange,
+  inputs: NonEmptyArray<MediaInput>,
+  primaryInputId: string,
+  details: StreamDetails | undefined,
 ): PlayoutItemTracks | undefined {
   const tracks: PlayoutItemTracks = {};
+  const video = details?.videoDetails?.[0];
+  if (video?.streamIndex !== undefined) {
+    tracks.video = { stream_index: video.streamIndex };
+  }
 
   if (selection?.audioStream) {
-    tracks.audio = { stream_index: selection.audioStream.index };
+    const input = selectMediaInput(inputs, selection.audioStream.inputId);
+    tracks.audio = {
+      stream_index: selection.audioStream.index,
+      ...(input.id !== primaryInputId
+        ? { source: toSource(input.source, range) }
+        : {}),
+    };
   }
 
   const subtitle = selection?.subtitleStream;
   if (subtitle) {
-    tracks.subtitle = isNonEmptyString(subtitle.path)
-      ? { source: seekableSource(subtitle.path, range) }
-      : { stream_index: subtitle.index ?? 0 };
+    if (isNonEmptyString(subtitle.path)) {
+      tracks.subtitle = { source: seekableSource(subtitle.path, range) };
+    } else {
+      const input = selectMediaInput(inputs, subtitle.inputId);
+      tracks.subtitle = {
+        stream_index: subtitle.index ?? 0,
+        ...(input.id !== primaryInputId
+          ? { source: toSource(input.source, range) }
+          : {}),
+      };
+    }
   }
 
-  return tracks.audio || tracks.subtitle ? tracks : undefined;
+  return tracks.video || tracks.audio || tracks.subtitle ? tracks : undefined;
 }
 
 const seekableSource = (
@@ -370,8 +394,7 @@ export type ToPlayoutItemArgs = {
   id: string;
   startMs: number;
   lineupItem: StreamLineupItem;
-  stream?: {
-    source: StreamSource;
+  stream?: MediaInputSet & {
     details?: StreamDetails;
     selection?: PlayoutTrackSelection;
     /** Error and flex items never carry one. */
@@ -500,11 +523,25 @@ export function toPlayoutItem({
   }
 
   const range = { inPointMs, outPointMs };
-  const tracks = contentTracks(stream.selection, range);
+  const inputs = mediaInputs(stream);
+  const primary = selectMediaInput(
+    inputs,
+    stream.details?.videoDetails?.[0]?.inputId ??
+      (stream.details?.videoDetails
+        ? undefined
+        : stream.selection?.audioStream?.inputId),
+  );
+  const tracks = contentTracks(
+    stream.selection,
+    range,
+    inputs,
+    primary.id,
+    stream.details,
+  );
 
   const item = PlayoutItemSchema.parse({
     ...base,
-    source: toSource(stream.source, range),
+    source: toSource(primary.source, range),
     ...(tracks ? { tracks } : {}),
     ...(stream.watermark
       ? { watermark: toWatermarkLayer(stream.watermark) }

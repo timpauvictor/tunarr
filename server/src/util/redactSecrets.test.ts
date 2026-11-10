@@ -1,7 +1,29 @@
 import { describe, expect, test } from 'vitest';
-import { redactMediaServerSecrets } from './redactSecrets.ts';
+import {
+  hasMediaBearerCredential,
+  redactMediaServerSecrets,
+} from './redactSecrets.ts';
 
 describe('redactMediaServerSecrets', () => {
+  test('redacts relay bearer capabilities in commands and reports', () => {
+    expect(
+      hasMediaBearerCredential([
+        '-headers',
+        'Authorization: Bearer fixture\r\n',
+      ]),
+    ).toBe(true);
+    expect(
+      hasMediaBearerCredential(['-headers', 'User-Agent: fixture\r\n']),
+    ).toBe(false);
+    expect(
+      redactMediaServerSecrets(
+        'Authorization: Bearer abc123\r\nUser-Agent: fixture',
+      ),
+    ).toBe('Authorization: Bearer REDACTED\r\nUser-Agent: fixture');
+    expect(redactMediaServerSecrets('authorization: bearer abc_123-xyz')).toBe(
+      'authorization: bearer REDACTED',
+    );
+  });
   test('redacts query-string tokens', () => {
     expect(
       redactMediaServerSecrets(

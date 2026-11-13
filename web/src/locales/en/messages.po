@@ -149,10 +149,9 @@ msgstr "{0} ch"
 msgid "{0} channel(s)"
 msgstr "{0} channel(s)"
 
-#. placeholder {0}: customShows.length
 #: src/components/profiles/StreamSelectionProfilesTable.tsx
-msgid "{0} custom show(s)"
-msgstr "{0} custom show(s)"
+#~ msgid "{0} custom show(s)"
+#~ msgstr "{0} custom show(s)"
 
 #. placeholder {0}: fillerLists.length
 #: src/components/profiles/StreamSelectionProfilesTable.tsx
@@ -187,6 +186,11 @@ msgstr "{0} of {1} channels failed to delete"
 #: src/components/channels/useChannelBulkActions.ts
 msgid "{0} of {1} channels failed to duplicate"
 msgstr "{0} of {1} channels failed to duplicate"
+
+#. placeholder {0}: customShows.length
+#: src/components/profiles/StreamSelectionProfilesTable.tsx
+msgid "{0} playlist(s)"
+msgstr "{0} playlist(s)"
 
 #. placeholder {0}: program.title
 #: src/components/programs/MediaDetailCard.tsx
@@ -320,8 +324,13 @@ msgstr "{remainingTime} left"
 
 #: src/pages/channels/RandomSlotEditorPage.tsx
 #: src/pages/channels/TimeSlotEditorPage.tsx
-msgid "{unavailableSlotCount, plural, one {# slot uses a custom show that is empty or deleted. Fix or remove it before saving.} other {# slots use a custom show that is empty or deleted. Fix or remove them before saving.}}"
-msgstr "{unavailableSlotCount, plural, one {# slot uses a custom show that is empty or deleted. Fix or remove it before saving.} other {# slots use a custom show that is empty or deleted. Fix or remove them before saving.}}"
+#~ msgid "{unavailableSlotCount, plural, one {# slot uses a custom show that is empty or deleted. Fix or remove it before saving.} other {# slots use a custom show that is empty or deleted. Fix or remove them before saving.}}"
+#~ msgstr "{unavailableSlotCount, plural, one {# slot uses a custom show that is empty or deleted. Fix or remove it before saving.} other {# slots use a custom show that is empty or deleted. Fix or remove them before saving.}}"
+
+#: src/pages/channels/RandomSlotEditorPage.tsx
+#: src/pages/channels/TimeSlotEditorPage.tsx
+msgid "{unavailableSlotCount, plural, one {# slot uses a playlist that is empty or deleted. Fix or remove it before saving.} other {# slots use a playlist that is empty or deleted. Fix or remove them before saving.}}"
+msgstr "{unavailableSlotCount, plural, one {# slot uses a playlist that is empty or deleted. Fix or remove it before saving.} other {# slots use a playlist that is empty or deleted. Fix or remove them before saving.}}"
 
 #: src/components/slot_scheduler/RandomSlotTable.tsx
 msgid "{value, plural, one {# program} other {# programs}}"
@@ -349,15 +358,19 @@ msgstr "<0>{channelCount}</0> {channelCount, plural, one {channel} other {channe
 msgid "<0>Configure the directory where Tunarr writes HLS segment files when transcoding. Tunarr will create the target directory (but not intermediate directories) if it doesn't exist.<1/>Changing this field will only affect new sessions. Existing sessions will continue writing to the previous setting, but will clean out segments when the segment ends.<2/>When unset, Tunarr will write segments to its current working directory.</0>"
 msgstr "<0>Configure the directory where Tunarr writes HLS segment files when transcoding. Tunarr will create the target directory (but not intermediate directories) if it doesn't exist.<1/>Changing this field will only affect new sessions. Existing sessions will continue writing to the previous setting, but will clean out segments when the segment ends.<2/>When unset, Tunarr will write segments to its current working directory.</0>"
 
-#. placeholder {0}: e.message
 #: src/pages/library/CustomShowsPage.tsx
-msgid "<0>Error deleting custom show: {0}<1/>Please consider opening a bug with details!</0>"
-msgstr "<0>Error deleting custom show: {0}<1/>Please consider opening a bug with details!</0>"
+#~ msgid "<0>Error deleting custom show: {0}<1/>Please consider opening a bug with details!</0>"
+#~ msgstr "<0>Error deleting custom show: {0}<1/>Please consider opening a bug with details!</0>"
 
 #. placeholder {0}: e.message
 #: src/pages/library/FillerListsPage.tsx
 msgid "<0>Error deleting filler list: {0}<1/>Please consider opening a bug with details!</0>"
 msgstr "<0>Error deleting filler list: {0}<1/>Please consider opening a bug with details!</0>"
+
+#. placeholder {0}: e.message
+#: src/pages/library/CustomShowsPage.tsx
+msgid "<0>Error deleting playlist: {0}<1/>Please consider opening a bug with details!</0>"
+msgstr "<0>Error deleting playlist: {0}<1/>Please consider opening a bug with details!</0>"
 
 #: src/components/settings/general/GeneralSettingsForm.tsx
 #~ msgid "<0>Experimental:</0> Enable Plex Request Cache"
@@ -402,8 +415,12 @@ msgid "A root path to scan for media. Local sources can search many different pa
 msgstr "A root path to scan for media. Local sources can search many different paths."
 
 #: src/components/channel_config/ChannelTranscodingConfig.tsx
-msgid "A stream selection profile chooses the audio and subtitle streams for programs on this channel. Filler lists and custom shows can assign their own profile, which takes precedence."
-msgstr "A stream selection profile chooses the audio and subtitle streams for programs on this channel. Filler lists and custom shows can assign their own profile, which takes precedence."
+#~ msgid "A stream selection profile chooses the audio and subtitle streams for programs on this channel. Filler lists and custom shows can assign their own profile, which takes precedence."
+#~ msgstr "A stream selection profile chooses the audio and subtitle streams for programs on this channel. Filler lists and custom shows can assign their own profile, which takes precedence."
+
+#: src/components/channel_config/ChannelTranscodingConfig.tsx
+msgid "A stream selection profile chooses the audio and subtitle streams for programs on this channel. Filler lists and playlists can assign their own profile, which takes precedence."
+msgstr "A stream selection profile chooses the audio and subtitle streams for programs on this channel. Filler lists and playlists can assign their own profile, which takes precedence."
 
 #: src/components/channel_config/ChannelProgrammingSort.tsx
 #: src/components/custom-shows/CustomShowSortToolsMenu.tsx
@@ -528,8 +545,12 @@ msgid "Add Programming"
 msgstr "Add Programming"
 
 #: src/components/custom-shows/EditCustomShowForm.tsx
-msgid "Add programming to custom show"
-msgstr "Add programming to custom show"
+#~ msgid "Add programming to custom show"
+#~ msgstr "Add programming to custom show"
+
+#: src/components/custom-shows/EditCustomShowForm.tsx
+msgid "Add programming to playlist"
+msgstr "Add programming to playlist"
 
 #: src/components/channel_config/AddProgrammingButton.tsx
 #~ msgid "Add Redirect"
@@ -556,6 +577,14 @@ msgstr "Add Slot"
 msgid "Add these links to an IPTV client. Jellyfin and Emby can use Tunarr as either an M3U source or an HDHomeRun tuner. Plex can add Tunarr as an HDHomeRun tuner."
 msgstr "Add these links to an IPTV client. Jellyfin and Emby can use Tunarr as either an M3U source or an HDHomeRun tuner. Plex can add Tunarr as an HDHomeRun tuner."
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Add to programming"
+msgstr "Add to programming"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Add to the current draft, then use normal Save to persist programming."
+msgstr "Add to the current draft, then use normal Save to persist programming."
+
 #: src/components/filler/EditFillerListForm.tsx
 msgid "Add TV Shows or Movies to filler"
 msgstr "Add TV Shows or Movies to filler"
@@ -574,6 +603,12 @@ msgstr "Added"
 #: src/hooks/useBulkAssignFillers.tsx
 msgid "Added {0} {1, plural, one {assignment} other {assignments}}, updated {2}."
 msgstr "Added {0} {1, plural, one {assignment} other {assignments}}, updated {2}."
+
+#. placeholder {0}: input.changes.added
+#. placeholder {1}: input.changes.removed
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Added: {0}; removed: {1}"
+msgstr "Added: {0}; removed: {1}"
 
 #: src/components/settings/AddPlexServer.tsx
 #: src/components/settings/media_source/AddMediaSourceButton.tsx
@@ -1097,6 +1132,7 @@ msgstr "Calculating Slots..."
 #: src/components/settings/media_source/JelllyfinServerEditDialog.tsx
 #: src/components/settings/media_source/LocalMediaEditDialog.tsx
 #: src/components/settings/media_source/PlexServerEditDialog.tsx
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
 #: src/components/settings/UnsavedNavigationAlert.tsx
 #: src/components/slot_scheduler/EditRandomSlotDialogContent.tsx
 #: src/components/slot_scheduler/EditTimeSlotDialogContent.tsx
@@ -1110,6 +1146,10 @@ msgstr "Calculating Slots..."
 #: src/pages/library/TrashPage.tsx
 msgid "Cancel"
 msgstr "Cancel"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Cancel import"
+msgstr "Cancel import"
 
 #: src/components/library/PlexRatingsRefreshAction.tsx
 msgid "Cancel refresh"
@@ -1264,13 +1304,26 @@ msgstr "Check FFmpeg"
 msgid "Checking Plex servers; reachable servers will appear as they are saved…"
 msgstr "Checking Plex servers; reachable servers will appear as they are saved…"
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Choose intent"
+msgstr "Choose intent"
+
 #: src/components/channel_config/ChannelTranscodingConfig.tsx
 msgid "Choose the transcode configuration to use for this channel. Configure transcode configurations on the <0>FFmpeg settings page</0>."
 msgstr "Choose the transcode configuration to use for this channel. Configure transcode configurations on the <0>FFmpeg settings page</0>."
 
+#. placeholder {0}: link.url
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Choose video or playlist for {0}"
+msgstr "Choose video or playlist for {0}"
+
 #: src/components/custom-shows/EditCustomShowForm.tsx
-msgid "Chooses audio and subtitle streams for programs scheduled from this custom show."
-msgstr "Chooses audio and subtitle streams for programs scheduled from this custom show."
+#~ msgid "Chooses audio and subtitle streams for programs scheduled from this custom show."
+#~ msgstr "Chooses audio and subtitle streams for programs scheduled from this custom show."
+
+#: src/components/custom-shows/EditCustomShowForm.tsx
+msgid "Chooses audio and subtitle streams for programs scheduled from this playlist."
+msgstr "Chooses audio and subtitle streams for programs scheduled from this playlist."
 
 #: src/components/filler/EditFillerListForm.tsx
 msgid "Chooses audio and subtitle streams when programs from this list play as filler."
@@ -1296,9 +1349,17 @@ msgstr "Clear filters"
 msgid "Clear Schedule"
 msgstr "Clear Schedule"
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Clear selection"
+msgstr "Clear selection"
+
 #: src/components/channel_config/CustomShowProgrammingSelector.tsx
-msgid "Click to preview the items in this Custom Show. Note that only the whole show can be added at once."
-msgstr "Click to preview the items in this Custom Show. Note that only the whole show can be added at once."
+#~ msgid "Click to preview the items in this Custom Show. Note that only the whole show can be added at once."
+#~ msgstr "Click to preview the items in this Custom Show. Note that only the whole show can be added at once."
+
+#: src/components/channel_config/CustomShowProgrammingSelector.tsx
+msgid "Click to preview the items in this playlist. Only the whole playlist can be added at once."
+msgstr "Click to preview the items in this playlist. Only the whole playlist can be added at once."
 
 #: src/components/ui/patterns/AppShell/CommandPalette.tsx
 msgid "close"
@@ -1307,6 +1368,7 @@ msgstr "close"
 #: src/components/channel_config/SelectedProgrammingList.tsx
 #: src/components/channels/ChannelSessionsDialog.tsx
 #: src/components/library/PlexRatingsRefreshAction.tsx
+#: src/components/library/YouTubeImportDialog.tsx
 #: src/components/settings/media_source/EditMediaSourceLibrariesDialog.tsx
 msgid "Close"
 msgstr "Close"
@@ -1316,6 +1378,14 @@ msgstr "Close"
 #: src/pages/system/TroubleshootPage.tsx
 msgid "Codec"
 msgstr "Codec"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Collection pages"
+msgstr "Collection pages"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Collection view"
+msgstr "Collection view"
 
 #: src/components/channel_config/plex/PlexProgrammingSelector.tsx
 #~ msgid "Collections"
@@ -1527,6 +1597,10 @@ msgstr "Copy XMLTV URL"
 msgid "Could not cancel emptying the trash."
 msgstr "Could not cancel emptying the trash."
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Could not finish. Check the links and Test setup in Media Sources, then retry. Last complete collections and saved programming were retained."
+msgstr "Could not finish. Check the links and Test setup in Media Sources, then retry. Last complete collections and saved programming were retained."
+
 #: src/components/search/RatingSortControl.tsx
 msgid "Could not load Plex rating fields."
 msgstr "Could not load Plex rating fields."
@@ -1534,6 +1608,10 @@ msgstr "Could not load Plex rating fields."
 #: src/components/library/PlexRatingsRefreshAction.tsx
 msgid "Could not load refresh status."
 msgstr "Could not load refresh status."
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Could not load saved collections."
+msgstr "Could not load saved collections."
 
 #: src/components/search/SearchFilterBuilder.tsx
 msgid "Could not parse this filter expression. Check the <0>documentation</0> for information about filter expressions."
@@ -1546,6 +1624,14 @@ msgstr "Could not refresh saved sources. No servers were added; retry when the s
 #: src/pages/welcome/WelcomePage.tsx
 msgid "Could not save setup progress. {message}"
 msgstr "Could not save setup progress. {message}"
+
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "Could not save the source. Your name was kept; retry when the server is available."
+msgstr "Could not save the source. Your name was kept; retry when the server is available."
+
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "Could not test setup. Check the server connection and retry."
+msgstr "Could not test setup. Check the server connection and retry."
 
 #: src/components/channel_config/WatermarkTimingFields.tsx
 msgid "Counted from the start of each program. If a stream starts partway through a program, it counts from that point. Set to 0 for no limit."
@@ -1584,41 +1670,42 @@ msgstr "Create Rerun Block"
 msgid "Creates a new collection"
 msgstr "Creates a new collection"
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Creator upload order"
+msgstr "Creator upload order"
+
 #: src/components/guide/TvGuide.tsx
 msgid "Custom Program"
 msgstr "Custom Program"
 
 #: src/components/shell/CommandPaletteContainer.tsx
 #: src/pages/system/TroubleshootPage.tsx
-msgid "Custom show"
-msgstr "Custom show"
+#~ msgid "Custom show"
+#~ msgstr "Custom show"
 
 #: src/components/slot_scheduler/CustomShowSlotProgrammingForm.tsx
 #: src/components/slot_scheduler/SlotSchedulerCyclicShuffleDialog.tsx
 #: src/components/slot_scheduler/SlotSchedulerCyclicShuffleDialog.tsx
 #: src/hooks/useProgramTitleFormatter.ts
-msgid "Custom Show"
-msgstr "Custom Show"
+#~ msgid "Custom Show"
+#~ msgstr "Custom Show"
 
-#. placeholder {0}: customShow.name
-#. placeholder {0}: showName ?? ''
 #: src/components/channel_config/SelectedProgrammingList.tsx
 #: src/hooks/slot_scheduler/useSlotName.ts
-msgid "Custom Show - {0}"
-msgstr "Custom Show - {0}"
+#~ msgid "Custom Show - {0}"
+#~ msgstr "Custom Show - {0}"
 
 #: src/components/slot_scheduler/EditSlotProgrammingForm.tsx
-msgid "Custom Show (add programs to a custom show first)"
-msgstr "Custom Show (add programs to a custom show first)"
+#~ msgid "Custom Show (add programs to a custom show first)"
+#~ msgstr "Custom Show (add programs to a custom show first)"
 
 #: src/components/programming_controls/AddBlockShuffleModal.tsx
-msgid "Custom show programs are grouped by their parent show"
-msgstr "Custom show programs are grouped by their parent show"
+#~ msgid "Custom show programs are grouped by their parent show"
+#~ msgstr "Custom show programs are grouped by their parent show"
 
-#. placeholder {0}: cs.description
 #: src/components/slot_scheduler/SlotSchedulerCyclicShuffleDialog.tsx
-msgid "Custom Show: {0}"
-msgstr "Custom Show: {0}"
+#~ msgid "Custom Show: {0}"
+#~ msgstr "Custom Show: {0}"
 
 #: src/components/channel_config/ProgrammingSelector.tsx
 #: src/components/profiles/StreamSelectionProfilesTable.tsx
@@ -1627,12 +1714,12 @@ msgstr "Custom Show: {0}"
 #: src/hooks/useRouteName.ts
 #: src/pages/library/CustomShowsPage.tsx
 #: src/pages/library/CustomShowsPage.tsx
-msgid "Custom Shows"
-msgstr "Custom Shows"
+#~ msgid "Custom Shows"
+#~ msgstr "Custom Shows"
 
 #: src/pages/library/CustomShowsPage.tsx
-msgid "Custom Shows are sequences of videos that represent a episodes of a virtual TV show. When you add these shows to a channel, the schedule tools will treat the videos as if they belonged to a single TV show."
-msgstr "Custom Shows are sequences of videos that represent a episodes of a virtual TV show. When you add these shows to a channel, the schedule tools will treat the videos as if they belonged to a single TV show."
+#~ msgid "Custom Shows are sequences of videos that represent a episodes of a virtual TV show. When you add these shows to a channel, the schedule tools will treat the videos as if they belonged to a single TV show."
+#~ msgstr "Custom Shows are sequences of videos that represent a episodes of a virtual TV show. When you add these shows to a channel, the schedule tools will treat the videos as if they belonged to a single TV show."
 
 #: src/components/programming_controls/AddBlockShuffleModal.tsx
 msgid "Customize how movie blocks are sorted"
@@ -1749,10 +1836,9 @@ msgstr "Delete Channel"
 msgid "Delete Channel \"{0}\"?"
 msgstr "Delete Channel \"{0}\"?"
 
-#. placeholder {0}: find(customShows, { id: deleteConfirmationId })?.name
 #: src/pages/library/CustomShowsPage.tsx
-msgid "Delete Custom Show \"{0}\"?"
-msgstr "Delete Custom Show \"{0}\"?"
+#~ msgid "Delete Custom Show \"{0}\"?"
+#~ msgstr "Delete Custom Show \"{0}\"?"
 
 #. placeholder {0}: find(fillerLists, { id: deleteConfirmationId })?.name
 #: src/pages/library/FillerListsPage.tsx
@@ -1767,6 +1853,11 @@ msgstr "Delete Media Source \"{0}\"?"
 #: src/components/settings/media_source/MediaSourceDeleteDialog.tsx
 #~ msgid "Delete Media Source?"
 #~ msgstr "Delete Media Source?"
+
+#. placeholder {0}: find(customShows, { id: deleteConfirmationId })?.name
+#: src/pages/library/CustomShowsPage.tsx
+msgid "Delete Playlist \"{0}\"?"
+msgstr "Delete Playlist \"{0}\"?"
 
 #. placeholder {0}: confirmDelete?.name ?? ''
 #: src/components/profiles/StreamSelectionProfilesTable.tsx
@@ -1786,8 +1877,12 @@ msgid "Delete Transcoding Config \"{0}\"?"
 msgstr "Delete Transcoding Config \"{0}\"?"
 
 #: src/components/slot_scheduler/CustomShowSlotProgrammingForm.tsx
-msgid "Deleted custom show"
-msgstr "Deleted custom show"
+#~ msgid "Deleted custom show"
+#~ msgstr "Deleted custom show"
+
+#: src/components/slot_scheduler/CustomShowSlotProgrammingForm.tsx
+msgid "Deleted playlist"
+msgstr "Deleted playlist"
 
 #: src/components/channels/ChannelsDeleteDialog.tsx
 msgid "Deleting a channel removes all of its programming. This cannot be undone."
@@ -1798,8 +1893,8 @@ msgid "Deleting a Channel will remove all programming from the channel. This act
 msgstr "Deleting a Channel will remove all programming from the channel. This action cannot be undone."
 
 #: src/pages/library/CustomShowsPage.tsx
-msgid "Deleting a Custom Show will remove its programming from channels that use it. This action cannot be undone."
-msgstr "Deleting a Custom Show will remove its programming from channels that use it. This action cannot be undone."
+#~ msgid "Deleting a Custom Show will remove its programming from channels that use it. This action cannot be undone."
+#~ msgstr "Deleting a Custom Show will remove its programming from channels that use it. This action cannot be undone."
 
 #: src/pages/library/FillerListsPage.tsx
 msgid "Deleting a Filler will remove all programming from the channel. This action cannot be undone."
@@ -1808,6 +1903,10 @@ msgstr "Deleting a Filler will remove all programming from the channel. This act
 #: src/pages/settings/MediaSourceSettingsPage.tsx
 msgid "Deleting a media source will remove all of its associated programs from Tunarr."
 msgstr "Deleting a media source will remove all of its associated programs from Tunarr."
+
+#: src/pages/library/CustomShowsPage.tsx
+msgid "Deleting a playlist will remove its programming from channels that use it. This action cannot be undone."
+msgstr "Deleting a playlist will remove its programming from channels that use it. This action cannot be undone."
 
 #: src/components/settings/media_source/MediaSourceDeleteDialog.tsx
 #~ msgid "Deleting a Plex server will remove all programming from your channels associated with this plex server. Missing programming will be replaced with Flex time. This action cannot be undone."
@@ -1988,6 +2087,12 @@ msgstr "Duration must be greater than 0."
 msgid "Duration must be numeric"
 msgstr "Duration must be numeric"
 
+#. placeholder {0}: Math.floor(entry.program.duration / 60000)
+#. placeholder {1}: Math.floor( (entry.program.duration % 60000) / 1000, )
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Duration: {0} min {1} sec"
+msgstr "Duration: {0} min {1} sec"
+
 #: src/components/slot_scheduler/EditRandomSlotDialogContent.tsx
 msgid "Dynamic"
 msgstr "Dynamic"
@@ -2020,6 +2125,10 @@ msgstr "Edit"
 #: src/components/channels/ChannelOptionsMenu.tsx
 msgid "Edit Channel"
 msgstr "Edit Channel"
+
+#: src/components/MediaSourceLibraryTable.tsx
+msgid "Edit channel programming"
+msgstr "Edit channel programming"
 
 #: src/components/programming_controls/AddRedirectModal.tsx
 msgid "Edit Channel Redirect"
@@ -2071,6 +2180,10 @@ msgstr "Edit Transcode Config"
 #~ msgid "Edit Transcode Config: \"{0}\""
 #~ msgstr "Edit Transcode Config: \"{0}\""
 
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "Edit YouTube source"
+msgstr "Edit YouTube source"
+
 #. placeholder {0}: server.name
 #. placeholder {0}: source.name
 #: src/components/settings/media_source/EmbyServerEditDialog.tsx
@@ -2088,6 +2201,11 @@ msgstr "Editing Plex Server \"{0}\""
 #: src/components/smart_collections/EditSmartCollectionDialog.tsx
 msgid "Editing Smart Collection \"{0}\""
 msgstr "Editing Smart Collection \"{0}\""
+
+#. placeholder {0}: available.length
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Eligible: {0}; pending: {pendingCount}; unavailable: {unavailableCount}"
+msgstr "Eligible: {0}; pending: {pendingCount}; unavailable: {unavailableCount}"
 
 #: src/components/settings/media_source/AddMediaSourceButton.tsx
 msgid "Emby"
@@ -2768,6 +2886,7 @@ msgid "Go to previous page"
 msgstr "Go to previous page"
 
 #: src/components/base/ProgramViewToggleButton.tsx
+#: src/components/library/YouTubeImportDialog.tsx
 msgid "Grid"
 msgstr "Grid"
 
@@ -2878,6 +2997,10 @@ msgstr "HW Accel"
 msgid "HW Acceleration"
 msgstr "HW Acceleration"
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "I understand that excluded entries will not be added"
+msgstr "I understand that excluded entries will not be added"
+
 #: src/pages/channels/ChannelsPage.tsx
 #~ msgid "Icon"
 #~ msgstr "Icon"
@@ -2930,6 +3053,41 @@ msgstr "Image"
 #: src/components/channel_config/ChannelFlexConfig.tsx
 msgid "Image URL"
 msgstr "Image URL"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Import"
+msgstr "Import"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Import at most 50 URLs per request."
+msgstr "Import at most 50 URLs per request."
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Import details"
+msgstr "Import details"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Import failed. Retry when the source is available."
+msgstr "Import failed. Retry when the source is available."
+
+#. placeholder {0}: source.name
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Import videos, playlists or creator uploads into {0}. Input order and playlist repeats are preserved."
+msgstr "Import videos, playlists or creator uploads into {0}. Input order and playlist repeats are preserved."
+
+#: src/components/channel_config/ProgrammingSelector.tsx
+#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/MediaSourceLibraryTable.tsx
+msgid "Import YouTube links"
+msgstr "Import YouTube links"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Imported into the library. Playback has not been verified."
+msgstr "Imported into the library. Playback has not been verified."
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Importing YouTube metadata"
+msgstr "Importing YouTube metadata"
 
 #: src/components/programming_controls/AddBlockShuffleModal.tsx
 msgid "In Order"
@@ -3060,6 +3218,10 @@ msgstr "Last Scanned: {0}"
 msgid "Last Scheduled Execution"
 msgstr "Last Scheduled Execution"
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Last successful refresh:"
+msgstr "Last successful refresh:"
+
 #: src/components/MediaSourceLibraryTable.tsx
 msgid "Last Synced"
 msgstr "Last Synced"
@@ -3151,8 +3313,13 @@ msgstr "Linked slots advance episode progression together sequentially."
 
 #: src/components/base/ProgramViewToggleButton.tsx
 #: src/components/channel_config/ChannelProgrammingConfig.tsx
+#: src/components/library/YouTubeImportDialog.tsx
 msgid "List"
 msgstr "List"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Load collection"
+msgstr "Load collection"
 
 #: src/components/programs/Actors.tsx
 msgid "Load More"
@@ -3165,6 +3332,10 @@ msgstr "Load Stream"
 #: src/pages/channels/RandomSlotEditorPage.tsx
 msgid "Loading"
 msgstr "Loading"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Loading collections"
+msgstr "Loading collections"
 
 #: src/components/library/PlexRatingsRefreshAction.tsx
 msgid "Loading ratings refresh status"
@@ -3543,6 +3714,7 @@ msgstr "Must use a valid URL, or empty."
 #: src/components/settings/media_source/JelllyfinServerEditDialog.tsx
 #: src/components/settings/media_source/LocalMediaEditDialog.tsx
 #: src/components/settings/media_source/PlexServerEditDialog.tsx
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
 #: src/components/smart_collections/CreateSmartCollectionDialog.tsx
 #: src/components/smart_collections/EditSmartCollectionDialog.tsx
 #: src/components/smart_collections/SmartCollectionsTable.tsx
@@ -3588,8 +3760,8 @@ msgstr "New Channel"
 
 #: src/pages/library/EditCustomShowPage.tsx
 #: src/pages/library/NewCustomShowPage.tsx
-msgid "New Custom Show"
-msgstr "New Custom Show"
+#~ msgid "New Custom Show"
+#~ msgstr "New Custom Show"
 
 #: src/components/settings/media_source/EmbyServerEditDialog.tsx
 msgid "New Emby Media Source"
@@ -3607,6 +3779,11 @@ msgstr "New Local Media Source"
 msgid "New Media Source"
 msgstr "New Media Source"
 
+#: src/pages/library/EditCustomShowPage.tsx
+#: src/pages/library/NewCustomShowPage.tsx
+msgid "New Playlist"
+msgstr "New Playlist"
+
 #: src/components/settings/media_source/PlexServerEditDialog.tsx
 msgid "New Plex Server"
 msgstr "New Plex Server"
@@ -3622,6 +3799,14 @@ msgstr "New Stream Selection Profile"
 #: src/pages/profiles/TranscodeConfigPage.tsx
 msgid "New Transcode Config"
 msgstr "New Transcode Config"
+
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "New YouTube source"
+msgstr "New YouTube source"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Newest first"
+msgstr "Newest first"
 
 #: src/pages/welcome/WelcomePage.tsx
 #~ msgid "Next"
@@ -3646,6 +3831,10 @@ msgstr "No"
 #~ msgid "No active sessions"
 #~ msgstr "No active sessions"
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "No artwork available"
+msgstr "No artwork available"
+
 #: src/components/fillers/AssignFillerToChannelsDialog.tsx
 msgid "No channels found. Create a channel first."
 msgstr "No channels found. Create a channel first."
@@ -3654,9 +3843,17 @@ msgstr "No channels found. Create a channel first."
 msgid "No channels match this filter."
 msgstr "No channels match this filter."
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "No collections yet. Paste links to import one."
+msgstr "No collections yet. Paste links to import one."
+
 #: src/components/profiles/StreamSelectionRuleEditor.tsx
 msgid "No condition"
 msgstr "No condition"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "No entries to add. Saved programming was not changed."
+msgstr "No entries to add. Saved programming was not changed."
 
 #: src/components/channels/BulkAssignFillersDialog.tsx
 msgid "No filler lists found. Create a filler list first."
@@ -3677,6 +3874,10 @@ msgstr "No libraries enabled"
 #: src/components/channel_config/ProgrammingSelector.tsx
 msgid "No Media Sources detected."
 msgstr "No Media Sources detected."
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "No new metadata was imported. Saved programming was not changed."
+msgstr "No new metadata was imported. Saved programming was not changed."
 
 #: src/components/ui/patterns/AppShell/CommandPalette.tsx
 msgid "No pages or lists match."
@@ -3823,6 +4024,10 @@ msgstr "Nvidia Capabilities"
 msgid "of the following"
 msgstr "of the following"
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Oldest first"
+msgstr "Oldest first"
+
 #: src/components/library/ProgramRatings.tsx
 msgid "Omnirating"
 msgstr "Omnirating"
@@ -3849,6 +4054,14 @@ msgstr "On-Demand channels resume from where you left off. Programming is paused
 #~ msgid "On-Demand?"
 #~ msgstr "On-Demand?"
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Only import content you are authorized to use. Import saves metadata, not a video download or playback verification. Refreshing updates this library, not existing channel programming."
+msgstr "Only import content you are authorized to use. Import saves metadata, not a video download or playback verification. Refreshing updates this library, not existing channel programming."
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Only this video"
+msgstr "Only this video"
+
 #: src/pages/ErrorPage.tsx
 msgid "Oops!"
 msgstr "Oops!"
@@ -3871,6 +4084,10 @@ msgstr "Open in {0}"
 msgid "Open in Troubleshoot"
 msgstr "Open in Troubleshoot"
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Open video on YouTube"
+msgstr "Open video on YouTube"
+
 #: src/components/ui/patterns/AppShell/CommandPalette.tsx
 msgid "Opens Search"
 msgstr "Opens Search"
@@ -3879,6 +4096,10 @@ msgstr "Opens Search"
 #: src/components/channel_config/plex/PlexFilterBuilder.tsx
 #~ msgid "Operation"
 #~ msgstr "Operation"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Operation cancelled. Your inputs and saved programming were kept. You can retry."
+msgstr "Operation cancelled. Your inputs and saved programming were kept. You can retry."
 
 #: src/components/search/SearchValueNode.tsx
 #: src/components/search/SearchValueNode.tsx
@@ -4009,6 +4230,10 @@ msgstr "Passthrough audio unchanged. Other settings will not apply."
 msgid "Password"
 msgstr "Password"
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Paste links"
+msgstr "Paste links"
+
 #: src/components/settings/media_source/LocalMediaEditDialog.tsx
 #: src/pages/system/TroubleshootPage.tsx
 msgid "Path"
@@ -4017,6 +4242,10 @@ msgstr "Path"
 #: src/components/settings/media_source/EditPathReplacementsForm.tsx
 msgid "Path Replacements"
 msgstr "Path Replacements"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Pending metadata"
+msgstr "Pending metadata"
 
 #: src/components/slot_scheduler/MidRollConfigPanel.tsx
 msgid "Percentage-Based"
@@ -4058,13 +4287,48 @@ msgid "Platform"
 msgstr "Platform"
 
 #: src/components/custom-shows/EditCustomShowForm.tsx
+#: src/components/shell/CommandPaletteContainer.tsx
+#: src/components/slot_scheduler/CustomShowSlotProgrammingForm.tsx
+#: src/components/slot_scheduler/SlotSchedulerCyclicShuffleDialog.tsx
+#: src/components/slot_scheduler/SlotSchedulerCyclicShuffleDialog.tsx
+#: src/hooks/useProgramTitleFormatter.ts
+#: src/pages/system/TroubleshootPage.tsx
 msgid "Playlist"
 msgstr "Playlist"
 
-#: src/components/channel_config/plex/PlexLibrarySelector.tsx
-#: src/components/channel_config/plex/PlexProgrammingSelector.tsx
-#~ msgid "Playlists"
-#~ msgstr "Playlists"
+#. placeholder {0}: customShow.name
+#. placeholder {0}: showName ?? ''
+#: src/components/channel_config/SelectedProgrammingList.tsx
+#: src/hooks/slot_scheduler/useSlotName.ts
+msgid "Playlist - {0}"
+msgstr "Playlist - {0}"
+
+#: src/components/slot_scheduler/EditSlotProgrammingForm.tsx
+msgid "Playlist (add programs to a playlist first)"
+msgstr "Playlist (add programs to a playlist first)"
+
+#: src/components/programming_controls/AddBlockShuffleModal.tsx
+msgid "Playlist programs are grouped by their playlist"
+msgstr "Playlist programs are grouped by their playlist"
+
+#. placeholder {0}: cs.description
+#: src/components/slot_scheduler/SlotSchedulerCyclicShuffleDialog.tsx
+msgid "Playlist: {0}"
+msgstr "Playlist: {0}"
+
+#: src/components/channel_config/ProgrammingSelector.tsx
+#: src/components/profiles/StreamSelectionProfilesTable.tsx
+#: src/components/shell/CommandPaletteContainer.tsx
+#: src/components/shell/useShellNav.tsx
+#: src/hooks/useRouteName.ts
+#: src/pages/library/CustomShowsPage.tsx
+#: src/pages/library/CustomShowsPage.tsx
+msgid "Playlists"
+msgstr "Playlists"
+
+#: src/pages/library/CustomShowsPage.tsx
+msgid "Playlists are ordered lists of videos that play like the episodes of a single TV show. When you add a playlist to a channel, the scheduling tools treat its videos as if they belonged to one show."
+msgstr "Playlists are ordered lists of videos that play like the episodes of a single TV show. When you add a playlist to a channel, the scheduling tools treat its videos as if they belonged to one show."
 
 #: src/components/channel_config/ChannelProgrammingSort.tsx
 #~ msgid "Plays shows in a random order, one episode at a time, keeping each show's episodes in sequence. Each show starts at a random episode. Use Block Shuffle to start every show at its first episode or to loop shorter shows."
@@ -4405,6 +4669,10 @@ msgstr "Redirect..."
 msgid "Refresh"
 msgstr "Refresh"
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Refresh collection"
+msgstr "Refresh collection"
+
 #: src/pages/settings/MediaSourceSettingsPage.tsx
 #: src/pages/settings/MediaSourceSettingsPage.tsx
 msgid "Refresh Libraries"
@@ -4525,8 +4793,12 @@ msgid "Removes all Flex periods from the schedule."
 msgstr "Removes all Flex periods from the schedule."
 
 #: src/components/custom-shows/CustomShowSortToolsMenu.tsx
-msgid "Removes all programs from custom show"
-msgstr "Removes all programs from custom show"
+#~ msgid "Removes all programs from custom show"
+#~ msgstr "Removes all programs from custom show"
+
+#: src/components/custom-shows/CustomShowSortToolsMenu.tsx
+msgid "Removes all programs from playlist"
+msgstr "Removes all programs from playlist"
 
 #: src/components/channel_config/ChannelProgrammingDeleteOptions.tsx
 msgid "Removes all programs from schedule"
@@ -4547,6 +4819,10 @@ msgstr "Removing overrun programs from the channel."
 #: src/components/channel_config/ChannelTranscodingConfig.tsx
 msgid "Renders a channel icon (also known as bug or Digital On-screen Graphic) on top of the channel's stream."
 msgstr "Renders a channel icon (also known as bug or Digital On-screen Graphic) on top of the channel's stream."
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Repeated input was not imported twice."
+msgstr "Repeated input was not imported twice."
 
 #: src/components/channel_config/WatermarkTimingFields.tsx
 msgid "Repeatedly fades the watermark in and out while a program plays."
@@ -4654,8 +4930,18 @@ msgstr "Results"
 #: src/components/channels/BulkAssignFillersDialog.tsx
 #: src/components/fillers/AssignFillerToChannelsDialog.tsx
 #: src/components/library/PlexRatingsRefreshAction.tsx
+#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportDialog.tsx
 msgid "Retry"
 msgstr "Retry"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Retry loading collection"
+msgstr "Retry loading collection"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Retry refresh"
+msgstr "Retry refresh"
 
 #: src/components/channel_config/SelectedProgrammingActions.tsx
 msgid "Review"
@@ -4741,6 +5027,7 @@ msgstr "Sample rate cannot be changed when copying input audio"
 #: src/components/programming_controls/AdjustWeightsModal.tsx
 #: src/components/settings/ffmpeg/TranscodeConfigSettingsForm.tsx
 #: src/components/settings/general/GeneralSettingsForm.tsx
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
 #: src/components/slot_scheduler/EditRandomSlotDialogContent.tsx
 #: src/components/slot_scheduler/EditTimeSlotDialogContent.tsx
 #: src/components/slot_scheduler/SlotSchedulerCyclicShuffleDialog.tsx
@@ -4772,6 +5059,18 @@ msgstr "Save failed or response lost; refresh before retrying"
 #: src/components/smart_collections/CreateSmartCollectionDialog.tsx
 msgid "Save Smart Collection"
 msgstr "Save Smart Collection"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Saved collection"
+msgstr "Saved collection"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Saved collections"
+msgstr "Saved collections"
+
+#: src/pages/settings/MediaSourceSettingsPage.tsx
+msgid "Saved Videos"
+msgstr "Saved Videos"
 
 #: src/components/settings/ffmpeg/TranscodeConfigSettingsForm.tsx
 msgid "Saving..."
@@ -4897,6 +5196,10 @@ msgstr "Select a slot to link to"
 msgid "Select All"
 msgstr "Select All"
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Select all eligible"
+msgstr "Select all eligible"
+
 #: src/components/ui/table/SelectCheckboxes.tsx
 msgid "Select all on this page"
 msgstr "Select all on this page"
@@ -4904,6 +5207,11 @@ msgstr "Select all on this page"
 #: src/components/programming_controls/RemoveShowsModal.tsx
 msgid "Select Artists to Remove"
 msgstr "Select Artists to Remove"
+
+#. placeholder {0}: (page - 1) * 50 + index + 1
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Select occurrence {0}"
+msgstr "Select occurrence {0}"
 
 #: src/components/ui/patterns/CollectionView/SelectionBar.tsx
 msgid "Select rows to act on several at once."
@@ -4932,6 +5240,10 @@ msgstr "Selected Subtitle"
 #: src/components/ui/patterns/CollectionView/SelectionBar.tsx
 msgid "Selection"
 msgstr "Selection"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Separate audio/video inputs require transcoding. ErsatzTV playback requires dynamic playout; static windows are not supported. Change incompatible profiles explicitly. Normal channels advance while unwatched; pause-on-idle is a separate channel setting."
+msgstr "Separate audio/video inputs require transcoding. ErsatzTV playback requires dynamic playout; static windows are not supported. Change incompatible profiles explicitly. Normal channels advance while unwatched; pause-on-idle is a separate channel setting."
 
 #: src/components/settings/media_source/EmbyServerEditDialog.tsx
 #: src/components/settings/media_source/JelllyfinServerEditDialog.tsx
@@ -5333,8 +5645,12 @@ msgid "Stream Selection Profiles"
 msgstr "Stream Selection Profiles"
 
 #: src/pages/profiles/StreamSelectionProfilesPage.tsx
-msgid "Stream selection profiles control which audio and subtitle streams play. Assign profiles to channels, filler lists, and custom shows. Anything without an assigned profile uses the default profile."
-msgstr "Stream selection profiles control which audio and subtitle streams play. Assign profiles to channels, filler lists, and custom shows. Anything without an assigned profile uses the default profile."
+#~ msgid "Stream selection profiles control which audio and subtitle streams play. Assign profiles to channels, filler lists, and custom shows. Anything without an assigned profile uses the default profile."
+#~ msgstr "Stream selection profiles control which audio and subtitle streams play. Assign profiles to channels, filler lists, and custom shows. Anything without an assigned profile uses the default profile."
+
+#: src/pages/profiles/StreamSelectionProfilesPage.tsx
+msgid "Stream selection profiles control which audio and subtitle streams play. Assign profiles to channels, filler lists, and playlists. Anything without an assigned profile uses the default profile."
+msgstr "Stream selection profiles control which audio and subtitle streams play. Assign profiles to channels, filler lists, and playlists. Anything without an assigned profile uses the default profile."
 
 #: src/components/channel_config/ChannelTranscodingConfig.tsx
 msgid "Stream this channel through the experimental ErsatzTV next backend instead of Tunarr's own pipeline. Use this to move channels over one at a time. Turning on the global ErsatzTV next feature flag enrolls every channel and replaces this setting."
@@ -5499,13 +5815,29 @@ msgstr "Test Duration (seconds)"
 msgid "Test Playback"
 msgstr "Test Playback"
 
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "Test setup"
+msgstr "Test setup"
+
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "Test setup checks the server tools only. It does not play a video or verify playback. Individual imports appear in Saved Videos."
+msgstr "Test setup checks the server tools only. It does not play a video or verify playback. Individual imports appear in Saved Videos."
+
 #: src/pages/system/TroubleshootPage.tsx
 msgid "Test Transcode"
 msgstr "Test Transcode"
 
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "Testing YouTube setup"
+msgstr "Testing YouTube setup"
+
 #: src/components/programming_controls/AddRestrictHoursModal.tsx
 msgid "The channel's regular programming between the specified hours. Flex time will fill up the remaining hours."
 msgstr "The channel's regular programming between the specified hours. Flex time will fill up the remaining hours."
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "The complete playlist"
+msgstr "The complete playlist"
 
 #: src/components/channel_config/MediaItemGrid.tsx
 msgid "The End."
@@ -5522,6 +5854,10 @@ msgstr "The ErsatzTV next backend ignores some of these settings"
 #: src/components/channel_config/ChannelTranscodingConfig.tsx
 msgid "The image will be rendered at its actual size without any scaling applied."
 msgstr "The image will be rendered at its actual size without any scaling applied."
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "The last refresh failed. The previous complete collection was retained."
+msgstr "The last refresh failed. The previous complete collection was retained."
 
 #: src/components/library/PlexRatingsRefreshAction.tsx
 msgid "The library is busy. Wait for its current operation to finish."
@@ -5631,16 +5967,16 @@ msgid "This could cause the following slot's programs to go unscheduled. Possibl
 msgstr "This could cause the following slot's programs to go unscheduled. Possible solutions include:"
 
 #: src/components/slot_scheduler/CustomShowSlotProgrammingForm.tsx
-msgid "This custom show has no programs. Add programs to it or choose another show."
-msgstr "This custom show has no programs. Add programs to it or choose another show."
+#~ msgid "This custom show has no programs. Add programs to it or choose another show."
+#~ msgstr "This custom show has no programs. Add programs to it or choose another show."
 
 #: src/components/custom-shows/EditCustomShowForm.tsx
-msgid "This custom show is synced with an external playlist. Content is updated automatically and cannot be edited manually."
-msgstr "This custom show is synced with an external playlist. Content is updated automatically and cannot be edited manually."
+#~ msgid "This custom show is synced with an external playlist. Content is updated automatically and cannot be edited manually."
+#~ msgstr "This custom show is synced with an external playlist. Content is updated automatically and cannot be edited manually."
 
 #: src/components/slot_scheduler/CustomShowSlotProgrammingForm.tsx
-msgid "This custom show was deleted. Choose another show."
-msgstr "This custom show was deleted. Choose another show."
+#~ msgid "This custom show was deleted. Choose another show."
+#~ msgstr "This custom show was deleted. Choose another show."
 
 #: src/components/profiles/condition/ConditionEditor.tsx
 msgid "This expression can't be represented in Basic mode. Edit it in CEL mode or simplify it first."
@@ -5666,6 +6002,10 @@ msgstr "This is the name of the fake program that will appear in the TV guide wh
 msgid "This is used by iptv clients to categorize the channels. You can leave it as 'tunarr' if you don't need this sort of classification."
 msgstr "This is used by iptv clients to categorize the channels. You can leave it as 'tunarr' if you don't need this sort of classification."
 
+#: src/components/settings/ffmpeg/EtvNextCompatibilityNotice.tsx
+msgid "This machine cannot encode this config in hardware on the ErsatzTV next backend"
+msgstr "This machine cannot encode this config in hardware on the ErsatzTV next backend"
+
 #: src/components/channel_config/ProgrammingSelector.tsx
 msgid "This media source has no enabled or scanned libraries. Enable libraries for this source on the <0>Media Sources</0> page or manually trigger scans on the <1>Library</1> page."
 msgstr "This media source has no enabled or scanned libraries. Enable libraries for this source on the <0>Media Sources</0> page or manually trigger scans on the <1>Library</1> page."
@@ -5673,6 +6013,18 @@ msgstr "This media source has no enabled or scanned libraries. Enable libraries 
 #: src/components/programming_controls/AddBlockShuffleModal.tsx
 msgid "This option is disabled because it would calculate a schedule that is too long."
 msgstr "This option is disabled because it would calculate a schedule that is too long."
+
+#: src/components/slot_scheduler/CustomShowSlotProgrammingForm.tsx
+msgid "This playlist has no programs. Add programs to it or choose another playlist."
+msgstr "This playlist has no programs. Add programs to it or choose another playlist."
+
+#: src/components/custom-shows/EditCustomShowForm.tsx
+msgid "This playlist is synced with a media server playlist. Content is updated automatically and cannot be edited manually."
+msgstr "This playlist is synced with a media server playlist. Content is updated automatically and cannot be edited manually."
+
+#: src/components/slot_scheduler/CustomShowSlotProgrammingForm.tsx
+msgid "This playlist was deleted. Choose another playlist."
+msgstr "This playlist was deleted. Choose another playlist."
 
 #: src/pages/profiles/StreamSelectionProfilePage.tsx
 msgid "This profile is built into Tunarr and cannot be changed. Duplicate it to make a version you can edit."
@@ -5707,12 +6059,20 @@ msgid "This slot replays content aired by continue slots earlier in the period."
 msgstr "This slot replays content aired by continue slots earlier in the period."
 
 #: src/components/slot_scheduler/SlotUnavailableCustomShowWarningDetails.tsx
-msgid "This slot's custom show has no programs, so the slot cannot be scheduled. Add programs to the show, choose another show, or remove the slot."
-msgstr "This slot's custom show has no programs, so the slot cannot be scheduled. Add programs to the show, choose another show, or remove the slot."
+#~ msgid "This slot's custom show has no programs, so the slot cannot be scheduled. Add programs to the show, choose another show, or remove the slot."
+#~ msgstr "This slot's custom show has no programs, so the slot cannot be scheduled. Add programs to the show, choose another show, or remove the slot."
 
 #: src/components/slot_scheduler/SlotUnavailableCustomShowWarningDetails.tsx
-msgid "This slot's custom show was deleted, so the slot cannot be scheduled. Choose another show or remove the slot."
-msgstr "This slot's custom show was deleted, so the slot cannot be scheduled. Choose another show or remove the slot."
+#~ msgid "This slot's custom show was deleted, so the slot cannot be scheduled. Choose another show or remove the slot."
+#~ msgstr "This slot's custom show was deleted, so the slot cannot be scheduled. Choose another show or remove the slot."
+
+#: src/components/slot_scheduler/SlotUnavailableCustomShowWarningDetails.tsx
+msgid "This slot's playlist has no programs, so the slot cannot be scheduled. Add programs to the playlist, choose another playlist, or remove the slot."
+msgstr "This slot's playlist has no programs, so the slot cannot be scheduled. Add programs to the playlist, choose another playlist, or remove the slot."
+
+#: src/components/slot_scheduler/SlotUnavailableCustomShowWarningDetails.tsx
+msgid "This slot's playlist was deleted, so the slot cannot be scheduled. Choose another playlist or remove the slot."
+msgstr "This slot's playlist was deleted, so the slot cannot be scheduled. Choose another playlist or remove the slot."
 
 #: src/components/settings/ffmpeg/TranscodeConfigSettingsForm.tsx
 msgid "Threads"
@@ -5777,8 +6137,12 @@ msgid "TO"
 msgstr "TO"
 
 #: src/components/slot_scheduler/EditSlotProgrammingForm.tsx
-msgid "To schedule movies, add them to a custom show and choose Custom Show."
-msgstr "To schedule movies, add them to a custom show and choose Custom Show."
+#~ msgid "To schedule movies, add them to a custom show and choose Custom Show."
+#~ msgstr "To schedule movies, add them to a custom show and choose Custom Show."
+
+#: src/components/slot_scheduler/EditSlotProgrammingForm.tsx
+msgid "To schedule movies, add them to a playlist and choose Playlist."
+msgstr "To schedule movies, add them to a playlist and choose Playlist."
 
 #: src/pages/welcome/WelcomePage.tsx
 #~ msgid "To use Tunarr, you must first connect at least one media source. Media sources provide all content used to create channels in Tunarr. Plex and Jellyfin are currently supported."
@@ -5974,10 +6338,15 @@ msgstr "TV shows are grouped by show"
 msgid "Type"
 msgstr "Type"
 
+#: src/components/library/YouTubeImportDialog.tsx
 #: src/components/UnavailableLibraryIndicator.tsx
 #: src/components/UnavailableLibraryIndicator.tsx
 msgid "Unavailable"
 msgstr "Unavailable"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Unavailable entry"
+msgstr "Unavailable entry"
 
 #: src/components/search/DateSearchValueNode.tsx
 #: src/components/search/DateSearchValueNode.tsx
@@ -6035,6 +6404,10 @@ msgstr "Use channel default"
 msgid "Use ErsatzTV next Backend (Experimental)"
 msgstr "Use ErsatzTV next Backend (Experimental)"
 
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "Use only content you are authorized to use. YouTube is a best-effort source and may stop working when upstream access changes. Tunarr reuses its Node runtime (Node 22 or later); the server needs the pinned yt-dlp companion. Account cookies, private or paid videos, DRM and running livestreams are not supported."
+msgstr "Use only content you are authorized to use. YouTube is a best-effort source and may stop working when upstream access changes. Tunarr reuses its Node runtime (Node 22 or later); the server needs the pinned yt-dlp companion. Account cookies, private or paid videos, DRM and running livestreams are not supported."
+
 #: src/components/slot_scheduler/TimeSlotConfigDialogPanel.tsx
 #: src/components/slot_scheduler/TimeSlotConfigDialogPanel.tsx
 msgid "Use schedule default"
@@ -6043,6 +6416,10 @@ msgstr "Use schedule default"
 #: src/pages/settings/XmlTvSettingsPage.tsx
 msgid "Use Show Poster"
 msgstr "Use Show Poster"
+
+#: src/pages/settings/MediaSourceSettingsPage.tsx
+msgid "Use Test setup"
+msgstr "Use Test setup"
 
 #: src/components/channel_config/ChannelTranscodingConfig.tsx
 msgid "Use these settings to override global ffmpeg settings for this channel."
@@ -6112,6 +6489,10 @@ msgstr "Video Buffer Size"
 #: src/components/settings/ffmpeg/TranscodeConfigVideoSettingsForm.tsx
 msgid "Video Format"
 msgstr "Video Format"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Video import"
+msgstr "Video import"
 
 #: src/components/settings/ffmpeg/TranscodeConfigSettingsForm.tsx
 msgid "Video Options"
@@ -6328,250 +6709,9 @@ msgstr "You must create at least one <0>filler list</0> before assigning filler 
 msgid "Your list will be replicated {0} times"
 msgstr "Your list will be replicated {0} times"
 
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Add to programming"
-msgstr "Add to programming"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Add to the current draft, then use normal Save to persist programming."
-msgstr "Add to the current draft, then use normal Save to persist programming."
-
-#. placeholder {0}: input.changes.added
-#. placeholder {1}: input.changes.removed
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Added: {0}; removed: {1}"
-msgstr "Added: {0}; removed: {1}"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Cancel import"
-msgstr "Cancel import"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Choose intent"
-msgstr "Choose intent"
-
-#. placeholder {0}: link.url
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Choose video or playlist for {0}"
-msgstr "Choose video or playlist for {0}"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Clear selection"
-msgstr "Clear selection"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Collection pages"
-msgstr "Collection pages"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Collection view"
-msgstr "Collection view"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Could not finish. Check the links and Test setup in Media Sources, then retry. Last complete collections and saved programming were retained."
-msgstr "Could not finish. Check the links and Test setup in Media Sources, then retry. Last complete collections and saved programming were retained."
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Could not load saved collections."
-msgstr "Could not load saved collections."
-
-#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
-msgid "Could not save the source. Your name was kept; retry when the server is available."
-msgstr "Could not save the source. Your name was kept; retry when the server is available."
-
-#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
-msgid "Could not test setup. Check the server connection and retry."
-msgstr "Could not test setup. Check the server connection and retry."
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Creator upload order"
-msgstr "Creator upload order"
-
-#. placeholder {0}: Math.floor(entry.program.duration / 60000)
-#. placeholder {1}: Math.floor( (entry.program.duration % 60000) / 1000, )
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Duration: {0} min {1} sec"
-msgstr "Duration: {0} min {1} sec"
-
-#: src/components/MediaSourceLibraryTable.tsx
-msgid "Edit channel programming"
-msgstr "Edit channel programming"
-
-#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
-msgid "Edit YouTube source"
-msgstr "Edit YouTube source"
-
-#. placeholder {0}: available.length
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Eligible: {0}; pending: {pendingCount}; unavailable: {unavailableCount}"
-msgstr "Eligible: {0}; pending: {pendingCount}; unavailable: {unavailableCount}"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "I understand that excluded entries will not be added"
-msgstr "I understand that excluded entries will not be added"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Import"
-msgstr "Import"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Import at most 50 URLs per request."
-msgstr "Import at most 50 URLs per request."
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Import details"
-msgstr "Import details"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Import failed. Retry when the source is available."
-msgstr "Import failed. Retry when the source is available."
-
-#. placeholder {0}: source.name
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Import videos, playlists or creator uploads into {0}. Input order and playlist repeats are preserved."
-msgstr "Import videos, playlists or creator uploads into {0}. Input order and playlist repeats are preserved."
-
-#: src/components/library/YouTubeImportDialog.tsx
-#: src/components/MediaSourceLibraryTable.tsx
-msgid "Import YouTube links"
-msgstr "Import YouTube links"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Imported into the library. Playback has not been verified."
-msgstr "Imported into the library. Playback has not been verified."
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Importing YouTube metadata"
-msgstr "Importing YouTube metadata"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Last successful refresh:"
-msgstr "Last successful refresh:"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Load collection"
-msgstr "Load collection"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Loading collections"
-msgstr "Loading collections"
-
-#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
-msgid "New YouTube source"
-msgstr "New YouTube source"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Newest first"
-msgstr "Newest first"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "No artwork available"
-msgstr "No artwork available"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "No collections yet. Paste links to import one."
-msgstr "No collections yet. Paste links to import one."
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "No entries to add. Saved programming was not changed."
-msgstr "No entries to add. Saved programming was not changed."
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Oldest first"
-msgstr "Oldest first"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Only import content you are authorized to use. Import saves metadata, not a video download or playback verification. Refreshing updates this library, not existing channel programming."
-msgstr "Only import content you are authorized to use. Import saves metadata, not a video download or playback verification. Refreshing updates this library, not existing channel programming."
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Only this video"
-msgstr "Only this video"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Open video on YouTube"
-msgstr "Open video on YouTube"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Operation cancelled. Your inputs and saved programming were kept. You can retry."
-msgstr "Operation cancelled. Your inputs and saved programming were kept. You can retry."
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Paste links"
-msgstr "Paste links"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Pending metadata"
-msgstr "Pending metadata"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Refresh collection"
-msgstr "Refresh collection"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Repeated input was not imported twice."
-msgstr "Repeated input was not imported twice."
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Retry loading collection"
-msgstr "Retry loading collection"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Retry refresh"
-msgstr "Retry refresh"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Saved collection"
-msgstr "Saved collection"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Saved collections"
-msgstr "Saved collections"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Select all eligible"
-msgstr "Select all eligible"
-
-#. placeholder {0}: (page - 1) * 50 + index + 1
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Select occurrence {0}"
-msgstr "Select occurrence {0}"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Separate audio/video inputs require transcoding. ErsatzTV playback requires dynamic playout; static windows are not supported. Change incompatible profiles explicitly. Normal channels advance while unwatched; pause-on-idle is a separate channel setting."
-msgstr "Separate audio/video inputs require transcoding. ErsatzTV playback requires dynamic playout; static windows are not supported. Change incompatible profiles explicitly. Normal channels advance while unwatched; pause-on-idle is a separate channel setting."
-
-#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
-msgid "Test setup"
-msgstr "Test setup"
-
-#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
-msgid "Test setup checks the server tools only. It does not play a video or verify playback. Individual imports appear in Saved Videos."
-msgstr "Test setup checks the server tools only. It does not play a video or verify playback. Individual imports appear in Saved Videos."
-
-#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
-msgid "Testing YouTube setup"
-msgstr "Testing YouTube setup"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "The complete playlist"
-msgstr "The complete playlist"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "The last refresh failed. The previous complete collection was retained."
-msgstr "The last refresh failed. The previous complete collection was retained."
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Unavailable entry"
-msgstr "Unavailable entry"
-
-#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
-msgid "Use only content you are authorized to use. YouTube is a best-effort source and may stop working when upstream access changes. Tunarr reuses its Node runtime (Node 22 or later); the server needs the pinned yt-dlp companion. Account cookies, private or paid videos, DRM and running livestreams are not supported."
-msgstr "Use only content you are authorized to use. YouTube is a best-effort source and may stop working when upstream access changes. Tunarr reuses its Node runtime (Node 22 or later); the server needs the pinned yt-dlp companion. Account cookies, private or paid videos, DRM and running livestreams are not supported."
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Video import"
-msgstr "Video import"
+#: src/components/settings/media_source/AddMediaSourceButton.tsx
+msgid "YouTube"
+msgstr "YouTube"
 
 #: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
 msgid "YouTube extractor and Node runtime are ready. Playback has not been verified."
@@ -6593,19 +6733,3 @@ msgstr "YouTube URLs (one per line)"
 #: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
 msgid "yt-dlp version: {0}"
 msgstr "yt-dlp version: {0}"
-
-#: src/pages/settings/MediaSourceSettingsPage.tsx
-msgid "Saved Videos"
-msgstr "Saved Videos"
-
-#: src/pages/settings/MediaSourceSettingsPage.tsx
-msgid "Use Test setup"
-msgstr "Use Test setup"
-
-#: src/components/settings/media_source/AddMediaSourceButton.tsx
-msgid "YouTube"
-msgstr "YouTube"
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "No new metadata was imported. Saved programming was not changed."
-msgstr "No new metadata was imported. Saved programming was not changed."

@@ -149,10 +149,9 @@ msgstr ""
 msgid "{0} channel(s)"
 msgstr ""
 
-#. placeholder {0}: customShows.length
 #: src/components/profiles/StreamSelectionProfilesTable.tsx
-msgid "{0} custom show(s)"
-msgstr ""
+#~ msgid "{0} custom show(s)"
+#~ msgstr ""
 
 #. placeholder {0}: fillerLists.length
 #: src/components/profiles/StreamSelectionProfilesTable.tsx
@@ -186,6 +185,11 @@ msgstr ""
 #. placeholder {1}: channels.length
 #: src/components/channels/useChannelBulkActions.ts
 msgid "{0} of {1} channels failed to duplicate"
+msgstr ""
+
+#. placeholder {0}: customShows.length
+#: src/components/profiles/StreamSelectionProfilesTable.tsx
+msgid "{0} playlist(s)"
 msgstr ""
 
 #. placeholder {0}: program.title
@@ -320,7 +324,12 @@ msgstr "剩余 {remainingTime}"
 
 #: src/pages/channels/RandomSlotEditorPage.tsx
 #: src/pages/channels/TimeSlotEditorPage.tsx
-msgid "{unavailableSlotCount, plural, one {# slot uses a custom show that is empty or deleted. Fix or remove it before saving.} other {# slots use a custom show that is empty or deleted. Fix or remove them before saving.}}"
+#~ msgid "{unavailableSlotCount, plural, one {# slot uses a custom show that is empty or deleted. Fix or remove it before saving.} other {# slots use a custom show that is empty or deleted. Fix or remove them before saving.}}"
+#~ msgstr ""
+
+#: src/pages/channels/RandomSlotEditorPage.tsx
+#: src/pages/channels/TimeSlotEditorPage.tsx
+msgid "{unavailableSlotCount, plural, one {# slot uses a playlist that is empty or deleted. Fix or remove it before saving.} other {# slots use a playlist that is empty or deleted. Fix or remove them before saving.}}"
 msgstr ""
 
 #: src/components/slot_scheduler/RandomSlotTable.tsx
@@ -349,15 +358,19 @@ msgstr ""
 msgid "<0>Configure the directory where Tunarr writes HLS segment files when transcoding. Tunarr will create the target directory (but not intermediate directories) if it doesn't exist.<1/>Changing this field will only affect new sessions. Existing sessions will continue writing to the previous setting, but will clean out segments when the segment ends.<2/>When unset, Tunarr will write segments to its current working directory.</0>"
 msgstr "<0>配置 Tunarr 转码时写入 HLS 分片文件的目录。若目标目录不存在，Tunarr 会自动创建（但不创建中间层级目录）。<1/>修改此字段仅影响新会话，已有会话仍会写入原目录，但会在分片结束时清理分片。<2/>若留空，Tunarr 会将分片写入当前工作目录。</0>"
 
-#. placeholder {0}: e.message
 #: src/pages/library/CustomShowsPage.tsx
-msgid "<0>Error deleting custom show: {0}<1/>Please consider opening a bug with details!</0>"
-msgstr "<0>删除自定义剧集时出错：{0}<1/>请提交包含详细信息的 Bug 报告！</0>"
+#~ msgid "<0>Error deleting custom show: {0}<1/>Please consider opening a bug with details!</0>"
+#~ msgstr "<0>删除自定义剧集时出错：{0}<1/>请提交包含详细信息的 Bug 报告！</0>"
 
 #. placeholder {0}: e.message
 #: src/pages/library/FillerListsPage.tsx
 msgid "<0>Error deleting filler list: {0}<1/>Please consider opening a bug with details!</0>"
 msgstr "<0>删除垫片列表时出错：{0}<1/>请提交包含详细信息的 Bug 报告！</0>"
+
+#. placeholder {0}: e.message
+#: src/pages/library/CustomShowsPage.tsx
+msgid "<0>Error deleting playlist: {0}<1/>Please consider opening a bug with details!</0>"
+msgstr "<0>删除播放列表时出错：{0}<1/>请提交包含详细信息的 Bug 报告！</0>"
 
 #: src/components/settings/general/GeneralSettingsForm.tsx
 #~ msgid "<0>Experimental:</0> Enable Plex Request Cache"
@@ -402,7 +415,11 @@ msgid "A root path to scan for media. Local sources can search many different pa
 msgstr "要扫描媒体文件的根路径。本地媒体源可以配置多个路径。"
 
 #: src/components/channel_config/ChannelTranscodingConfig.tsx
-msgid "A stream selection profile chooses the audio and subtitle streams for programs on this channel. Filler lists and custom shows can assign their own profile, which takes precedence."
+#~ msgid "A stream selection profile chooses the audio and subtitle streams for programs on this channel. Filler lists and custom shows can assign their own profile, which takes precedence."
+#~ msgstr ""
+
+#: src/components/channel_config/ChannelTranscodingConfig.tsx
+msgid "A stream selection profile chooses the audio and subtitle streams for programs on this channel. Filler lists and playlists can assign their own profile, which takes precedence."
 msgstr ""
 
 #: src/components/channel_config/ChannelProgrammingSort.tsx
@@ -528,8 +545,12 @@ msgid "Add Programming"
 msgstr "添加节目"
 
 #: src/components/custom-shows/EditCustomShowForm.tsx
-msgid "Add programming to custom show"
-msgstr "向自定义剧集添加节目"
+#~ msgid "Add programming to custom show"
+#~ msgstr "向自定义剧集添加节目"
+
+#: src/components/custom-shows/EditCustomShowForm.tsx
+msgid "Add programming to playlist"
+msgstr "向播放列表添加节目"
 
 #: src/components/channel_config/AddProgrammingButton.tsx
 #~ msgid "Add Redirect"
@@ -556,6 +577,14 @@ msgstr "添加时段"
 msgid "Add these links to an IPTV client. Jellyfin and Emby can use Tunarr as either an M3U source or an HDHomeRun tuner. Plex can add Tunarr as an HDHomeRun tuner."
 msgstr ""
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Add to programming"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Add to the current draft, then use normal Save to persist programming."
+msgstr ""
+
 #: src/components/filler/EditFillerListForm.tsx
 msgid "Add TV Shows or Movies to filler"
 msgstr "向垫片添加剧集或电影"
@@ -573,6 +602,12 @@ msgstr ""
 #. placeholder {2}: data.updated
 #: src/hooks/useBulkAssignFillers.tsx
 msgid "Added {0} {1, plural, one {assignment} other {assignments}}, updated {2}."
+msgstr ""
+
+#. placeholder {0}: input.changes.added
+#. placeholder {1}: input.changes.removed
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Added: {0}; removed: {1}"
 msgstr ""
 
 #: src/components/settings/AddPlexServer.tsx
@@ -1097,6 +1132,7 @@ msgstr "正在计算时段…"
 #: src/components/settings/media_source/JelllyfinServerEditDialog.tsx
 #: src/components/settings/media_source/LocalMediaEditDialog.tsx
 #: src/components/settings/media_source/PlexServerEditDialog.tsx
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
 #: src/components/settings/UnsavedNavigationAlert.tsx
 #: src/components/slot_scheduler/EditRandomSlotDialogContent.tsx
 #: src/components/slot_scheduler/EditTimeSlotDialogContent.tsx
@@ -1110,6 +1146,10 @@ msgstr "正在计算时段…"
 #: src/pages/library/TrashPage.tsx
 msgid "Cancel"
 msgstr "取消"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Cancel import"
+msgstr ""
 
 #: src/components/library/PlexRatingsRefreshAction.tsx
 msgid "Cancel refresh"
@@ -1264,12 +1304,25 @@ msgstr ""
 msgid "Checking Plex servers; reachable servers will appear as they are saved…"
 msgstr ""
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Choose intent"
+msgstr ""
+
 #: src/components/channel_config/ChannelTranscodingConfig.tsx
 msgid "Choose the transcode configuration to use for this channel. Configure transcode configurations on the <0>FFmpeg settings page</0>."
 msgstr "选择此频道使用的转码配置。转码配置可在<0>FFmpeg 设置页</0>中配置。"
 
+#. placeholder {0}: link.url
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Choose video or playlist for {0}"
+msgstr ""
+
 #: src/components/custom-shows/EditCustomShowForm.tsx
-msgid "Chooses audio and subtitle streams for programs scheduled from this custom show."
+#~ msgid "Chooses audio and subtitle streams for programs scheduled from this custom show."
+#~ msgstr ""
+
+#: src/components/custom-shows/EditCustomShowForm.tsx
+msgid "Chooses audio and subtitle streams for programs scheduled from this playlist."
 msgstr ""
 
 #: src/components/filler/EditFillerListForm.tsx
@@ -1296,9 +1349,17 @@ msgstr ""
 msgid "Clear Schedule"
 msgstr "清空排期"
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Clear selection"
+msgstr ""
+
 #: src/components/channel_config/CustomShowProgrammingSelector.tsx
-msgid "Click to preview the items in this Custom Show. Note that only the whole show can be added at once."
-msgstr "点击预览此自定义剧集中的条目。注意只能整部添加，不能单独添加。"
+#~ msgid "Click to preview the items in this Custom Show. Note that only the whole show can be added at once."
+#~ msgstr "点击预览此自定义剧集中的条目。注意只能整部添加，不能单独添加。"
+
+#: src/components/channel_config/CustomShowProgrammingSelector.tsx
+msgid "Click to preview the items in this playlist. Only the whole playlist can be added at once."
+msgstr "点击预览此播放列表中的条目。只能整体添加整个播放列表。"
 
 #: src/components/ui/patterns/AppShell/CommandPalette.tsx
 msgid "close"
@@ -1307,6 +1368,7 @@ msgstr ""
 #: src/components/channel_config/SelectedProgrammingList.tsx
 #: src/components/channels/ChannelSessionsDialog.tsx
 #: src/components/library/PlexRatingsRefreshAction.tsx
+#: src/components/library/YouTubeImportDialog.tsx
 #: src/components/settings/media_source/EditMediaSourceLibrariesDialog.tsx
 msgid "Close"
 msgstr "关闭"
@@ -1316,6 +1378,14 @@ msgstr "关闭"
 #: src/pages/system/TroubleshootPage.tsx
 msgid "Codec"
 msgstr "编码格式"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Collection pages"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Collection view"
+msgstr ""
 
 #: src/components/channel_config/plex/PlexProgrammingSelector.tsx
 #~ msgid "Collections"
@@ -1527,12 +1597,20 @@ msgstr ""
 msgid "Could not cancel emptying the trash."
 msgstr ""
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Could not finish. Check the links and Test setup in Media Sources, then retry. Last complete collections and saved programming were retained."
+msgstr ""
+
 #: src/components/search/RatingSortControl.tsx
 msgid "Could not load Plex rating fields."
 msgstr ""
 
 #: src/components/library/PlexRatingsRefreshAction.tsx
 msgid "Could not load refresh status."
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Could not load saved collections."
 msgstr ""
 
 #: src/components/search/SearchFilterBuilder.tsx
@@ -1545,6 +1623,14 @@ msgstr ""
 
 #: src/pages/welcome/WelcomePage.tsx
 msgid "Could not save setup progress. {message}"
+msgstr ""
+
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "Could not save the source. Your name was kept; retry when the server is available."
+msgstr ""
+
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "Could not test setup. Check the server connection and retry."
 msgstr ""
 
 #: src/components/channel_config/WatermarkTimingFields.tsx
@@ -1584,41 +1670,42 @@ msgstr "创建重播块"
 msgid "Creates a new collection"
 msgstr "创建新合集"
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Creator upload order"
+msgstr ""
+
 #: src/components/guide/TvGuide.tsx
 msgid "Custom Program"
 msgstr "自定义节目"
 
 #: src/components/shell/CommandPaletteContainer.tsx
 #: src/pages/system/TroubleshootPage.tsx
-msgid "Custom show"
-msgstr ""
+#~ msgid "Custom show"
+#~ msgstr ""
 
 #: src/components/slot_scheduler/CustomShowSlotProgrammingForm.tsx
 #: src/components/slot_scheduler/SlotSchedulerCyclicShuffleDialog.tsx
 #: src/components/slot_scheduler/SlotSchedulerCyclicShuffleDialog.tsx
 #: src/hooks/useProgramTitleFormatter.ts
-msgid "Custom Show"
-msgstr "自定义剧集"
+#~ msgid "Custom Show"
+#~ msgstr "自定义剧集"
 
-#. placeholder {0}: customShow.name
-#. placeholder {0}: showName ?? ''
 #: src/components/channel_config/SelectedProgrammingList.tsx
 #: src/hooks/slot_scheduler/useSlotName.ts
-msgid "Custom Show - {0}"
-msgstr "自定义剧集 - {0}"
+#~ msgid "Custom Show - {0}"
+#~ msgstr "自定义剧集 - {0}"
 
 #: src/components/slot_scheduler/EditSlotProgrammingForm.tsx
-msgid "Custom Show (add programs to a custom show first)"
-msgstr ""
+#~ msgid "Custom Show (add programs to a custom show first)"
+#~ msgstr ""
 
 #: src/components/programming_controls/AddBlockShuffleModal.tsx
-msgid "Custom show programs are grouped by their parent show"
-msgstr "自定义剧集的节目按其所属剧集分组"
+#~ msgid "Custom show programs are grouped by their parent show"
+#~ msgstr "自定义剧集的节目按其所属剧集分组"
 
-#. placeholder {0}: cs.description
 #: src/components/slot_scheduler/SlotSchedulerCyclicShuffleDialog.tsx
-msgid "Custom Show: {0}"
-msgstr "自定义剧集：{0}"
+#~ msgid "Custom Show: {0}"
+#~ msgstr "自定义剧集：{0}"
 
 #: src/components/channel_config/ProgrammingSelector.tsx
 #: src/components/profiles/StreamSelectionProfilesTable.tsx
@@ -1627,12 +1714,12 @@ msgstr "自定义剧集：{0}"
 #: src/hooks/useRouteName.ts
 #: src/pages/library/CustomShowsPage.tsx
 #: src/pages/library/CustomShowsPage.tsx
-msgid "Custom Shows"
-msgstr "自定义剧集"
+#~ msgid "Custom Shows"
+#~ msgstr "自定义剧集"
 
 #: src/pages/library/CustomShowsPage.tsx
-msgid "Custom Shows are sequences of videos that represent a episodes of a virtual TV show. When you add these shows to a channel, the schedule tools will treat the videos as if they belonged to a single TV show."
-msgstr "自定义剧集是一组视频序列，相当于一部虚拟电视剧的分集。当你把这些剧集添加到频道后，排期工具会将这些视频视为属于同一部电视剧。"
+#~ msgid "Custom Shows are sequences of videos that represent a episodes of a virtual TV show. When you add these shows to a channel, the schedule tools will treat the videos as if they belonged to a single TV show."
+#~ msgstr "自定义剧集是一组视频序列，相当于一部虚拟电视剧的分集。当你把这些剧集添加到频道后，排期工具会将这些视频视为属于同一部电视剧。"
 
 #: src/components/programming_controls/AddBlockShuffleModal.tsx
 msgid "Customize how movie blocks are sorted"
@@ -1749,10 +1836,9 @@ msgstr "删除频道"
 msgid "Delete Channel \"{0}\"?"
 msgstr "删除频道「{0}」？"
 
-#. placeholder {0}: find(customShows, { id: deleteConfirmationId })?.name
 #: src/pages/library/CustomShowsPage.tsx
-msgid "Delete Custom Show \"{0}\"?"
-msgstr "删除自定义剧集「{0}」？"
+#~ msgid "Delete Custom Show \"{0}\"?"
+#~ msgstr "删除自定义剧集「{0}」？"
 
 #. placeholder {0}: find(fillerLists, { id: deleteConfirmationId })?.name
 #: src/pages/library/FillerListsPage.tsx
@@ -1767,6 +1853,11 @@ msgstr "删除媒体源「{0}」？"
 #: src/components/settings/media_source/MediaSourceDeleteDialog.tsx
 #~ msgid "Delete Media Source?"
 #~ msgstr "Delete Media Source?"
+
+#. placeholder {0}: find(customShows, { id: deleteConfirmationId })?.name
+#: src/pages/library/CustomShowsPage.tsx
+msgid "Delete Playlist \"{0}\"?"
+msgstr "删除播放列表「{0}」？"
 
 #. placeholder {0}: confirmDelete?.name ?? ''
 #: src/components/profiles/StreamSelectionProfilesTable.tsx
@@ -1786,7 +1877,11 @@ msgid "Delete Transcoding Config \"{0}\"?"
 msgstr "删除转码配置「{0}」？"
 
 #: src/components/slot_scheduler/CustomShowSlotProgrammingForm.tsx
-msgid "Deleted custom show"
+#~ msgid "Deleted custom show"
+#~ msgstr ""
+
+#: src/components/slot_scheduler/CustomShowSlotProgrammingForm.tsx
+msgid "Deleted playlist"
 msgstr ""
 
 #: src/components/channels/ChannelsDeleteDialog.tsx
@@ -1798,8 +1893,8 @@ msgid "Deleting a Channel will remove all programming from the channel. This act
 msgstr "删除频道将移除该频道的所有节目编排，此操作无法撤销。"
 
 #: src/pages/library/CustomShowsPage.tsx
-msgid "Deleting a Custom Show will remove its programming from channels that use it. This action cannot be undone."
-msgstr "删除自定义剧集将从使用它的频道中移除其节目，此操作无法撤销。"
+#~ msgid "Deleting a Custom Show will remove its programming from channels that use it. This action cannot be undone."
+#~ msgstr "删除自定义剧集将从使用它的频道中移除其节目，此操作无法撤销。"
 
 #: src/pages/library/FillerListsPage.tsx
 msgid "Deleting a Filler will remove all programming from the channel. This action cannot be undone."
@@ -1808,6 +1903,10 @@ msgstr "删除垫片将移除该频道的所有节目编排，此操作无法撤
 #: src/pages/settings/MediaSourceSettingsPage.tsx
 msgid "Deleting a media source will remove all of its associated programs from Tunarr."
 msgstr "删除媒体源将从 Tunarr 中移除其关联的所有节目。"
+
+#: src/pages/library/CustomShowsPage.tsx
+msgid "Deleting a playlist will remove its programming from channels that use it. This action cannot be undone."
+msgstr "删除播放列表将从使用它的频道中移除其节目，此操作无法撤销。"
 
 #: src/components/settings/media_source/MediaSourceDeleteDialog.tsx
 #~ msgid "Deleting a Plex server will remove all programming from your channels associated with this plex server. Missing programming will be replaced with Flex time. This action cannot be undone."
@@ -1988,6 +2087,12 @@ msgstr "时长必须大于 0。"
 msgid "Duration must be numeric"
 msgstr "时长必须为数字"
 
+#. placeholder {0}: Math.floor(entry.program.duration / 60000)
+#. placeholder {1}: Math.floor( (entry.program.duration % 60000) / 1000, )
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Duration: {0} min {1} sec"
+msgstr ""
+
 #: src/components/slot_scheduler/EditRandomSlotDialogContent.tsx
 msgid "Dynamic"
 msgstr "动态"
@@ -2020,6 +2125,10 @@ msgstr "编辑"
 #: src/components/channels/ChannelOptionsMenu.tsx
 msgid "Edit Channel"
 msgstr "编辑频道"
+
+#: src/components/MediaSourceLibraryTable.tsx
+msgid "Edit channel programming"
+msgstr ""
 
 #: src/components/programming_controls/AddRedirectModal.tsx
 msgid "Edit Channel Redirect"
@@ -2071,6 +2180,10 @@ msgstr "编辑转码配置"
 #~ msgid "Edit Transcode Config: \"{0}\""
 #~ msgstr "编辑转码配置：「{0}」"
 
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "Edit YouTube source"
+msgstr ""
+
 #. placeholder {0}: server.name
 #. placeholder {0}: source.name
 #: src/components/settings/media_source/EmbyServerEditDialog.tsx
@@ -2088,6 +2201,11 @@ msgstr "正在编辑 Plex 服务器「{0}」"
 #: src/components/smart_collections/EditSmartCollectionDialog.tsx
 msgid "Editing Smart Collection \"{0}\""
 msgstr "正在编辑智能合集「{0}」"
+
+#. placeholder {0}: available.length
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Eligible: {0}; pending: {pendingCount}; unavailable: {unavailableCount}"
+msgstr ""
 
 #: src/components/settings/media_source/AddMediaSourceButton.tsx
 msgid "Emby"
@@ -2768,6 +2886,7 @@ msgid "Go to previous page"
 msgstr ""
 
 #: src/components/base/ProgramViewToggleButton.tsx
+#: src/components/library/YouTubeImportDialog.tsx
 msgid "Grid"
 msgstr "网格"
 
@@ -2878,6 +2997,10 @@ msgstr "硬件加速"
 msgid "HW Acceleration"
 msgstr "硬件加速"
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "I understand that excluded entries will not be added"
+msgstr ""
+
 #: src/pages/channels/ChannelsPage.tsx
 #~ msgid "Icon"
 #~ msgstr "图标"
@@ -2930,6 +3053,41 @@ msgstr "图片"
 #: src/components/channel_config/ChannelFlexConfig.tsx
 msgid "Image URL"
 msgstr "图片链接"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Import"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Import at most 50 URLs per request."
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Import details"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Import failed. Retry when the source is available."
+msgstr ""
+
+#. placeholder {0}: source.name
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Import videos, playlists or creator uploads into {0}. Input order and playlist repeats are preserved."
+msgstr ""
+
+#: src/components/channel_config/ProgrammingSelector.tsx
+#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/MediaSourceLibraryTable.tsx
+msgid "Import YouTube links"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Imported into the library. Playback has not been verified."
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Importing YouTube metadata"
+msgstr ""
 
 #: src/components/programming_controls/AddBlockShuffleModal.tsx
 msgid "In Order"
@@ -3060,6 +3218,10 @@ msgstr "上次扫描：{0}"
 msgid "Last Scheduled Execution"
 msgstr "上次计划执行"
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Last successful refresh:"
+msgstr ""
+
 #: src/components/MediaSourceLibraryTable.tsx
 msgid "Last Synced"
 msgstr "上次同步"
@@ -3151,8 +3313,13 @@ msgstr "关联的时段会一起按顺序推进剧集进度。"
 
 #: src/components/base/ProgramViewToggleButton.tsx
 #: src/components/channel_config/ChannelProgrammingConfig.tsx
+#: src/components/library/YouTubeImportDialog.tsx
 msgid "List"
 msgstr "列表"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Load collection"
+msgstr ""
 
 #: src/components/programs/Actors.tsx
 msgid "Load More"
@@ -3165,6 +3332,10 @@ msgstr "加载流"
 #: src/pages/channels/RandomSlotEditorPage.tsx
 msgid "Loading"
 msgstr "加载中"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Loading collections"
+msgstr ""
 
 #: src/components/library/PlexRatingsRefreshAction.tsx
 msgid "Loading ratings refresh status"
@@ -3543,6 +3714,7 @@ msgstr "必须填写有效的 URL，或留空。"
 #: src/components/settings/media_source/JelllyfinServerEditDialog.tsx
 #: src/components/settings/media_source/LocalMediaEditDialog.tsx
 #: src/components/settings/media_source/PlexServerEditDialog.tsx
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
 #: src/components/smart_collections/CreateSmartCollectionDialog.tsx
 #: src/components/smart_collections/EditSmartCollectionDialog.tsx
 #: src/components/smart_collections/SmartCollectionsTable.tsx
@@ -3588,8 +3760,8 @@ msgstr "新建频道"
 
 #: src/pages/library/EditCustomShowPage.tsx
 #: src/pages/library/NewCustomShowPage.tsx
-msgid "New Custom Show"
-msgstr "新建自定义剧集"
+#~ msgid "New Custom Show"
+#~ msgstr "新建自定义剧集"
 
 #: src/components/settings/media_source/EmbyServerEditDialog.tsx
 msgid "New Emby Media Source"
@@ -3607,6 +3779,11 @@ msgstr "新建本地媒体源"
 msgid "New Media Source"
 msgstr "新建媒体源"
 
+#: src/pages/library/EditCustomShowPage.tsx
+#: src/pages/library/NewCustomShowPage.tsx
+msgid "New Playlist"
+msgstr "新建播放列表"
+
 #: src/components/settings/media_source/PlexServerEditDialog.tsx
 msgid "New Plex Server"
 msgstr "新建 Plex 服务器"
@@ -3621,6 +3798,14 @@ msgstr ""
 
 #: src/pages/profiles/TranscodeConfigPage.tsx
 msgid "New Transcode Config"
+msgstr ""
+
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "New YouTube source"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Newest first"
 msgstr ""
 
 #: src/pages/welcome/WelcomePage.tsx
@@ -3646,6 +3831,10 @@ msgstr ""
 #~ msgid "No active sessions"
 #~ msgstr "暂无活动会话"
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "No artwork available"
+msgstr ""
+
 #: src/components/fillers/AssignFillerToChannelsDialog.tsx
 msgid "No channels found. Create a channel first."
 msgstr ""
@@ -3654,8 +3843,16 @@ msgstr ""
 msgid "No channels match this filter."
 msgstr ""
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "No collections yet. Paste links to import one."
+msgstr ""
+
 #: src/components/profiles/StreamSelectionRuleEditor.tsx
 msgid "No condition"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "No entries to add. Saved programming was not changed."
 msgstr ""
 
 #: src/components/channels/BulkAssignFillersDialog.tsx
@@ -3677,6 +3874,10 @@ msgstr ""
 #: src/components/channel_config/ProgrammingSelector.tsx
 msgid "No Media Sources detected."
 msgstr "未检测到媒体源。"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "No new metadata was imported. Saved programming was not changed."
+msgstr ""
 
 #: src/components/ui/patterns/AppShell/CommandPalette.tsx
 msgid "No pages or lists match."
@@ -3823,6 +4024,10 @@ msgstr "Nvidia 支持能力"
 msgid "of the following"
 msgstr ""
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Oldest first"
+msgstr ""
+
 #: src/components/library/ProgramRatings.tsx
 msgid "Omnirating"
 msgstr ""
@@ -3849,6 +4054,14 @@ msgstr "点播频道会从你上次观看的位置继续播放。频道停止播
 #~ msgid "On-Demand?"
 #~ msgstr "点播模式？"
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Only import content you are authorized to use. Import saves metadata, not a video download or playback verification. Refreshing updates this library, not existing channel programming."
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Only this video"
+msgstr ""
+
 #: src/pages/ErrorPage.tsx
 msgid "Oops!"
 msgstr "哎呀！"
@@ -3871,6 +4084,10 @@ msgstr "在 {0} 中打开"
 msgid "Open in Troubleshoot"
 msgstr ""
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Open video on YouTube"
+msgstr ""
+
 #: src/components/ui/patterns/AppShell/CommandPalette.tsx
 msgid "Opens Search"
 msgstr ""
@@ -3879,6 +4096,10 @@ msgstr ""
 #: src/components/channel_config/plex/PlexFilterBuilder.tsx
 #~ msgid "Operation"
 #~ msgstr "Operation"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Operation cancelled. Your inputs and saved programming were kept. You can retry."
+msgstr ""
 
 #: src/components/search/SearchValueNode.tsx
 #: src/components/search/SearchValueNode.tsx
@@ -4009,6 +4230,10 @@ msgstr "直接透传音频不做处理，其他设置将不生效。"
 msgid "Password"
 msgstr "密码"
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Paste links"
+msgstr ""
+
 #: src/components/settings/media_source/LocalMediaEditDialog.tsx
 #: src/pages/system/TroubleshootPage.tsx
 msgid "Path"
@@ -4017,6 +4242,10 @@ msgstr "路径"
 #: src/components/settings/media_source/EditPathReplacementsForm.tsx
 msgid "Path Replacements"
 msgstr "路径替换"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Pending metadata"
+msgstr ""
 
 #: src/components/slot_scheduler/MidRollConfigPanel.tsx
 msgid "Percentage-Based"
@@ -4058,13 +4287,48 @@ msgid "Platform"
 msgstr "平台"
 
 #: src/components/custom-shows/EditCustomShowForm.tsx
+#: src/components/shell/CommandPaletteContainer.tsx
+#: src/components/slot_scheduler/CustomShowSlotProgrammingForm.tsx
+#: src/components/slot_scheduler/SlotSchedulerCyclicShuffleDialog.tsx
+#: src/components/slot_scheduler/SlotSchedulerCyclicShuffleDialog.tsx
+#: src/hooks/useProgramTitleFormatter.ts
+#: src/pages/system/TroubleshootPage.tsx
 msgid "Playlist"
 msgstr "播放列表"
 
-#: src/components/channel_config/plex/PlexLibrarySelector.tsx
-#: src/components/channel_config/plex/PlexProgrammingSelector.tsx
-#~ msgid "Playlists"
-#~ msgstr "Playlists"
+#. placeholder {0}: customShow.name
+#. placeholder {0}: showName ?? ''
+#: src/components/channel_config/SelectedProgrammingList.tsx
+#: src/hooks/slot_scheduler/useSlotName.ts
+msgid "Playlist - {0}"
+msgstr "播放列表 - {0}"
+
+#: src/components/slot_scheduler/EditSlotProgrammingForm.tsx
+msgid "Playlist (add programs to a playlist first)"
+msgstr ""
+
+#: src/components/programming_controls/AddBlockShuffleModal.tsx
+msgid "Playlist programs are grouped by their playlist"
+msgstr "播放列表的节目按其所属播放列表分组"
+
+#. placeholder {0}: cs.description
+#: src/components/slot_scheduler/SlotSchedulerCyclicShuffleDialog.tsx
+msgid "Playlist: {0}"
+msgstr "播放列表：{0}"
+
+#: src/components/channel_config/ProgrammingSelector.tsx
+#: src/components/profiles/StreamSelectionProfilesTable.tsx
+#: src/components/shell/CommandPaletteContainer.tsx
+#: src/components/shell/useShellNav.tsx
+#: src/hooks/useRouteName.ts
+#: src/pages/library/CustomShowsPage.tsx
+#: src/pages/library/CustomShowsPage.tsx
+msgid "Playlists"
+msgstr "播放列表"
+
+#: src/pages/library/CustomShowsPage.tsx
+msgid "Playlists are ordered lists of videos that play like the episodes of a single TV show. When you add a playlist to a channel, the scheduling tools treat its videos as if they belonged to one show."
+msgstr "播放列表是一组有序的视频，会像同一部电视剧的分集一样播放。当你把播放列表添加到频道后，排期工具会将其中的视频视为属于同一部剧集。"
 
 #: src/components/channel_config/ChannelProgrammingSort.tsx
 #~ msgid "Plays shows in a random order, one episode at a time, keeping each show's episodes in sequence. Each show starts at a random episode. Use Block Shuffle to start every show at its first episode or to loop shorter shows."
@@ -4405,6 +4669,10 @@ msgstr ""
 msgid "Refresh"
 msgstr "刷新"
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Refresh collection"
+msgstr ""
+
 #: src/pages/settings/MediaSourceSettingsPage.tsx
 #: src/pages/settings/MediaSourceSettingsPage.tsx
 msgid "Refresh Libraries"
@@ -4525,8 +4793,12 @@ msgid "Removes all Flex periods from the schedule."
 msgstr "移除排期中的所有弹性时段。"
 
 #: src/components/custom-shows/CustomShowSortToolsMenu.tsx
-msgid "Removes all programs from custom show"
-msgstr "移除自定义剧集中的所有节目"
+#~ msgid "Removes all programs from custom show"
+#~ msgstr "移除自定义剧集中的所有节目"
+
+#: src/components/custom-shows/CustomShowSortToolsMenu.tsx
+msgid "Removes all programs from playlist"
+msgstr "移除播放列表中的所有节目"
 
 #: src/components/channel_config/ChannelProgrammingDeleteOptions.tsx
 msgid "Removes all programs from schedule"
@@ -4547,6 +4819,10 @@ msgstr "从频道中移除超时的节目。"
 #: src/components/channel_config/ChannelTranscodingConfig.tsx
 msgid "Renders a channel icon (also known as bug or Digital On-screen Graphic) on top of the channel's stream."
 msgstr "在频道流画面上叠加频道图标（也称台标或屏幕角标）。"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Repeated input was not imported twice."
+msgstr ""
 
 #: src/components/channel_config/WatermarkTimingFields.tsx
 msgid "Repeatedly fades the watermark in and out while a program plays."
@@ -4654,7 +4930,17 @@ msgstr ""
 #: src/components/channels/BulkAssignFillersDialog.tsx
 #: src/components/fillers/AssignFillerToChannelsDialog.tsx
 #: src/components/library/PlexRatingsRefreshAction.tsx
+#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportDialog.tsx
 msgid "Retry"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Retry loading collection"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Retry refresh"
 msgstr ""
 
 #: src/components/channel_config/SelectedProgrammingActions.tsx
@@ -4741,6 +5027,7 @@ msgstr "复制输入音频时无法修改采样率"
 #: src/components/programming_controls/AdjustWeightsModal.tsx
 #: src/components/settings/ffmpeg/TranscodeConfigSettingsForm.tsx
 #: src/components/settings/general/GeneralSettingsForm.tsx
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
 #: src/components/slot_scheduler/EditRandomSlotDialogContent.tsx
 #: src/components/slot_scheduler/EditTimeSlotDialogContent.tsx
 #: src/components/slot_scheduler/SlotSchedulerCyclicShuffleDialog.tsx
@@ -4772,6 +5059,18 @@ msgstr ""
 #: src/components/smart_collections/CreateSmartCollectionDialog.tsx
 msgid "Save Smart Collection"
 msgstr "保存智能合集"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Saved collection"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Saved collections"
+msgstr ""
+
+#: src/pages/settings/MediaSourceSettingsPage.tsx
+msgid "Saved Videos"
+msgstr ""
 
 #: src/components/settings/ffmpeg/TranscodeConfigSettingsForm.tsx
 msgid "Saving..."
@@ -4897,6 +5196,10 @@ msgstr "选择要关联的时段"
 msgid "Select All"
 msgstr "全选"
 
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Select all eligible"
+msgstr ""
+
 #: src/components/ui/table/SelectCheckboxes.tsx
 msgid "Select all on this page"
 msgstr ""
@@ -4904,6 +5207,11 @@ msgstr ""
 #: src/components/programming_controls/RemoveShowsModal.tsx
 msgid "Select Artists to Remove"
 msgstr "选择要移除的艺术家"
+
+#. placeholder {0}: (page - 1) * 50 + index + 1
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Select occurrence {0}"
+msgstr ""
 
 #: src/components/ui/patterns/CollectionView/SelectionBar.tsx
 msgid "Select rows to act on several at once."
@@ -4931,6 +5239,10 @@ msgstr "已选字幕"
 
 #: src/components/ui/patterns/CollectionView/SelectionBar.tsx
 msgid "Selection"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Separate audio/video inputs require transcoding. ErsatzTV playback requires dynamic playout; static windows are not supported. Change incompatible profiles explicitly. Normal channels advance while unwatched; pause-on-idle is a separate channel setting."
 msgstr ""
 
 #: src/components/settings/media_source/EmbyServerEditDialog.tsx
@@ -5333,7 +5645,11 @@ msgid "Stream Selection Profiles"
 msgstr ""
 
 #: src/pages/profiles/StreamSelectionProfilesPage.tsx
-msgid "Stream selection profiles control which audio and subtitle streams play. Assign profiles to channels, filler lists, and custom shows. Anything without an assigned profile uses the default profile."
+#~ msgid "Stream selection profiles control which audio and subtitle streams play. Assign profiles to channels, filler lists, and custom shows. Anything without an assigned profile uses the default profile."
+#~ msgstr ""
+
+#: src/pages/profiles/StreamSelectionProfilesPage.tsx
+msgid "Stream selection profiles control which audio and subtitle streams play. Assign profiles to channels, filler lists, and playlists. Anything without an assigned profile uses the default profile."
 msgstr ""
 
 #: src/components/channel_config/ChannelTranscodingConfig.tsx
@@ -5499,13 +5815,29 @@ msgstr "测试时长（秒）"
 msgid "Test Playback"
 msgstr "测试播放"
 
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "Test setup"
+msgstr ""
+
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "Test setup checks the server tools only. It does not play a video or verify playback. Individual imports appear in Saved Videos."
+msgstr ""
+
 #: src/pages/system/TroubleshootPage.tsx
 msgid "Test Transcode"
 msgstr "测试转码"
 
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "Testing YouTube setup"
+msgstr ""
+
 #: src/components/programming_controls/AddRestrictHoursModal.tsx
 msgid "The channel's regular programming between the specified hours. Flex time will fill up the remaining hours."
 msgstr "频道在指定时段内的常规节目安排，其余时间由弹性时间填充。"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "The complete playlist"
+msgstr ""
 
 #: src/components/channel_config/MediaItemGrid.tsx
 msgid "The End."
@@ -5522,6 +5854,10 @@ msgstr ""
 #: src/components/channel_config/ChannelTranscodingConfig.tsx
 msgid "The image will be rendered at its actual size without any scaling applied."
 msgstr "图片将按实际尺寸渲染，不做任何缩放。"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "The last refresh failed. The previous complete collection was retained."
+msgstr ""
 
 #: src/components/library/PlexRatingsRefreshAction.tsx
 msgid "The library is busy. Wait for its current operation to finish."
@@ -5631,16 +5967,16 @@ msgid "This could cause the following slot's programs to go unscheduled. Possibl
 msgstr "这可能导致下一个时段的节目无法排入。可行的解决办法包括："
 
 #: src/components/slot_scheduler/CustomShowSlotProgrammingForm.tsx
-msgid "This custom show has no programs. Add programs to it or choose another show."
-msgstr ""
+#~ msgid "This custom show has no programs. Add programs to it or choose another show."
+#~ msgstr ""
 
 #: src/components/custom-shows/EditCustomShowForm.tsx
-msgid "This custom show is synced with an external playlist. Content is updated automatically and cannot be edited manually."
-msgstr "此自定义剧集已与外部播放列表同步，内容会自动更新，无法手动编辑。"
+#~ msgid "This custom show is synced with an external playlist. Content is updated automatically and cannot be edited manually."
+#~ msgstr "此自定义剧集已与外部播放列表同步，内容会自动更新，无法手动编辑。"
 
 #: src/components/slot_scheduler/CustomShowSlotProgrammingForm.tsx
-msgid "This custom show was deleted. Choose another show."
-msgstr ""
+#~ msgid "This custom show was deleted. Choose another show."
+#~ msgstr ""
 
 #: src/components/profiles/condition/ConditionEditor.tsx
 msgid "This expression can't be represented in Basic mode. Edit it in CEL mode or simplify it first."
@@ -5666,6 +6002,10 @@ msgstr "当某个时段没有节目可显示时（例如安排了较长的弹性
 msgid "This is used by iptv clients to categorize the channels. You can leave it as 'tunarr' if you don't need this sort of classification."
 msgstr "IPTV 客户端用此字段对频道分类。如果不需要此类分类，保留为 tunarr 即可。"
 
+#: src/components/settings/ffmpeg/EtvNextCompatibilityNotice.tsx
+msgid "This machine cannot encode this config in hardware on the ErsatzTV next backend"
+msgstr ""
+
 #: src/components/channel_config/ProgrammingSelector.tsx
 msgid "This media source has no enabled or scanned libraries. Enable libraries for this source on the <0>Media Sources</0> page or manually trigger scans on the <1>Library</1> page."
 msgstr "此媒体源没有已启用或已扫描的媒体库。请在<0>媒体源</0>页面启用该来源的媒体库，或在<1>媒体库</1>页面手动触发扫描。"
@@ -5673,6 +6013,18 @@ msgstr "此媒体源没有已启用或已扫描的媒体库。请在<0>媒体源
 #: src/components/programming_controls/AddBlockShuffleModal.tsx
 msgid "This option is disabled because it would calculate a schedule that is too long."
 msgstr "此选项已禁用，因为它会计算出过长的排期。"
+
+#: src/components/slot_scheduler/CustomShowSlotProgrammingForm.tsx
+msgid "This playlist has no programs. Add programs to it or choose another playlist."
+msgstr ""
+
+#: src/components/custom-shows/EditCustomShowForm.tsx
+msgid "This playlist is synced with a media server playlist. Content is updated automatically and cannot be edited manually."
+msgstr "此播放列表已与媒体服务器播放列表同步，内容会自动更新，无法手动编辑。"
+
+#: src/components/slot_scheduler/CustomShowSlotProgrammingForm.tsx
+msgid "This playlist was deleted. Choose another playlist."
+msgstr ""
 
 #: src/pages/profiles/StreamSelectionProfilePage.tsx
 msgid "This profile is built into Tunarr and cannot be changed. Duplicate it to make a version you can edit."
@@ -5707,11 +6059,19 @@ msgid "This slot replays content aired by continue slots earlier in the period."
 msgstr "此时段会重播本周期内前面续播时段已播出的内容。"
 
 #: src/components/slot_scheduler/SlotUnavailableCustomShowWarningDetails.tsx
-msgid "This slot's custom show has no programs, so the slot cannot be scheduled. Add programs to the show, choose another show, or remove the slot."
+#~ msgid "This slot's custom show has no programs, so the slot cannot be scheduled. Add programs to the show, choose another show, or remove the slot."
+#~ msgstr ""
+
+#: src/components/slot_scheduler/SlotUnavailableCustomShowWarningDetails.tsx
+#~ msgid "This slot's custom show was deleted, so the slot cannot be scheduled. Choose another show or remove the slot."
+#~ msgstr ""
+
+#: src/components/slot_scheduler/SlotUnavailableCustomShowWarningDetails.tsx
+msgid "This slot's playlist has no programs, so the slot cannot be scheduled. Add programs to the playlist, choose another playlist, or remove the slot."
 msgstr ""
 
 #: src/components/slot_scheduler/SlotUnavailableCustomShowWarningDetails.tsx
-msgid "This slot's custom show was deleted, so the slot cannot be scheduled. Choose another show or remove the slot."
+msgid "This slot's playlist was deleted, so the slot cannot be scheduled. Choose another playlist or remove the slot."
 msgstr ""
 
 #: src/components/settings/ffmpeg/TranscodeConfigSettingsForm.tsx
@@ -5777,7 +6137,11 @@ msgid "TO"
 msgstr "至"
 
 #: src/components/slot_scheduler/EditSlotProgrammingForm.tsx
-msgid "To schedule movies, add them to a custom show and choose Custom Show."
+#~ msgid "To schedule movies, add them to a custom show and choose Custom Show."
+#~ msgstr ""
+
+#: src/components/slot_scheduler/EditSlotProgrammingForm.tsx
+msgid "To schedule movies, add them to a playlist and choose Playlist."
 msgstr ""
 
 #: src/pages/welcome/WelcomePage.tsx
@@ -5974,9 +6338,14 @@ msgstr "剧集按剧名分组"
 msgid "Type"
 msgstr "类型"
 
+#: src/components/library/YouTubeImportDialog.tsx
 #: src/components/UnavailableLibraryIndicator.tsx
 #: src/components/UnavailableLibraryIndicator.tsx
 msgid "Unavailable"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Unavailable entry"
 msgstr ""
 
 #: src/components/search/DateSearchValueNode.tsx
@@ -6035,6 +6404,10 @@ msgstr "使用频道默认设置"
 msgid "Use ErsatzTV next Backend (Experimental)"
 msgstr ""
 
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "Use only content you are authorized to use. YouTube is a best-effort source and may stop working when upstream access changes. Tunarr reuses its Node runtime (Node 22 or later); the server needs the pinned yt-dlp companion. Account cookies, private or paid videos, DRM and running livestreams are not supported."
+msgstr ""
+
 #: src/components/slot_scheduler/TimeSlotConfigDialogPanel.tsx
 #: src/components/slot_scheduler/TimeSlotConfigDialogPanel.tsx
 msgid "Use schedule default"
@@ -6043,6 +6416,10 @@ msgstr "使用排期默认值"
 #: src/pages/settings/XmlTvSettingsPage.tsx
 msgid "Use Show Poster"
 msgstr "使用剧集海报"
+
+#: src/pages/settings/MediaSourceSettingsPage.tsx
+msgid "Use Test setup"
+msgstr ""
 
 #: src/components/channel_config/ChannelTranscodingConfig.tsx
 msgid "Use these settings to override global ffmpeg settings for this channel."
@@ -6112,6 +6489,10 @@ msgstr "视频缓冲区大小"
 #: src/components/settings/ffmpeg/TranscodeConfigVideoSettingsForm.tsx
 msgid "Video Format"
 msgstr "视频格式"
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Video import"
+msgstr ""
 
 #: src/components/settings/ffmpeg/TranscodeConfigSettingsForm.tsx
 msgid "Video Options"
@@ -6328,249 +6709,8 @@ msgstr "你必须先创建至少一个<0>垫片列表</0>，才能为时段分�
 msgid "Your list will be replicated {0} times"
 msgstr "你的列表将被复制 {0} 份"
 
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Add to programming"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Add to the current draft, then use normal Save to persist programming."
-msgstr ""
-
-#. placeholder {0}: input.changes.added
-#. placeholder {1}: input.changes.removed
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Added: {0}; removed: {1}"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Cancel import"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Choose intent"
-msgstr ""
-
-#. placeholder {0}: link.url
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Choose video or playlist for {0}"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Clear selection"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Collection pages"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Collection view"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Could not finish. Check the links and Test setup in Media Sources, then retry. Last complete collections and saved programming were retained."
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Could not load saved collections."
-msgstr ""
-
-#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
-msgid "Could not save the source. Your name was kept; retry when the server is available."
-msgstr ""
-
-#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
-msgid "Could not test setup. Check the server connection and retry."
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Creator upload order"
-msgstr ""
-
-#. placeholder {0}: Math.floor(entry.program.duration / 60000)
-#. placeholder {1}: Math.floor( (entry.program.duration % 60000) / 1000, )
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Duration: {0} min {1} sec"
-msgstr ""
-
-#: src/components/MediaSourceLibraryTable.tsx
-msgid "Edit channel programming"
-msgstr ""
-
-#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
-msgid "Edit YouTube source"
-msgstr ""
-
-#. placeholder {0}: available.length
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Eligible: {0}; pending: {pendingCount}; unavailable: {unavailableCount}"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "I understand that excluded entries will not be added"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Import"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Import at most 50 URLs per request."
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Import details"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Import failed. Retry when the source is available."
-msgstr ""
-
-#. placeholder {0}: source.name
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Import videos, playlists or creator uploads into {0}. Input order and playlist repeats are preserved."
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-#: src/components/MediaSourceLibraryTable.tsx
-msgid "Import YouTube links"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Imported into the library. Playback has not been verified."
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Importing YouTube metadata"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Last successful refresh:"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Load collection"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Loading collections"
-msgstr ""
-
-#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
-msgid "New YouTube source"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Newest first"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "No artwork available"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "No collections yet. Paste links to import one."
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "No entries to add. Saved programming was not changed."
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Oldest first"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Only import content you are authorized to use. Import saves metadata, not a video download or playback verification. Refreshing updates this library, not existing channel programming."
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Only this video"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Open video on YouTube"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Operation cancelled. Your inputs and saved programming were kept. You can retry."
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Paste links"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Pending metadata"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Refresh collection"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Repeated input was not imported twice."
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Retry loading collection"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Retry refresh"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Saved collection"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Saved collections"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Select all eligible"
-msgstr ""
-
-#. placeholder {0}: (page - 1) * 50 + index + 1
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Select occurrence {0}"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Separate audio/video inputs require transcoding. ErsatzTV playback requires dynamic playout; static windows are not supported. Change incompatible profiles explicitly. Normal channels advance while unwatched; pause-on-idle is a separate channel setting."
-msgstr ""
-
-#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
-msgid "Test setup"
-msgstr ""
-
-#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
-msgid "Test setup checks the server tools only. It does not play a video or verify playback. Individual imports appear in Saved Videos."
-msgstr ""
-
-#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
-msgid "Testing YouTube setup"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "The complete playlist"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "The last refresh failed. The previous complete collection was retained."
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Unavailable entry"
-msgstr ""
-
-#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
-msgid "Use only content you are authorized to use. YouTube is a best-effort source and may stop working when upstream access changes. Tunarr reuses its Node runtime (Node 22 or later); the server needs the pinned yt-dlp companion. Account cookies, private or paid videos, DRM and running livestreams are not supported."
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "Video import"
+#: src/components/settings/media_source/AddMediaSourceButton.tsx
+msgid "YouTube"
 msgstr ""
 
 #: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
@@ -6592,20 +6732,4 @@ msgstr ""
 #. placeholder {0}: health.extractorVersion
 #: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
 msgid "yt-dlp version: {0}"
-msgstr ""
-
-#: src/pages/settings/MediaSourceSettingsPage.tsx
-msgid "Saved Videos"
-msgstr ""
-
-#: src/pages/settings/MediaSourceSettingsPage.tsx
-msgid "Use Test setup"
-msgstr ""
-
-#: src/components/settings/media_source/AddMediaSourceButton.tsx
-msgid "YouTube"
-msgstr ""
-
-#: src/components/library/YouTubeImportDialog.tsx
-msgid "No new metadata was imported. Saved programming was not changed."
 msgstr ""

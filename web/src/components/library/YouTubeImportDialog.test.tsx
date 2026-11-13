@@ -69,6 +69,16 @@ const collection: YouTubeCollection = {
 };
 const url = 'https://www.youtube.com/watch?v=abcdefghijk';
 const label = 'YouTube URLs (one per line)';
+
+async function pasteLinks(
+  user: ReturnType<typeof renderWithProviders>['user'],
+  text: string,
+) {
+  // Exercise real URL pasting without rerendering the dialog for every character.
+  await user.click(screen.getByLabelText(label));
+  await user.paste(text);
+}
+
 function entry(
   id: string,
   program: ContentProgram | null = video,
@@ -153,7 +163,7 @@ describe('shared YouTube import and collection SDK boundary', () => {
         programming={target}
       />,
     );
-    await user.type(screen.getByLabelText(label), url);
+    await pasteLinks(user, url);
     await user.click(screen.getByRole('button', { name: 'Import' }));
     expect(await screen.findByText('A finite video')).toBeInTheDocument();
     expect(screen.getByText('Example creator')).toBeInTheDocument();
@@ -175,7 +185,7 @@ describe('shared YouTube import and collection SDK boundary', () => {
       screen.getByRole('button', { name: 'Add to programming' }),
     ).toBeDisabled();
     await user.clear(screen.getByLabelText(label));
-    await user.type(screen.getByLabelText(label), url);
+    await pasteLinks(user, url);
     await user.click(screen.getByRole('button', { name: 'Import' }));
     await screen.findByText('A finite video');
     expect(
@@ -199,7 +209,7 @@ describe('shared YouTube import and collection SDK boundary', () => {
         programming={target}
       />,
     );
-    await user.type(screen.getByLabelText(label), url);
+    await pasteLinks(user, url);
     await user.click(screen.getByRole('button', { name: 'Import' }));
     const signal: AbortSignal = boundary.importLinks.mock.calls[0][0].signal;
     expect(signal.aborted).toBe(false);
@@ -242,7 +252,7 @@ describe('shared YouTube import and collection SDK boundary', () => {
       const { user, rerender } = renderWithProviders(
         <YouTubeImportDialog {...props} />,
       );
-      await user.type(screen.getByLabelText(label), url);
+      await pasteLinks(user, url);
       await user.click(screen.getByRole('button', { name: 'Import' }));
       const signal: AbortSignal = boundary.importLinks.mock.calls[0][0].signal;
       if (change === 'close') {
@@ -289,7 +299,7 @@ describe('shared YouTube import and collection SDK boundary', () => {
       <YouTubeImportDialog open source={source} onClose={vi.fn()} />,
     );
     const mixedUrl = `${url}&list=PLfixture`;
-    await user.type(screen.getByLabelText(label), mixedUrl);
+    await pasteLinks(user, mixedUrl);
     expect(screen.getByRole('button', { name: 'Import' })).toBeDisabled();
     expect(boundary.importLinks).not.toHaveBeenCalled();
     await user.click(
@@ -336,8 +346,8 @@ describe('shared YouTube import and collection SDK boundary', () => {
           programming={target}
         />,
       );
-    await user.type(
-      screen.getByLabelText(label),
+    await pasteLinks(
+      user,
       'https://www.youtube.com/playlist?list=PLfixture\nhttps://www.youtube.com/@Example',
     );
     await user.click(screen.getByRole('button', { name: 'Import' }));
@@ -384,10 +394,7 @@ describe('shared YouTube import and collection SDK boundary', () => {
           programming={target}
         />,
       );
-    await user.type(
-      screen.getByLabelText(label),
-      'https://www.youtube.com/playlist?list=PLfixture',
-    );
+    await pasteLinks(user, 'https://www.youtube.com/playlist?list=PLfixture');
     await user.click(screen.getByRole('button', { name: 'Import' }));
     await screen.findByText(collection.title);
     await user.click(
@@ -539,7 +546,7 @@ describe('shared YouTube import and collection SDK boundary', () => {
         programming={target}
       />,
     );
-    await user.type(screen.getByLabelText(label), url);
+    await pasteLinks(user, url);
     await user.click(screen.getByRole('button', { name: 'Import' }));
     await screen.findByText(
       'No entries to add. Saved programming was not changed.',

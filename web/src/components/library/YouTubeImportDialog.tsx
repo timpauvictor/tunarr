@@ -29,6 +29,7 @@ import type {
   YouTubeLinksImportResponse,
 } from '@tunarr/types/schemas';
 import { useEffect, useRef, useState } from 'react';
+import { v4 } from 'uuid';
 import type { ProgrammingSelectionContextType } from '../../context/ProgrammingSelectionContext.ts';
 import {
   getApiMediaSourcesQueryKey,
@@ -79,9 +80,7 @@ function editLinks(previous: LinkDraft, text: string): LinkDraft {
       .split(/\r?\n/)
       .map((url) => url.trim())
       .filter(Boolean)
-      .map(
-        (url) => retained.get(url)?.shift() ?? { id: crypto.randomUUID(), url },
-      ),
+      .map((url) => retained.get(url)?.shift() ?? { id: v4(), url }),
   };
 }
 function isMixedVideoUrl(input: string): boolean {

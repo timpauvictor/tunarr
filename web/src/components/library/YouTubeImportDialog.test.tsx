@@ -145,6 +145,34 @@ describe('shared YouTube import and collection SDK boundary', () => {
     boundary.pathname = '/channels/channel-1/programming/add';
   });
 
+  test('pastes and imports a URL without the secure-context randomUUID API', async () => {
+    const getRandomValues = crypto.getRandomValues.bind(crypto);
+    vi.stubGlobal('crypto', { getRandomValues });
+    try {
+      expect(typeof crypto.randomUUID).toBe('undefined');
+      boundary.importLinks.mockResolvedValue(response());
+      const { user } = renderWithProviders(
+        <YouTubeImportDialog open source={source} onClose={vi.fn()} />,
+      );
+      await pasteLinks(user, url);
+      expect(screen.getByLabelText(label)).toHaveValue(url);
+      expect(screen.getByRole('button', { name: 'Import' })).toBeEnabled();
+      expect(boundary.importLinks).not.toHaveBeenCalled();
+      await user.click(screen.getByRole('button', { name: 'Import' }));
+      expect(await screen.findByText('A finite video')).toBeInTheDocument();
+      expect(boundary.importLinks).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({
+          body: {
+            inputs: [{ url, intent: undefined, order: 'newest' }],
+            refresh: false,
+          },
+        }),
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   test('reviews metadata, requires explicit Add, preserves a mixed draft and blocks duplicate Add after reimport', async () => {
     boundary.importLinks.mockResolvedValue(response());
     const draft: AddedMedia[] = [

@@ -274,6 +274,9 @@ export class DirectMigrationProvider implements MigrationProvider {
         migration1794347877: makeMigrationFromSqlFile(
           './sql/0058_youtube_collection_occurrences.sql',
         ),
+        migration1794589736: makeMigrationFromSqlFile(
+          './sql/0059_grouping_single_external_id.sql',
+        ),
       } satisfies Record<string, TunarrDatabaseMigration>,
       wrapWithTransaction,
     );

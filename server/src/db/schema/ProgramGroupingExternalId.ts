@@ -54,7 +54,7 @@ export const ProgramGroupingExternalId = sqliteTable(
       .on(table.groupUuid, table.sourceType, table.mediaSourceId)
       .where(sql`\`media_source_id\` is not null`),
     uniqueIndex('unique_program_grouping_single_external_id_media_source')
-      .on(table.groupUuid, table.sourceType, table.mediaSourceId)
+      .on(table.groupUuid, table.sourceType)
       .where(sql`\`media_source_id\` is null`),
   ],
 );

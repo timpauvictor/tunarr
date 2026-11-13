@@ -23,7 +23,11 @@ test('YouTube migration preserves all legacy rows, ratings and media versions', 
       (await connection.pendingDatabaseMigrations()).map(
         (migration) => migration.name,
       ),
-    ).toEqual(['migration1794315861', 'migration1794347877']);
+    ).toEqual([
+      'migration1794315861',
+      'migration1794347877',
+      'migration1794589736',
+    ]);
     const sqlite = connection.sqlite;
     const snapshot = JSON.stringify({
       version: 1,
@@ -248,3 +252,104 @@ test('YouTube migration preserves all legacy rows, ratings and media versions', 
     await fs.rm(directory, { recursive: true, force: true });
   }
 }, 30000);
+
+test.each([false, true])(
+  'forward grouping-ID repair preserves rows and rolls back on duplicates=%s',
+  async (hasDuplicates) => {
+    const directory = await fs.mkdtemp(
+      path.resolve('.test-cache', 'grouping-index-repair-'),
+    );
+    const database = path.join(directory, 'existing.db');
+    const access = DBAccess.instance;
+    try {
+      const connection = access.getOrCreateConnection(database);
+      await connection.syncMigrationTablesIfNecessary();
+      await connection.runDBMigrations('migration1794347877');
+      const sqlite = connection.sqlite;
+      const sources = [randomUUID(), randomUUID()];
+      for (const [index, source] of sources.entries()) {
+        sqlite
+          .prepare(
+            'INSERT INTO media_source (uuid,"index",name,type,uri,access_token) VALUES (?,?,?,?,?,?)',
+          )
+          .run(
+            source,
+            index,
+            `Plex ${index}`,
+            'plex',
+            'http://127.0.0.1:9',
+            '',
+          );
+      }
+      const grouping = randomUUID();
+      sqlite
+        .prepare(
+          'INSERT INTO program_grouping (uuid,title,type,source_type,media_source_id,external_key) VALUES (?,?,?,?,?,?)',
+        )
+        .run(grouping, 'Existing show', 'show', 'plex', sources[0], 'show-1');
+      const singleId = randomUUID();
+      const insert = sqlite.prepare(
+        'INSERT INTO program_grouping_external_id (uuid,group_uuid,source_type,external_key,media_source_id) VALUES (?,?,?,?,?)',
+      );
+      insert.run(singleId, grouping, 'tmdb', '100', null);
+      insert.run(randomUUID(), grouping, 'imdb', 'tt100', null);
+      insert.run(randomUUID(), grouping, 'plex', 'show-a', sources[0]);
+      insert.run(randomUUID(), grouping, 'plex', 'show-b', sources[1]);
+      if (hasDuplicates) {
+        insert.run(randomUUID(), grouping, 'tmdb', 'duplicate', null);
+      }
+      const upsert =
+        'INSERT INTO program_grouping_external_id (uuid,group_uuid,source_type,external_key) VALUES (?,?,?,?) ON CONFLICT (group_uuid,source_type) WHERE media_source_id IS NULL DO UPDATE SET external_key=excluded.external_key';
+      expect(() => sqlite.prepare(upsert)).toThrow(/ON CONFLICT/);
+      const rows = () =>
+        sqlite
+          .prepare('SELECT * FROM program_grouping_external_id ORDER BY uuid')
+          .all();
+      const before = rows();
+      const index = () =>
+        sqlite
+          .prepare('SELECT sql FROM sqlite_master WHERE name = ?')
+          .get('unique_program_grouping_single_external_id_media_source');
+      const oldIndex = index();
+
+      await connection.runDBMigrations();
+      expect(rows()).toEqual(before);
+      expect(sqlite.pragma('foreign_key_check')).toEqual([]);
+      if (hasDuplicates) {
+        // The migration owner logs its failure instead of throwing. Its
+        // transaction must retain both the old index and every existing row.
+        expect(index()).toEqual(oldIndex);
+        expect(
+          (await connection.pendingDatabaseMigrations()).map(
+            (item) => item.name,
+          ),
+        ).toEqual(['migration1794589736']);
+      } else {
+        expect(await connection.pendingDatabaseMigrations()).toEqual([]);
+        sqlite.prepare(upsert).run(randomUUID(), grouping, 'tmdb', '200');
+        expect(
+          sqlite
+            .prepare(
+              "SELECT uuid,external_key FROM program_grouping_external_id WHERE source_type='tmdb'",
+            )
+            .get(),
+        ).toEqual({ uuid: singleId, external_key: '200' });
+        expect(() =>
+          insert.run(randomUUID(), grouping, 'tmdb', 'duplicate', null),
+        ).toThrow(/UNIQUE/);
+        expect(rows()).toHaveLength(4);
+        expect(
+          sqlite
+            .prepare(
+              "SELECT count(*) AS total FROM program_grouping_external_id WHERE source_type='plex'",
+            )
+            .get(),
+        ).toEqual({ total: 2 });
+      }
+    } finally {
+      await access.closeConnection(database);
+      await fs.rm(directory, { recursive: true, force: true });
+    }
+  },
+  30000,
+);

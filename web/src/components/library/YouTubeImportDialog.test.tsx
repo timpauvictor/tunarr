@@ -397,25 +397,13 @@ describe('shared YouTube import and collection SDK boundary', () => {
     await pasteLinks(user, 'https://www.youtube.com/playlist?list=PLfixture');
     await user.click(screen.getByRole('button', { name: 'Import' }));
     await screen.findByText(collection.title);
-    await user.click(
-      screen.getByRole('checkbox', {
-        name: 'Select occurrence 1',
-      }),
-    );
+    await user.click(screen.getByLabelText('Select occurrence 1'));
     await user.click(screen.getByRole('button', { name: 'Go to page 2' }));
-    expect(
-      screen.getByRole('checkbox', { name: 'Select occurrence 51' }),
-    ).toBeChecked();
-    await user.click(
-      screen.getByRole('checkbox', { name: 'Select occurrence 51' }),
-    );
+    expect(screen.getByLabelText('Select occurrence 51')).toBeChecked();
+    await user.click(screen.getByLabelText('Select occurrence 51'));
     await user.click(screen.getByRole('button', { name: 'Grid' }));
     await user.click(screen.getByRole('button', { name: 'Go to page 1' }));
-    expect(
-      screen.getByRole('checkbox', {
-        name: 'Select occurrence 1',
-      }),
-    ).not.toBeChecked();
+    expect(screen.getByLabelText('Select occurrence 1')).not.toBeChecked();
     await user.click(
       screen.getByRole('button', { name: 'Add to programming' }),
     );

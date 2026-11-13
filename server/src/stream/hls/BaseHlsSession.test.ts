@@ -19,6 +19,7 @@ class TestHlsSession extends BaseHlsSession {
     return {
       hlsDeleteThreshold: 3,
       streamNameFormat: 'stream.m3u8',
+      subtitleStreamNameFormat: 'subs.m3u8',
       segmentNameFormat: 'data%06d.ts',
       segmentBaseDirectory: '/tmp/test-sessions',
       streamBasePath: 'test',
@@ -28,6 +29,10 @@ class TestHlsSession extends BaseHlsSession {
       deleteThreshold: null,
       appendSegments: true,
     };
+  }
+
+  ready() {
+    return this.waitForStreamReady();
   }
 
   protected async startInternal(): Promise<void> {}
@@ -98,7 +103,62 @@ describe('BaseHlsSession', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.useRealTimers();
+  });
+
+  describe('bounded startup readiness', () => {
+    it('allows input preparation plus the initial HLS buffer after 20 seconds', async () => {
+      const directory = await fs.mkdtemp(
+        path.join(os.tmpdir(), 'tunarr-ready-'),
+      );
+      try {
+        const readySession = new StoppableHlsSession(makeChannel(), {
+          ...baseOptions,
+          transcodeDirectory: directory,
+        });
+        await readySession.setUp();
+        for (const name of ['stream.m3u8', 'data000001.ts', 'data000002.ts']) {
+          await fs.writeFile(
+            path.join(readySession.workingDirectory, name),
+            '',
+          );
+        }
+        const read = vi.spyOn(fs, 'readdir').mockResolvedValue([]);
+        let settled = false;
+        const operation = readySession.ready().then((result) => {
+          settled = true;
+          return result;
+        });
+        await vi.advanceTimersByTimeAsync(20_000);
+        expect(settled).toBe(false);
+        read.mockRestore();
+        await vi.advanceTimersByTimeAsync(1000);
+        expect((await operation).isSuccess()).toBe(true);
+      } finally {
+        await fs.rm(directory, { recursive: true, force: true });
+      }
+    });
+
+    it('fails after the finite 45-second readiness window', async () => {
+      const read = vi.spyOn(fs, 'readdir').mockResolvedValue([]);
+      const operation = session.ready();
+      await vi.advanceTimersByTimeAsync(46_000);
+      expect((await operation).isFailure()).toBe(true);
+      expect(read).toHaveBeenCalledTimes(46);
+    });
+
+    it('stops polling promptly when the playback owner cancels', async () => {
+      const read = vi.spyOn(fs, 'readdir').mockResolvedValue([]);
+      const operation = session.ready();
+      await vi.advanceTimersByTimeAsync(1000);
+      await session.stop();
+      await vi.advanceTimersByTimeAsync(1000);
+      expect((await operation).isFailure()).toBe(true);
+      const calls = read.mock.calls.length;
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(read).toHaveBeenCalledTimes(calls);
+    });
   });
 
   describe('session lifecycle', () => {

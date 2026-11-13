@@ -1,7 +1,9 @@
 import { spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
+import { setTimeout as waitForMedia } from 'node:timers/promises';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { HttpStreamSource } from '../../stream/types.ts';
 import {
   normalizeYouTubeVideoUrl,
   normalizeYouTubeUrl,
@@ -10,6 +12,9 @@ import {
 } from './YouTubeAdapter.ts';
 
 vi.mock('node:child_process', () => ({ spawn: vi.fn() }));
+vi.mock('node:timers/promises', () => ({
+  setTimeout: vi.fn(() => Promise.resolve()),
+}));
 
 const VideoId = 'aqz-KE-bpKQ';
 const CanonicalUrl = `https://www.youtube.com/watch?v=${VideoId}`;
@@ -112,6 +117,7 @@ function subprocesses(extraction: SpawnFixture): FixtureChild[] {
 }
 
 beforeEach(() => {
+  vi.mocked(waitForMedia).mockReset().mockResolvedValue(undefined);
   vi.stubEnv('TUNARR_YTDLP_PATH', 'fixture-ytdlp');
   vi.stubEnv('TUNARR_YOUTUBE_JS_RUNTIME_PATH', 'fixture-node');
   vi.spyOn(process, 'kill').mockReturnValue(true);
@@ -373,6 +379,116 @@ describe('YouTube extraction boundary', () => {
 });
 
 describe('YouTube format selection', () => {
+  test('concurrent probes leave tool capacity for their relay renewals', async () => {
+    const adapter = new YouTubeAdapter();
+    const owner = new AbortController();
+    let completed = 0;
+    let active = 0;
+    let peak = 0;
+    vi.mocked(spawn).mockImplementation((executable, args) => {
+      const child = new FixtureChild();
+      active++;
+      peak = Math.max(peak, active);
+      const cancel = () => child.close(143);
+      owner.signal.addEventListener('abort', cancel, { once: true });
+      child.once('close', () => {
+        active--;
+        owner.signal.removeEventListener('abort', cancel);
+      });
+      const argv = Array.isArray(args) ? args : [];
+      queueMicrotask(() => {
+        if (executable === 'fixture-ffprobe') {
+          void adapter.resolve(VideoId, 1080, owner.signal).then(
+            () => {
+              completed++;
+              child.output({
+                streams: [],
+                format: {
+                  nb_streams: 0,
+                  format_name: 'mp4',
+                  duration: 12.5,
+                  size: 1,
+                  bit_rate: 1,
+                },
+              });
+            },
+            () => child.close(1),
+          );
+        } else if (argv.includes('--dump-single-json')) {
+          child.output(video());
+        } else if (executable === 'fixture-node') {
+          child.output('v22.16.0\n');
+        } else {
+          child.output('2026.10.26\n');
+        }
+      });
+      return child as unknown as ReturnType<typeof spawn>;
+    });
+    const source = new HttpStreamSource(
+      `http://127.0.0.1:18800/api/youtube/media/${'a'.repeat(32)}`,
+      { Authorization: `Bearer ${'b'.repeat(64)}` },
+    );
+    const operations = [
+      adapter.probe(source, 'fixture-ffprobe', owner.signal),
+      adapter.probe(source, 'fixture-ffprobe', owner.signal),
+    ];
+    const all = Promise.all(operations);
+    void all.catch(() => {});
+    try {
+      await vi.waitFor(() => expect(completed).toBe(2));
+      expect(await all).toHaveLength(2);
+      expect(peak).toBeLessThanOrEqual(2);
+      expect(active).toBe(0);
+    } finally {
+      owner.abort();
+      await Promise.allSettled(operations);
+    }
+  });
+  test.each([false, true])(
+    'does not expose fresh media before readiness; cancellation=%s',
+    async (cancel) => {
+      subprocesses((child) => child.output(video()));
+      const owner = new AbortController();
+      let finish: () => void = () => {
+        throw new Error('Readiness gate was not initialized');
+      };
+      const ready = new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+      vi.mocked(waitForMedia).mockReturnValueOnce(ready);
+      let settled = false;
+      const operation = new YouTubeAdapter().resolve(
+        VideoId,
+        1080,
+        owner.signal,
+      );
+      void operation.then(
+        () => {
+          settled = true;
+        },
+        () => {
+          settled = true;
+        },
+      );
+      await vi.waitFor(() => expect(waitForMedia).toHaveBeenCalledOnce());
+      const call = vi.mocked(waitForMedia).mock.calls[0];
+      if (!call) throw new Error('Missing readiness wait');
+      expect(call[0]).toBe(7000);
+      expect(call[1]).toBeUndefined();
+      expect(call[2]?.signal?.aborted).toBe(false);
+      expect(settled).toBe(false);
+      if (cancel) {
+        owner.abort();
+        expect(call[2]?.signal?.aborted).toBe(true);
+      }
+      finish();
+      if (cancel) {
+        await expect(operation).rejects.toMatchObject({ code: 'CANCELLED' });
+      } else {
+        expect((await operation).inputs[0]?.id).toBe('18');
+      }
+    },
+  );
   test('selects combined SDR H264/AAC inside the ceiling, not higher HDR/VP9 or excessive height', async () => {
     subprocesses((child) =>
       child.output(

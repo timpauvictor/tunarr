@@ -6,6 +6,7 @@ import {
 } from 'node:child_process';
 import path from 'node:path';
 import type { Readable } from 'node:stream';
+import { setTimeout as waitForMedia } from 'node:timers/promises';
 import PQueue from 'p-queue';
 import { z } from 'zod/v4';
 import { validateYouTubeMediaUrl } from '../../stream/YouTubeMediaRelay.ts';
@@ -19,6 +20,10 @@ import {
 } from './YouTubeTools.ts';
 const VideoId = /^[A-Za-z0-9_-]{11}$/;
 const MaxOutputBytes = 8 * 1024 * 1024;
+// Fresh Googlevideo URLs can reject early reads with 403. Like yt-dlp's
+// downloader, age the captured set before exposing it to probes or playback.
+const MediaAvailabilityDelayMs = 7000;
+const MediaProbeTimeoutMs = 20_000;
 const IncompleteEnumeration =
   /incomplete data received|detected youtube feed looping|repeated.*continuation|same.*continuation|skipping the rest/i;
 
@@ -713,6 +718,9 @@ function selectInputs(
 @injectable()
 export class YouTubeAdapter {
   private readonly queue = new PQueue({ concurrency: 2 });
+  // A probe's relay can need fresh extraction. Leave the other tool slot
+  // available instead of letting two probes wait on their own full queue.
+  private readonly probeQueue = new PQueue({ concurrency: 1 });
 
   async metadata(
     videoId: string,
@@ -845,9 +853,16 @@ export class YouTubeAdapter {
         'Provide a positive integer quality ceiling.',
       );
     }
-    return this.job(signal, 10, async (owner) =>
-      selectInputs(await this.extract(videoId, owner), maxHeight),
-    );
+    return this.job(signal, 10, async (owner) => {
+      const resolved = selectInputs(
+        await this.extract(videoId, owner),
+        maxHeight,
+      );
+      await waitForMedia(MediaAvailabilityDelayMs, undefined, {
+        signal: owner,
+      });
+      return resolved;
+    });
   }
 
   async probe(
@@ -874,41 +889,47 @@ export class YouTubeAdapter {
         'A probe requires an owned YouTube relay input.',
       );
     }
-    return this.job(signal, 10, async (owner) => {
-      const json = await runYouTubeProcess(
-        executable,
-        [
-          '-v',
-          'error',
-          '-protocol_whitelist',
-          'http,tcp',
-          '-rw_timeout',
-          '10000000',
-          '-probesize',
-          '1048576',
-          '-analyzeduration',
-          '1000000',
-          '-headers',
-          `Authorization: ${authorization}\r\n`,
-          '-show_streams',
-          '-show_format',
-          '-of',
-          'json',
-          source.path,
-        ],
-        owner,
-        10_000,
-        1024 * 1024,
-      );
-      try {
-        return FfprobeMediaInfoSchema.parse(JSON.parse(json));
-      } catch {
-        throw new YouTubeError(
-          'INVALID_METADATA',
-          'Selected media could not be probed safely.',
-        );
-      }
-    });
+    return this.job(
+      signal,
+      10,
+      (probeOwner) =>
+        this.job(probeOwner, 10, async (owner) => {
+          const json = await runYouTubeProcess(
+            executable,
+            [
+              '-v',
+              'error',
+              '-protocol_whitelist',
+              'http,tcp',
+              '-rw_timeout',
+              String(MediaProbeTimeoutMs * 1000),
+              '-probesize',
+              '1048576',
+              '-analyzeduration',
+              '1000000',
+              '-headers',
+              `Authorization: ${authorization}\r\n`,
+              '-show_streams',
+              '-show_format',
+              '-of',
+              'json',
+              source.path,
+            ],
+            owner,
+            MediaProbeTimeoutMs,
+            1024 * 1024,
+          );
+          try {
+            return FfprobeMediaInfoSchema.parse(JSON.parse(json));
+          } catch {
+            throw new YouTubeError(
+              'INVALID_METADATA',
+              'Selected media could not be probed safely.',
+            );
+          }
+        }),
+      this.probeQueue,
+    );
   }
 
   async health(signal: AbortSignal): Promise<{
@@ -947,6 +968,7 @@ export class YouTubeAdapter {
     signal: AbortSignal,
     priority: number,
     action: (owner: AbortSignal) => Promise<T>,
+    queue = this.queue,
   ): Promise<T> {
     if (signal.aborted) {
       throw cancelled();
@@ -967,7 +989,7 @@ export class YouTubeAdapter {
       cancelQueued();
     }
     try {
-      const operation = this.queue.add(
+      const operation = queue.add(
         async () => {
           signal.removeEventListener('abort', cancelQueued);
           if (signal.aborted) {

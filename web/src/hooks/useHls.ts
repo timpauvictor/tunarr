@@ -15,6 +15,13 @@ export const useHls = (userConfig?: Partial<HlsConfig>) => {
     const newHls = new Hls({
       progressive: true,
       fragLoadingTimeOut: 30000,
+      manifestLoadPolicy: {
+        default: {
+          ...Hls.DefaultConfig.manifestLoadPolicy.default,
+          // The server permits 45s for preparation, renewal and initial segments.
+          maxLoadTimeMs: 60000,
+        },
+      },
       initialLiveManifestSize: 3, // About 10 seconds of playback needed before playing
       enableWorker: true,
       lowLatencyMode: true,

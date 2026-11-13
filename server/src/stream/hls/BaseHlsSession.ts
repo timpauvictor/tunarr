@@ -141,6 +141,10 @@ export abstract class BaseHlsSession<
       this.logger.debug('Waiting for HLS stream session to be ready...');
       await retry(
         async (bail) => {
+          if (this.playbackSignal.aborted) {
+            bail(new Error('HLS startup cancelled.'));
+            return;
+          }
           if (this.hasError) {
             this.logger.error(
               this.error,
@@ -200,7 +204,11 @@ export abstract class BaseHlsSession<
           }
         },
         {
-          retries: 15,
+          // Remote input preparation can precede the initial eight seconds
+          // of segments. Keep a finite startup window without cancelling
+          // valid media before that buffer can be produced, including one
+          // guarded input renewal during preparation.
+          retries: 45,
           factor: 1,
           minTimeout: 1000,
           maxTimeout: 1000,

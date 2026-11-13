@@ -49,6 +49,8 @@ Use numeric score fields or **Omnirating** to filter and sort imported content. 
 
 Configure a **YouTube** media source and use **Test setup** to check its configured extractor and JavaScript runtime. These companion tools must be available on the server. YouTube availability is best-effort; only import content you are authorized to use. Account cookies, private/paid content, DRM and running livestreams are not supported.
 
+Tunarr reuses its own Node runtime for YouTube JavaScript challenges, including the Node embedded in standalone Tunarr executables. No Deno installation or second Node download is required. An administrator can optionally select a trusted Node >=22 executable with `TUNARR_YOUTUBE_JS_RUNTIME_PATH`; leave it unset to use Tunarr's runtime. This does not bypass YouTube account, CAPTCHA or access restrictions. **Test setup** checks the extractor pin and runtime without playing a video.
+
 1. Open the channel programmer and select the YouTube source, or use **Import YouTube links** in the Library table.
 2. Paste one HTTPS YouTube video, playlist or creator URL per line. A watch link containing both a video and playlist requires an explicit choice. Creator links resolve to the canonical channel's uploads collection, including eligible recorded uploads rather than only one channel tab. Choose **Newest first** or **Oldest first** for creators.
 3. Review the entries. Playlist order and repeated occurrences are preserved, while repeated inputs are reported and are not expanded twice. Unknown-duration and unavailable entries remain visible but cannot be added. Confirm exclusions before adding a partial eligible set.

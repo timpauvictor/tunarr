@@ -283,6 +283,9 @@ export function runYouTubeProcess(
         windowsHide: true,
         detached: process.platform !== 'win32',
         stdio: ['ignore', 'pipe', 'pipe'],
+        // pkg's CLI mode must also reach the Node helper spawned by yt-dlp.
+        // Keep it child-local so the owning Tunarr process is unchanged.
+        env: { ...process.env, PKG_EXECPATH: 'PKG_INVOKE_NODEJS' },
       });
     } catch {
       reject(
@@ -1036,15 +1039,8 @@ export class YouTubeAdapter {
   }
 
   private async runtime(signal: AbortSignal): Promise<string> {
-    const configured = process.env.TUNARR_YOUTUBE_JS_RUNTIME_PATH;
-    const packaged = 'pkg' in process && Boolean(process.pkg);
-    const executable = configured || (packaged ? undefined : process.execPath);
-    if (!executable) {
-      throw new YouTubeError(
-        'RUNTIME_UNAVAILABLE',
-        'Configure a standalone Node >=22 JavaScript runtime for YouTube.',
-      );
-    }
+    const executable =
+      process.env.TUNARR_YOUTUBE_JS_RUNTIME_PATH || process.execPath;
     let version: string;
     try {
       version = (

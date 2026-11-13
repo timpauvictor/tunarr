@@ -97,7 +97,10 @@ function subprocesses(extraction: SpawnFixture): FixtureChild[] {
     queueMicrotask(() => {
       if (argv.includes('--dump-single-json')) {
         extraction(child, argv, executable);
-      } else if (executable === 'fixture-node') {
+      } else if (
+        executable === 'fixture-node' ||
+        executable === process.execPath
+      ) {
         child.output('v22.16.0\n');
       } else {
         child.output('2026.10.26\n');
@@ -317,6 +320,35 @@ describe('YouTube extraction boundary', () => {
     await expect(
       adapter.resolve(VideoId, 1080, new AbortController().signal),
     ).rejects.toMatchObject({ code: 'VERSION_MISMATCH' });
+  });
+
+  test('reuses the owning Node binary with child-local CLI mode through extraction', async () => {
+    vi.stubEnv('TUNARR_YOUTUBE_JS_RUNTIME_PATH', '');
+    vi.stubEnv('PKG_EXECPATH', 'parent-only');
+    subprocesses((child) => child.output(video()));
+    const adapter = new YouTubeAdapter();
+    expect(await adapter.health(new AbortController().signal)).toMatchObject({
+      available: true,
+    });
+    await adapter.metadata(VideoId, new AbortController().signal);
+    expect(spawn).toHaveBeenCalledWith(
+      process.execPath,
+      ['--version'],
+      expect.objectContaining({
+        env: expect.objectContaining({ PKG_EXECPATH: 'PKG_INVOKE_NODEJS' }),
+      }),
+    );
+    const extraction = vi
+      .mocked(spawn)
+      .mock.calls.find(
+        ([, args]) =>
+          Array.isArray(args) && args.includes('--dump-single-json'),
+      );
+    expect(extraction?.[1]).toContain(`node:${process.execPath}`);
+    expect(extraction?.[2]).toMatchObject({
+      env: { PKG_EXECPATH: 'PKG_INVOKE_NODEJS' },
+    });
+    expect(process.env.PKG_EXECPATH).toBe('parent-only');
   });
 
   test('health requires Node >=22 and reports a working runtime', async () => {

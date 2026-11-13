@@ -13,7 +13,10 @@ import type { HttpStreamSource } from '../../stream/types.ts';
 import { FfprobeMediaInfoSchema } from '../../types/ffmpeg.ts';
 import type { FfprobeMediaInfo } from '../../types/ffmpeg.ts';
 
-const ExtractorVersion = '2026.10.26';
+import {
+  YouTubeExtractorVersion as ExtractorVersion,
+  youtubeExecutable,
+} from './YouTubeTools.ts';
 const VideoId = /^[A-Za-z0-9_-]{11}$/;
 const MaxOutputBytes = 8 * 1024 * 1024;
 const IncompleteEnumeration =
@@ -1002,7 +1005,7 @@ export class YouTubeAdapter {
   }
 
   private executable(): string {
-    return process.env.TUNARR_YTDLP_PATH || 'yt-dlp';
+    return youtubeExecutable();
   }
 
   private async version(signal: AbortSignal): Promise<string> {

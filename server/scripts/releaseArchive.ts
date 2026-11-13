@@ -10,6 +10,7 @@ export type ReleaseArchiveFiles = {
   meilisearch: string;
   etvNext: string;
   etvNextCompanions: string[];
+  additionalFiles: ReleaseArchiveEntry[];
 };
 
 /**
@@ -29,6 +30,10 @@ export function releaseArchiveEntries(
     { source: files.tunarr, name: inFolder(`tunarr${exe}`) },
     { source: files.meilisearch, name: inFolder(`meilisearch${exe}`) },
     { source: files.etvNext, name: inFolder(`ersatztv-channel${exe}`) },
+    ...files.additionalFiles.map(({ source, name }) => ({
+      source,
+      name: inFolder(name),
+    })),
     ...files.etvNextCompanions.map((source) => ({
       source,
       name: inFolder(path.basename(source)),

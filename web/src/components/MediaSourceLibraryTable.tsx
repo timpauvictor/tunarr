@@ -62,7 +62,17 @@ function YouTubeLibraryImportAction({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <span onClick={(event) => event.stopPropagation()}>
+    <Box
+      component="span"
+      onClick={(event) => event.stopPropagation()}
+      sx={{
+        display: 'inline-flex',
+        flexDirection: { xs: 'column', sm: 'row' },
+        maxWidth: { xs: 160, sm: 'none' },
+        alignItems: 'flex-start',
+        '& .MuiButton-root': { maxWidth: '100%', whiteSpace: 'normal' },
+      }}
+    >
       <Button
         size="small"
         onClick={(event) => {
@@ -72,12 +82,15 @@ function YouTubeLibraryImportAction({
       >
         <Trans>Import YouTube links</Trans>
       </Button>
+      <Button size="small" component={Link} to="/channels">
+        <Trans>Edit channel programming</Trans>
+      </Button>
       <YouTubeImportDialog
         open={open}
         onClose={() => setOpen(false)}
         source={source}
       />
-    </span>
+    </Box>
   );
 }
 

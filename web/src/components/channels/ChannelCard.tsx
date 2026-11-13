@@ -271,6 +271,7 @@ export const ChannelCard = ({
           <RouterButtonLink
             to="/channels/$channelId/watch"
             params={{ channelId: channel.id }}
+            search={{ noAutoPlay: true }}
             variant="outlined"
             startIcon={<PlayArrow />}
             sx={{ flex: 1 }}

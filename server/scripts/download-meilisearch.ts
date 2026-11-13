@@ -3,7 +3,6 @@ import { execSync } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
-import { dirname } from 'node:path';
 import stream from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { format } from 'node:util';
@@ -108,14 +107,6 @@ async function needsToDownloadNewBinary(targetPath: string) {
     console.debug('./bin already exists...');
   }
   return shouldDownload;
-}
-
-async function copyToTarget(targetPath: string) {
-  const dir = dirname(targetPath);
-  if (!(await fileExists(dir))) {
-    await fs.mkdir(dir, { recursive: true });
-  }
-  await fs.cp(DefaultOutPath, targetPath);
 }
 
 export async function grabMeilisearch(

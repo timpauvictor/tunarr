@@ -158,6 +158,7 @@ describe('shared YouTube import and collection SDK boundary', () => {
     expect(await screen.findByText('A finite video')).toBeInTheDocument();
     expect(screen.getByText('Example creator')).toBeInTheDocument();
     expect(screen.getByText('Saved description')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('status')).toHaveFocus());
     expect(screen.getByText('Duration: 2 min 5 sec')).toBeInTheDocument();
     expect(screen.getByLabelText('No artwork available')).toBeInTheDocument();
     expect(target.onAddSelectedMedia).not.toHaveBeenCalled();
@@ -205,6 +206,11 @@ describe('shared YouTube import and collection SDK boundary', () => {
     await user.click(screen.getByRole('button', { name: 'Cancel import' }));
     expect(signal.aborted).toBe(true);
     expect(screen.getByLabelText(label)).toHaveValue(url);
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Operation cancelled/).closest('[role="alert"]'),
+      ).toHaveFocus(),
+    );
     await user.click(screen.getByRole('button', { name: 'Retry' }));
     await act(async () => {
       old.resolve(response());
@@ -500,6 +506,80 @@ describe('shared YouTube import and collection SDK boundary', () => {
     expect(
       screen.getByRole('button', { name: 'Add to programming' }),
     ).toBeDisabled();
+    expect(target.onAddSelectedMedia).not.toHaveBeenCalled();
+    boundary.page.mockResolvedValueOnce({
+      data: {
+        sourceId: source.id,
+        libraryId: 'saved-videos',
+        collection,
+        total: 1,
+        entries: [entry('one')],
+      },
+    });
+    await user.click(
+      screen.getByRole('button', { name: 'Retry loading collection' }),
+    );
+    await screen.findByText('Eligible: 1; pending: 0; unavailable: 0');
+    expect(boundary.page.mock.calls[2][0].query.offset).toBe(0);
+    expect(boundary.importLinks).not.toHaveBeenCalled();
+    await user.click(
+      screen.getByRole('button', { name: 'Add to programming' }),
+    );
+    expect(target.onAddSelectedMedia).toHaveBeenCalledTimes(1);
+  });
+
+  test('empty results and unavailable metadata remain honest and cannot be added', async () => {
+    boundary.importLinks.mockResolvedValueOnce(response([]));
+    const target = programmingTarget();
+    const { user } = renderWithProviders(
+      <YouTubeImportDialog
+        open
+        source={source}
+        onClose={vi.fn()}
+        programming={target}
+      />,
+    );
+    await user.type(screen.getByLabelText(label), url);
+    await user.click(screen.getByRole('button', { name: 'Import' }));
+    await screen.findByText(
+      'No entries to add. Saved programming was not changed.',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Add to programming' }),
+    ).toBeDisabled();
+    await user.type(screen.getByLabelText(label), ' ');
+    boundary.importLinks.mockResolvedValueOnce(
+      response([
+        {
+          ...entry('gone', null),
+          status: 'unavailable',
+          message: 'Video was removed.',
+        },
+      ]),
+    );
+    await user.click(screen.getByRole('button', { name: 'Import' }));
+    await screen.findByText('Unavailable');
+    expect(screen.getByText('Video was removed.')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Open video on YouTube' }),
+    ).toHaveAttribute('href', url);
+    expect(
+      screen.getByRole('button', { name: 'Add to programming' }),
+    ).toBeDisabled();
+    await user.type(screen.getByLabelText(label), ' ');
+    const failed = response([]);
+    failed.data.imports[0].status = 'failed';
+    failed.data.imports[0].message = 'Fixture access denied.';
+    boundary.importLinks.mockResolvedValueOnce(failed);
+    await user.click(screen.getByRole('button', { name: 'Import' }));
+    await screen.findByText(
+      'No new metadata was imported. Saved programming was not changed.',
+    );
+    expect(
+      screen.queryByText(
+        'Imported into the library. Playback has not been verified.',
+      ),
+    ).not.toBeInTheDocument();
     expect(target.onAddSelectedMedia).not.toHaveBeenCalled();
   });
 });

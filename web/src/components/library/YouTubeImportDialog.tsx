@@ -11,6 +11,7 @@ import {
   DialogTitle,
   FormControlLabel,
   LinearProgress,
+  Link as MuiLink,
   MenuItem,
   Pagination,
   Stack,
@@ -27,7 +28,6 @@ import type {
   YouTubeCollectionEntry,
   YouTubeLinksImportResponse,
 } from '@tunarr/types/schemas';
-import { isAxiosError } from 'axios';
 import { useEffect, useRef, useState } from 'react';
 import type { ProgrammingSelectionContextType } from '../../context/ProgrammingSelectionContext.ts';
 import {
@@ -125,6 +125,9 @@ export function YouTubeImportDialog({
   const [collectionId, setCollectionId] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
+  const [failedAction, setFailedAction] = useState<
+    'links' | 'load' | 'refresh'
+  >();
   const [review, setReview] = useState<Review>();
   const [selectedIds, setSelectedIds] = useState(new Set<string>());
   const [addedIds, setAddedIds] = useState(new Set<string>());
@@ -133,6 +136,18 @@ export function YouTubeImportDialog({
   const [page, setPage] = useState(1);
   const [view, setView] = useState<'list' | 'grid'>('list');
   const active = useRef<ImportRequest | undefined>(undefined);
+  const errorFocus = useRef<HTMLDivElement>(null);
+  const reviewFocus = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open || pending) {
+      return;
+    }
+    if (error) {
+      errorFocus.current?.focus();
+    } else if (review) {
+      reviewFocus.current?.focus();
+    }
+  }, [open, pending, error, review]);
   const current = useRef({ open, pathname, sourceId: source.id, programming });
   current.current = { open, pathname, sourceId: source.id, programming };
   const append = programming?.onAddSelectedMedia;
@@ -200,6 +215,7 @@ export function YouTubeImportDialog({
       queryClient.invalidateQueries({ queryKey: ['programs'] }),
     ]);
   const run = async (
+    action: 'links' | 'load' | 'refresh',
     operation: (request: ImportRequest) => Promise<YouTubeLinksImportResponse>,
   ) => {
     if (active.current && active.current !== review?.request) {
@@ -214,6 +230,7 @@ export function YouTubeImportDialog({
       append,
     };
     active.current = request;
+    setFailedAction(action);
     setPending(true);
     setReview(undefined);
     setError(undefined);
@@ -237,15 +254,10 @@ export function YouTubeImportDialog({
         ),
       );
       void invalidateCatalogue().catch(console.error);
-    } catch (failure) {
+    } catch {
       if (isCurrent(request)) {
-        const body: unknown = isAxiosError(failure)
-          ? failure.response?.data
-          : failure;
         setError(
-          typeof body === 'string'
-            ? body
-            : t`Could not finish. Check the links and Test setup in Media Sources, then retry. Last complete collections and saved programming were retained.`,
+          t`Could not finish. Check the links and Test setup in Media Sources, then retry. Last complete collections and saved programming were retained.`,
         );
         active.current = undefined;
       }
@@ -256,7 +268,7 @@ export function YouTubeImportDialog({
     }
   };
   const importLinks = (refresh = false, collection?: YouTubeCollection) =>
-    run(async (request) => {
+    run(refresh ? 'refresh' : 'links', async (request) => {
       const inputs = collection
         ? [{ url: collectionUrl(collection), order }]
         : draft.links.map((link) => ({
@@ -273,7 +285,7 @@ export function YouTubeImportDialog({
       return data;
     });
   const loadCollection = (collection: YouTubeCollection) =>
-    run(async (request) => {
+    run('load', async (request) => {
       const entries: YouTubeCollectionEntry[] = [];
       let offset = 0;
       let revision: string | undefined;
@@ -386,7 +398,7 @@ export function YouTubeImportDialog({
       <DialogTitle id="youtube-import-title">
         <Trans>Import YouTube links</Trans>
       </DialogTitle>
-      <DialogContent>
+      <DialogContent aria-busy={pending} sx={{ overflowWrap: 'anywhere' }}>
         <Stack spacing={2} sx={{ pt: 1 }}>
           <Typography>
             <Trans>
@@ -422,6 +434,7 @@ export function YouTubeImportDialog({
                 label={t`YouTube URLs (one per line)`}
                 value={draft.text}
                 multiline
+                autoFocus
                 minRows={3}
                 fullWidth
                 disabled={pending}
@@ -524,7 +537,13 @@ export function YouTubeImportDialog({
                   )}
                   {selectedCollection?.lastRefreshError && (
                     <Alert severity="warning">
-                      {selectedCollection.lastRefreshError}
+                      <Trans>
+                        The last refresh failed. The previous complete
+                        collection was retained.
+                      </Trans>
+                      <Typography variant="body2">
+                        {selectedCollection.lastRefreshError}
+                      </Typography>
                     </Alert>
                   )}
                   <Stack direction="row" spacing={1}>
@@ -536,7 +555,11 @@ export function YouTubeImportDialog({
                         }
                       }}
                     >
-                      <Trans>Load collection</Trans>
+                      {error && failedAction === 'load' ? (
+                        <Trans>Retry loading collection</Trans>
+                      ) : (
+                        <Trans>Load collection</Trans>
+                      )}
                     </Button>
                     {selectedCollection &&
                       selectedCollection.kind !== 'saved_videos' && (
@@ -546,7 +569,11 @@ export function YouTubeImportDialog({
                             void importLinks(true, selectedCollection);
                           }}
                         >
-                          <Trans>Refresh collection</Trans>
+                          {error && failedAction === 'refresh' ? (
+                            <Trans>Retry refresh</Trans>
+                          ) : (
+                            <Trans>Refresh collection</Trans>
+                          )}
                         </Button>
                       )}
                   </Stack>
@@ -574,7 +601,11 @@ export function YouTubeImportDialog({
           {pending && (
             <LinearProgress aria-label={t`Importing YouTube metadata`} />
           )}
-          {error && <Alert severity="error">{error}</Alert>}
+          {error && (
+            <Alert severity="error" ref={errorFocus} tabIndex={-1}>
+              {error}
+            </Alert>
+          )}
           {review && (
             <>
               {review.result.imports.map((input) => (
@@ -586,7 +617,16 @@ export function YouTubeImportDialog({
                     <Alert
                       severity={input.status === 'failed' ? 'error' : 'warning'}
                     >
-                      {input.message}
+                      {input.status === 'failed' ? (
+                        <Trans>
+                          Import failed. Retry when the source is available.
+                        </Trans>
+                      ) : input.status === 'duplicate' ? (
+                        <Trans>Repeated input was not imported twice.</Trans>
+                      ) : (
+                        <Trans>Import details</Trans>
+                      )}
+                      <Typography variant="body2">{input.message}</Typography>
                     </Alert>
                   )}
                   {input.changes && (
@@ -599,7 +639,12 @@ export function YouTubeImportDialog({
                   )}
                 </Box>
               ))}
-              <Typography>
+              <Typography
+                component="div"
+                role="status"
+                ref={reviewFocus}
+                tabIndex={-1}
+              >
                 <Trans>
                   Eligible: {available.length}; pending: {pendingCount};
                   unavailable: {unavailableCount}
@@ -745,9 +790,27 @@ export function YouTubeImportDialog({
                             {program.summary}
                           </Typography>
                         )}
+                        {entry.videoId && (
+                          <MuiLink
+                            href={`https://www.youtube.com/watch?v=${encodeURIComponent(entry.videoId)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Trans>Open video on YouTube</Trans>
+                          </MuiLink>
+                        )}
                         {entry.status !== 'available' && (
                           <Alert severity="warning">
-                            {entry.status}: {entry.message}
+                            {entry.status === 'pending' ? (
+                              <Trans>Pending metadata</Trans>
+                            ) : (
+                              <Trans>Unavailable</Trans>
+                            )}
+                            {entry.message && (
+                              <Typography variant="body2">
+                                {entry.message}
+                              </Typography>
+                            )}
                           </Alert>
                         )}
                       </Stack>
@@ -762,16 +825,29 @@ export function YouTubeImportDialog({
                   aria-label={t`Collection pages`}
                 />
               )}
-              <Alert severity="success">
-                <Trans>
-                  Imported into the library. Playback has not been verified.
-                </Trans>
-              </Alert>
+              {review.result.imports.some(
+                (input) => input.status === 'complete',
+              ) ? (
+                <Alert severity="success">
+                  <Trans>
+                    Imported into the library. Playback has not been verified.
+                  </Trans>
+                </Alert>
+              ) : (
+                <Alert severity="info">
+                  <Trans>
+                    No new metadata was imported. Saved programming was not
+                    changed.
+                  </Trans>
+                </Alert>
+              )}
               <Alert severity="info">
                 <Trans>
                   Separate audio/video inputs require transcoding. ErsatzTV
                   playback requires dynamic playout; static windows are not
-                  supported. Change incompatible profiles explicitly.
+                  supported. Change incompatible profiles explicitly. Normal
+                  channels advance while unwatched; pause-on-idle is a separate
+                  channel setting.
                 </Trans>
               </Alert>
               {programming && (
@@ -797,7 +873,7 @@ export function YouTubeImportDialog({
           )}
         </Stack>
       </DialogContent>
-      <DialogActions>
+      <DialogActions sx={{ flexWrap: 'wrap', gap: 1 }}>
         <Button onClick={close}>
           <Trans>Close</Trans>
         </Button>
@@ -808,8 +884,9 @@ export function YouTubeImportDialog({
               setPending(false);
               setReview(undefined);
               setError(
-                t`Import cancelled. Your URLs were kept. You can retry.`,
+                t`Operation cancelled. Your inputs and saved programming were kept. You can retry.`,
               );
+              setPartialConfirmed(false);
             }}
           >
             <Trans>Cancel import</Trans>

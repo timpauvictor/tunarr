@@ -97,6 +97,7 @@ function YouTubeMediaSourceForm({ onClose, source }: Omit<Props, 'open'>) {
         <Stack spacing={2} sx={{ pt: 1 }}>
           <TextField
             label={t`Name`}
+            autoFocus
             value={name}
             required
             fullWidth
@@ -107,8 +108,9 @@ function YouTubeMediaSourceForm({ onClose, source }: Omit<Props, 'open'>) {
             <Trans>
               Use only content you are authorized to use. YouTube is a
               best-effort source and may stop working when upstream access
-              changes. The server needs the supported yt-dlp and JavaScript
-              runtime tools.
+              changes. Tunarr reuses its Node runtime (Node 22 or later); the
+              server needs the pinned yt-dlp companion. Account cookies, private
+              or paid videos, DRM and running livestreams are not supported.
             </Trans>
           </Alert>
           <Typography variant="body2">
@@ -128,10 +130,26 @@ function YouTubeMediaSourceForm({ onClose, source }: Omit<Props, 'open'>) {
           {testing && <LinearProgress aria-label={t`Testing YouTube setup`} />}
           {health && (
             <Alert severity={health.available ? 'success' : 'warning'}>
-              {health.message}
+              {health.available ? (
+                <Trans>
+                  YouTube extractor and Node runtime are ready. Playback has not
+                  been verified.
+                </Trans>
+              ) : (
+                <Trans>
+                  YouTube tools are unavailable. Reinstall the companions, or
+                  run pnpm download-youtube in server/ for a source checkout,
+                  then retry Test setup.
+                </Trans>
+              )}
+              {!health.available && (
+                <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>
+                  {health.message}
+                </Typography>
+              )}
               {health.extractorVersion && (
                 <Typography variant="body2">
-                  {health.extractorVersion}
+                  <Trans>yt-dlp version: {health.extractorVersion}</Trans>
                 </Typography>
               )}
             </Alert>

@@ -119,4 +119,6 @@ COPY --from=build-full-stack /tunarr/server/bin /tunarr/server/bin
 RUN mkdir /tunarr/bin
 RUN ln -s /tunarr/server/bin/meilisearch-${exec_target} /tunarr/bin/meilisearch
 RUN ln -s /tunarr/server/bin/ersatztv-channel-${exec_target} /tunarr/bin/ersatztv-channel
+RUN ln -s /tunarr/server/bin/yt-dlp-${exec_target} /tunarr/bin/yt-dlp
+# Verified upstream license texts remain in /tunarr/server/bin beside the tool.
 RUN ln -s /tunarr/server/bin/tunarr-${exec_target} /tunarr/tunarr

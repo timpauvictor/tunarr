@@ -6325,3 +6325,285 @@ msgstr ""
 #: src/components/programming_controls/AddReplicateModal.tsx
 msgid "Your list will be replicated {0} times"
 msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Add to programming"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Add to the current draft, then use normal Save to persist programming."
+msgstr ""
+
+#. placeholder {0}: input.changes.added
+#. placeholder {1}: input.changes.removed
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Added: {0}; removed: {1}"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Cancel import"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Choose intent"
+msgstr ""
+
+#. placeholder {0}: link.url
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Choose video or playlist for {0}"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Clear selection"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Collection pages"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Collection view"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Could not finish. Check the links and Test setup in Media Sources, then retry. Last complete collections and saved programming were retained."
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Could not load saved collections."
+msgstr ""
+
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "Could not save the source. Your name was kept; retry when the server is available."
+msgstr ""
+
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "Could not test setup. Check the server connection and retry."
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Creator upload order"
+msgstr ""
+
+#. placeholder {0}: Math.floor(entry.program.duration / 60000)
+#. placeholder {1}: Math.floor( (entry.program.duration % 60000) / 1000, )
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Duration: {0} min {1} sec"
+msgstr ""
+
+#: src/components/MediaSourceLibraryTable.tsx
+msgid "Edit channel programming"
+msgstr ""
+
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "Edit YouTube source"
+msgstr ""
+
+#. placeholder {0}: available.length
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Eligible: {0}; pending: {pendingCount}; unavailable: {unavailableCount}"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "I understand that excluded entries will not be added"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Import"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Import at most 50 URLs per request."
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Import details"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Import failed. Retry when the source is available."
+msgstr ""
+
+#. placeholder {0}: source.name
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Import videos, playlists or creator uploads into {0}. Input order and playlist repeats are preserved."
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/MediaSourceLibraryTable.tsx
+msgid "Import YouTube links"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Imported into the library. Playback has not been verified."
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Importing YouTube metadata"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Last successful refresh:"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Load collection"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Loading collections"
+msgstr ""
+
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "New YouTube source"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Newest first"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "No artwork available"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "No collections yet. Paste links to import one."
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "No entries to add. Saved programming was not changed."
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Oldest first"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Only import content you are authorized to use. Import saves metadata, not a video download or playback verification. Refreshing updates this library, not existing channel programming."
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Only this video"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Open video on YouTube"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Operation cancelled. Your inputs and saved programming were kept. You can retry."
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Paste links"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Pending metadata"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Refresh collection"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Repeated input was not imported twice."
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Retry loading collection"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Retry refresh"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Saved collection"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Saved collections"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Select all eligible"
+msgstr ""
+
+#. placeholder {0}: (page - 1) * 50 + index + 1
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Select occurrence {0}"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Separate audio/video inputs require transcoding. ErsatzTV playback requires dynamic playout; static windows are not supported. Change incompatible profiles explicitly. Normal channels advance while unwatched; pause-on-idle is a separate channel setting."
+msgstr ""
+
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "Test setup"
+msgstr ""
+
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "Test setup checks the server tools only. It does not play a video or verify playback. Individual imports appear in Saved Videos."
+msgstr ""
+
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "Testing YouTube setup"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "The complete playlist"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "The last refresh failed. The previous complete collection was retained."
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Unavailable entry"
+msgstr ""
+
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "Use only content you are authorized to use. YouTube is a best-effort source and may stop working when upstream access changes. Tunarr reuses its Node runtime (Node 22 or later); the server needs the pinned yt-dlp companion. Account cookies, private or paid videos, DRM and running livestreams are not supported."
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "Video import"
+msgstr ""
+
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "YouTube extractor and Node runtime are ready. Playback has not been verified."
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "YouTube import mode"
+msgstr ""
+
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "YouTube tools are unavailable. Reinstall the companions, or run pnpm download-youtube in server/ for a source checkout, then retry Test setup."
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "YouTube URLs (one per line)"
+msgstr ""
+
+#. placeholder {0}: health.extractorVersion
+#: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
+msgid "yt-dlp version: {0}"
+msgstr ""
+
+#: src/pages/settings/MediaSourceSettingsPage.tsx
+msgid "Saved Videos"
+msgstr ""
+
+#: src/pages/settings/MediaSourceSettingsPage.tsx
+msgid "Use Test setup"
+msgstr ""
+
+#: src/components/settings/media_source/AddMediaSourceButton.tsx
+msgid "YouTube"
+msgstr ""
+
+#: src/components/library/YouTubeImportDialog.tsx
+msgid "No new metadata was imported. Saved programming was not changed."
+msgstr ""

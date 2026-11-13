@@ -21,6 +21,7 @@ import serverPackage from '../package.json' with { type: 'json' };
 import { fileExists } from '../src/util/fsUtil.ts';
 import { grabEtvNext } from './download-ersatztv-next.ts';
 import { grabMeilisearch } from './download-meilisearch.ts';
+import { grabYouTube } from './download-youtube.ts';
 import { releaseArchiveEntries } from './releaseArchive.ts';
 
 const NODE_VERSION = '22.23.4';
@@ -175,6 +176,12 @@ for (const arch of args.target) {
         console.log(`ersatztv-channel found at ${etvNext.binaryPath}`);
       }
 
+      const youtube = await grabYouTube(
+        `./bin/yt-dlp-${arch}${osString === 'win' ? '.exe' : ''}`,
+        osString,
+        archString,
+      );
+
       // Untar
       await new Promise((resolve, reject) => {
         const outstream = betterSqliteDlStream.data.pipe(
@@ -273,6 +280,16 @@ for (const arch of args.target) {
           meilisearch: `./bin/meilisearch-${arch}`,
           etvNext: etvNext.binaryPath,
           etvNextCompanions: etvNext.companionPaths,
+          additionalFiles: [
+            {
+              source: youtube.binaryPath,
+              name: `yt-dlp${targetIsWindows ? '.exe' : ''}`,
+            },
+            ...youtube.noticePaths.map((source) => ({
+              source,
+              name: path.basename(source),
+            })),
+          ],
         });
         for (const { source, name } of entries) {
           archive.file(source, { name });

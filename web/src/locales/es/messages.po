@@ -4938,6 +4938,10 @@ msgstr ""
 msgid "Retry loading collection"
 msgstr ""
 
+#: src/pages/system/TroubleshootPage.tsx
+msgid "Retry playback"
+msgstr ""
+
 #: src/components/library/YouTubeImportDialog.tsx
 msgid "Retry refresh"
 msgstr ""
@@ -5622,6 +5626,14 @@ msgstr ""
 
 #: src/components/channels/ChannelSummaryQuickStats.tsx
 msgid "Stream Mode"
+msgstr ""
+
+#: src/components/Video.tsx
+msgid "Stream playback failed. Reload the stream to try again."
+msgstr ""
+
+#: src/pages/system/TroubleshootPage.tsx
+msgid "Stream playback failed. Retry playback or run the test again."
 msgstr ""
 
 #: src/components/shell/useShellNav.tsx
@@ -6731,16 +6743,4 @@ msgstr ""
 #. placeholder {0}: health.extractorVersion
 #: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
 msgid "yt-dlp version: {0}"
-msgstr ""
-
-#: src/pages/system/TroubleshootPage.tsx
-msgid "Retry playback"
-msgstr ""
-
-#: src/components/Video.tsx
-msgid "Stream playback failed. Reload the stream to try again."
-msgstr ""
-
-#: src/pages/system/TroubleshootPage.tsx
-msgid "Stream playback failed. Retry playback or run the test again."
 msgstr ""

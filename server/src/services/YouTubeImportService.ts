@@ -31,6 +31,7 @@ import {
   normalizeYouTubeUrl,
   youtubeCollectionLimit,
 } from '../external/youtube/YouTubeAdapter.ts';
+import type { YouTubeListing } from '../external/youtube/YouTubeAdapter.ts';
 import { KEYS } from '../types/inject.ts';
 import { MeilisearchService } from './MeilisearchService.ts';
 
@@ -40,6 +41,8 @@ type VideoOutcome = Pick<
   YouTubeCollectionEntry,
   'status' | 'message' | 'program'
 >;
+
+type PreparedEntry = VideoOutcome & Pick<YouTubeCollectionEntry, 'videoId'>;
 
 function collectionView(collection: ExternalCollection): YouTubeCollection {
   if (!collection.kind) {
@@ -326,50 +329,12 @@ export class YouTubeImportService {
       if (cached) {
         return cached;
       }
-      signal.throwIfAborted();
-      let program: ContentProgram | null = null;
-      if (!refresh && !individual) {
-        const stored = await this.db.query.program.findFirst({
-          where: (p, { and, eq }) =>
-            and(
-              eq(p.libraryId, library.uuid),
-              eq(p.sourceType, 'youtube'),
-              eq(p.externalKey, videoId),
-            ),
-          with: { artwork: true, externalIds: true },
-        });
-        const terminal =
-          stored && stored.duration > 0
-            ? this.converter.programDaoToTerminalProgram(stored)
-            : null;
-        if (terminal) {
-          program =
-            this.converter.materializedProgramToContentProgram(terminal);
-        }
-      }
-      let outcome: VideoOutcome;
-      try {
-        program ??= (await this.importVideo(library, videoId, signal, false))
-          .program;
-        outcome = { status: 'available', program, message: null };
-      } catch (error) {
-        signal.throwIfAborted();
-        if (
-          error instanceof YouTubeError &&
-          ['PENDING_METADATA', 'UNAVAILABLE', 'UNSUPPORTED_VIDEO'].includes(
-            error.code,
-          )
-        ) {
-          outcome = {
-            status:
-              error.code === 'PENDING_METADATA' ? 'pending' : 'unavailable',
-            program: null,
-            message: error.message,
-          };
-        } else {
-          throw error;
-        }
-      }
+      const outcome = await this.hydrateVideo(
+        library,
+        videoId,
+        signal,
+        !refresh && !individual,
+      );
       cache.set(videoId, outcome);
       return outcome;
     };
@@ -453,8 +418,7 @@ export class YouTubeImportService {
               'Import exceeds the 10000-entry job limit. Import fewer collections together.',
             );
           }
-          const snapshot: YouTubeSnapshotEntry[] = [];
-          const outcomes: VideoOutcome[] = [];
+          const preparedEntries: PreparedEntry[] = [];
           for (const [index, entry] of listing.entries.entries()) {
             signal.throwIfAborted();
             const outcome: VideoOutcome =
@@ -466,14 +430,7 @@ export class YouTubeImportService {
                     program: null,
                   }
                 : await hydrate(entry.videoId, false);
-            outcomes.push(outcome);
-            snapshot.push({
-              videoId: entry.videoId,
-              upstreamEntryId: null,
-              programId: outcome.program?.id ?? null,
-              status: outcome.status,
-              message: outcome.message,
-            });
+            preparedEntries.push({ videoId: entry.videoId, ...outcome });
             progress(
               ((inputIndex +
                 (index + 1) / Math.max(1, listing.entries.length)) /
@@ -481,45 +438,18 @@ export class YouTubeImportService {
                 100,
             );
           }
-          signal.throwIfAborted();
-          const collection = this.collections.publishYouTubeSnapshot(
-            {
-              uuid: randomUUID(),
-              mediaSourceId: library.mediaSourceId,
-              libraryId: library.uuid,
-              externalKey,
-              sourceType: 'youtube',
-              kind: listing.kind,
-              title: listing.title,
-            },
-            snapshot,
+          const { collection, entries } = await this.publishCollection(
+            library,
+            externalKey,
+            listing,
+            preparedEntries,
             signal,
           );
-          const rows = await this.collections.getOccurrencePage(
-            collection.uuid,
-            0,
-            youtubeCollectionLimit(),
-            false,
-          );
-          let entries: YouTubeCollectionEntry[] = rows.map((row, index) => {
-            const outcome = outcomes[index];
-            if (!outcome) {
-              throw new Error(
-                'Collection snapshot changed before publication.',
-              );
-            }
-            return {
-              id: row.uuid,
-              position: row.position ?? index,
-              videoId: row.videoId,
-              ...outcome,
-            };
-          });
           if (
             listing.kind === 'creator_uploads' &&
             inputs[inputIndex]?.order === 'oldest'
           ) {
-            entries = entries.reverse();
+            entries.reverse();
           }
           imports.push({
             inputIndex,
@@ -562,6 +492,105 @@ export class YouTubeImportService {
       libraryId: library.uuid,
       imports,
     };
+  }
+
+  private async hydrateVideo(
+    library: MediaSourceLibrary,
+    videoId: string,
+    signal: AbortSignal,
+    reuseStoredMetadata: boolean,
+  ): Promise<VideoOutcome> {
+    signal.throwIfAborted();
+    let program: ContentProgram | null = null;
+    if (reuseStoredMetadata) {
+      const stored = await this.db.query.program.findFirst({
+        where: (p, { and, eq }) =>
+          and(
+            eq(p.libraryId, library.uuid),
+            eq(p.sourceType, 'youtube'),
+            eq(p.externalKey, videoId),
+          ),
+        with: { artwork: true, externalIds: true },
+      });
+      const terminal =
+        stored && stored.duration > 0
+          ? this.converter.programDaoToTerminalProgram(stored)
+          : null;
+      if (terminal) {
+        program = this.converter.materializedProgramToContentProgram(terminal);
+      }
+    }
+    try {
+      program ??= (await this.importVideo(library, videoId, signal, false))
+        .program;
+      return { status: 'available', program, message: null };
+    } catch (error) {
+      signal.throwIfAborted();
+      if (
+        error instanceof YouTubeError &&
+        ['PENDING_METADATA', 'UNAVAILABLE', 'UNSUPPORTED_VIDEO'].includes(
+          error.code,
+        )
+      ) {
+        return {
+          status: error.code === 'PENDING_METADATA' ? 'pending' : 'unavailable',
+          program: null,
+          message: error.message,
+        };
+      }
+      throw error;
+    }
+  }
+
+  private async publishCollection(
+    library: MediaSourceLibrary,
+    externalKey: string,
+    listing: Pick<YouTubeListing, 'kind' | 'title'>,
+    preparedEntries: readonly PreparedEntry[],
+    signal: AbortSignal,
+  ) {
+    signal.throwIfAborted();
+    const snapshot: YouTubeSnapshotEntry[] = preparedEntries.map((entry) => ({
+      videoId: entry.videoId,
+      upstreamEntryId: null,
+      programId: entry.program?.id ?? null,
+      status: entry.status,
+      message: entry.message,
+    }));
+    const collection = this.collections.publishYouTubeSnapshot(
+      {
+        uuid: randomUUID(),
+        mediaSourceId: library.mediaSourceId,
+        libraryId: library.uuid,
+        externalKey,
+        sourceType: 'youtube',
+        kind: listing.kind,
+        title: listing.title,
+      },
+      snapshot,
+      signal,
+    );
+    const rows = await this.collections.getOccurrencePage(
+      collection.uuid,
+      0,
+      youtubeCollectionLimit(),
+      false,
+    );
+    const entries: YouTubeCollectionEntry[] = rows.map((row, index) => {
+      const prepared = preparedEntries[index];
+      if (!prepared) {
+        throw new Error('Collection snapshot changed before publication.');
+      }
+      return {
+        id: row.uuid,
+        position: row.position ?? index,
+        videoId: row.videoId,
+        status: prepared.status,
+        message: prepared.message,
+        program: prepared.program,
+      };
+    });
+    return { collection, entries };
   }
 
   private rememberIndividual(

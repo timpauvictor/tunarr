@@ -282,6 +282,36 @@ test('multi-URL import deduplicates hydration, not playlist occurrences, through
   });
   expect(programmes).toHaveLength(3);
   expect(programmes.flatMap((program) => program.versions)).toEqual([]);
+
+  // A new job may reuse persisted metadata, but a refresh must hydrate each
+  // canonical video once again without collapsing repeated occurrences.
+  const beforeReuse = metadata.mock.calls.length;
+  const reused = await importLinks(source.id, [
+    playlistUrl('PLone'),
+    playlistUrl('PLtwo'),
+  ]);
+  expect(metadata.mock.calls).toHaveLength(beforeReuse);
+  expect(reused.imports[0]?.entries.map((entry) => entry.id)).toEqual(
+    first.entries.map((entry) => entry.id),
+  );
+  metadata.mockImplementation((id) =>
+    Promise.resolve({ ...metadataFor(id), title: `Refreshed ${id}` }),
+  );
+  const refreshed = await importLinks(
+    source.id,
+    [playlistUrl('PLone'), playlistUrl('PLtwo')],
+    true,
+  );
+  expect(metadata.mock.calls).toHaveLength(beforeReuse + 3);
+  expect(refreshed.imports[0]?.entries.map((entry) => entry.id)).toEqual(
+    first.entries.map((entry) => entry.id),
+  );
+  expect(
+    refreshed.imports.flatMap((input) =>
+      input.entries.map((entry) => entry.program?.program.title),
+    ),
+  ).toEqual([a, b, a, a, c].map((id) => `Refreshed ${id}`));
+
   const beforeBrowse = metadata.mock.calls.length;
   const collections = await app.inject({
     method: 'GET',

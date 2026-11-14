@@ -20,6 +20,38 @@ import { YouTubeImportService } from '../services/YouTubeImportService.ts';
 import { YouTubeMediaRelay } from '../stream/YouTubeMediaRelay.ts';
 import type { RouterPluginAsyncCallback } from '../types/serverType.ts';
 
+function importFailure(
+  error: unknown,
+  aborted: boolean,
+): {
+  status: 400 | 409 | 503 | 500;
+  message: string;
+} {
+  if (aborted) {
+    return { status: 400, message: 'YouTube import cancelled.' };
+  }
+  if (error === E_ALREADY_LOCKED) {
+    return {
+      status: 409,
+      message:
+        'This library is busy. Wait for its current operation or cancel and retry.',
+    };
+  }
+  if (error instanceof YouTubeError) {
+    const dependency = [
+      'TOOL_UNAVAILABLE',
+      'VERSION_MISMATCH',
+      'RUNTIME_UNAVAILABLE',
+    ].includes(error.code);
+    return { status: dependency ? 503 : 400, message: error.message };
+  }
+  return {
+    status: 500,
+    message:
+      'YouTube import could not finish. Saved library data and programming were not cleared.',
+  };
+}
+
 // Fastify's async plugin contract; registration itself performs no I/O.
 // eslint-disable-next-line @typescript-eslint/require-await
 export const youtubeApi: RouterPluginAsyncCallback = async (fastify) => {
@@ -33,16 +65,24 @@ export const youtubeApi: RouterPluginAsyncCallback = async (fastify) => {
         operationId: 'getYouTubeCollections',
         tags: ['Media Source'],
         params: z.object({ id: z.string() }),
-        response: { 200: z.array(YouTubeCollectionSchema), 400: z.string() },
+        response: {
+          200: z.array(YouTubeCollectionSchema),
+          400: z.string(),
+          500: z.string(),
+        },
       },
     },
     async (request, reply) => {
       try {
         return reply.send(await imports.listCollections(request.params.id));
-      } catch {
+      } catch (error) {
         return reply
-          .status(400)
-          .send('YouTube source or library is unavailable.');
+          .status(error instanceof YouTubeError ? 400 : 500)
+          .send(
+            error instanceof YouTubeError
+              ? error.message
+              : 'Could not load saved collections. Retry the operation.',
+          );
       }
     },
   );
@@ -63,6 +103,7 @@ export const youtubeApi: RouterPluginAsyncCallback = async (fastify) => {
           200: YouTubeCollectionPageSchema,
           400: z.string(),
           409: z.string(),
+          500: z.string(),
         },
       },
     },
@@ -82,9 +123,11 @@ export const youtubeApi: RouterPluginAsyncCallback = async (fastify) => {
       } catch (error) {
         return reply
           .status(
-            error instanceof YouTubeError && error.code === 'INVALID_METADATA'
-              ? 409
-              : 400,
+            error instanceof YouTubeError
+              ? error.code === 'INVALID_METADATA'
+                ? 409
+                : 400
+              : 500,
           )
           .send(
             error instanceof YouTubeError
@@ -107,6 +150,7 @@ export const youtubeApi: RouterPluginAsyncCallback = async (fastify) => {
           400: z.string(),
           409: z.string(),
           503: z.string(),
+          500: z.string(),
         },
       },
     },
@@ -131,33 +175,8 @@ export const youtubeApi: RouterPluginAsyncCallback = async (fastify) => {
           ),
         );
       } catch (error) {
-        if (error === E_ALREADY_LOCKED) {
-          return reply
-            .status(409)
-            .send(
-              'This library is busy. Wait for its current operation or cancel and retry.',
-            );
-        }
-        if (error instanceof YouTubeError) {
-          return reply
-            .status(
-              [
-                'TOOL_UNAVAILABLE',
-                'VERSION_MISMATCH',
-                'RUNTIME_UNAVAILABLE',
-              ].includes(error.code)
-                ? 503
-                : 400,
-            )
-            .send(error.message);
-        }
-        return reply
-          .status(400)
-          .send(
-            owner.signal.aborted
-              ? 'YouTube import cancelled.'
-              : 'YouTube import could not finish. Saved library data and programming were not cleared.',
-          );
+        const failure = importFailure(error, owner.signal.aborted);
+        return reply.status(failure.status).send(failure.message);
       } finally {
         reply.raw.removeListener('close', disconnected);
       }
@@ -199,6 +218,7 @@ export const youtubeApi: RouterPluginAsyncCallback = async (fastify) => {
           400: z.string(),
           409: z.string(),
           503: z.string(),
+          500: z.string(),
         },
       },
     },
@@ -223,28 +243,8 @@ export const youtubeApi: RouterPluginAsyncCallback = async (fastify) => {
           ),
         );
       } catch (error) {
-        if (error === E_ALREADY_LOCKED) {
-          return reply
-            .status(409)
-            .send(
-              'This library is busy. Wait for its current operation or cancel and retry.',
-            );
-        }
-        if (error instanceof YouTubeError) {
-          const dependency = [
-            'TOOL_UNAVAILABLE',
-            'VERSION_MISMATCH',
-            'RUNTIME_UNAVAILABLE',
-          ].includes(error.code);
-          return reply.status(dependency ? 503 : 400).send(error.message);
-        }
-        return reply
-          .status(400)
-          .send(
-            owner.signal.aborted
-              ? 'YouTube import cancelled.'
-              : 'YouTube import could not finish. Saved library data and programming were not cleared.',
-          );
+        const failure = importFailure(error, owner.signal.aborted);
+        return reply.status(failure.status).send(failure.message);
       } finally {
         reply.raw.removeListener('close', disconnected);
       }

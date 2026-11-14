@@ -29,6 +29,8 @@ import type {
   YouTubeLinksImportResponse,
 } from '@tunarr/types/schemas';
 import { useEffect, useRef, useState } from 'react';
+import { isAxiosError } from 'axios';
+import { isNonEmptyString } from '../../helpers/util.ts';
 import { v4 } from 'uuid';
 import type { ProgrammingSelectionContextType } from '../../context/ProgrammingSelectionContext.ts';
 import {
@@ -45,6 +47,20 @@ import { Imported } from '../../helpers/constants.ts';
 import type { AddedMedia } from '../../types/index.ts';
 import { useGetArtworkUrl } from '../../hooks/useThumbnailUrl.ts';
 import { Segmented } from '../ui/Segmented.tsx';
+
+function youtubeErrorMessage(error: unknown): string | undefined {
+  if (!isAxiosError<unknown>(error)) {
+    return;
+  }
+  const response = error.response;
+  if (!response || ![400, 409, 503].includes(response.status)) {
+    return;
+  }
+  const message = isNonEmptyString(response.data)
+    ? response.data.trim()
+    : undefined;
+  return isNonEmptyString(message) ? message : undefined;
+}
 
 type ProgrammingTarget = Pick<
   ProgrammingSelectionContextType,
@@ -253,10 +269,11 @@ export function YouTubeImportDialog({
         ),
       );
       void invalidateCatalogue().catch(console.error);
-    } catch {
+    } catch (error) {
       if (isCurrent(request)) {
         setError(
-          t`Could not finish. Check the links and Test setup in Media Sources, then retry. Last complete collections and saved programming were retained.`,
+          youtubeErrorMessage(error) ??
+            t`Could not finish. Check the links and Test setup in Media Sources, then retry. Last complete collections and saved programming were retained.`,
         );
         active.current = undefined;
       }
@@ -495,7 +512,9 @@ export function YouTubeImportDialog({
                 <LinearProgress aria-label={t`Loading collections`} />
               ) : collections.isError ? (
                 <Alert severity="error">
-                  <Trans>Could not load saved collections.</Trans>
+                  {youtubeErrorMessage(collections.error) ?? (
+                    <Trans>Could not load saved collections.</Trans>
+                  )}
                   <Button
                     onClick={() => {
                       void collections.refetch();

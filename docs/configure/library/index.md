@@ -62,6 +62,10 @@ Use the import dialog's **Saved collections** tab to browse an existing collecti
 
 Enumeration must finish before collection membership is published. Cancellation, temporary failure or a safety limit retains the last complete snapshot and its successful-refresh time. Retry uses the same programme/occurrence identity, not duplicate catalogue rows. The default collection limit is 1,000 entries; administrators can set `TUNARR_YOUTUBE_MAX_COLLECTION_ENTRIES` from 1 to 10,000. A request accepts at most 50 links and 10,000 total entries. Limits produce an explicit error, never a silently shortened playlist.
 
+A Library scan checks the **Saved Videos** count before refreshing metadata. More than 10,000 occurrences stops that scan with an explicit diagnostic; it does not refresh only the first 10,000. Existing membership, the successful-refresh time and saved programming are retained. Refresh individual video links or smaller playlist/creator collections instead. Increasing `TUNARR_YOUTUBE_MAX_COLLECTION_ENTRIES` does not raise this job limit. The 50-link limit applies to HTTP import requests, not the internal scan of Saved Videos.
+
+Refresh is not a whole-library transaction: within the existing job bounds, one input can complete while another fails. Failed collection enumeration retains its previous complete snapshot. Review the result or the collection's last-refresh diagnostic before retrying. A changed-revision error requires reloading the collection review; tool errors require correcting the companion setup. Unexpected server or connection failures show a generic message rather than raw exception details.
+
 Import stores metadata, not downloaded source videos or a playback guarantee. Existing transcode/profile limitations still apply: split inputs require transcoding, and ErsatzTV requires dynamic playout. Normal linear channels advance while nobody watches. **On-Demand** is the separate, explicit pause-on-idle setting; importing YouTube does not enable it.
 
 ### Server tools

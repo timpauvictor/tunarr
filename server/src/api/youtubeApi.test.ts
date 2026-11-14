@@ -3,6 +3,11 @@ import { afterAll, beforeAll, expect, test, vi } from 'vitest';
 import type { MockInstance } from 'vitest';
 import { container } from '../container.ts';
 import { DBAccess } from '../db/DBAccess.ts';
+import { ExternalCollectionRepo } from '../db/ExternalCollectionRepo.ts';
+import { MediaSourceDB } from '../db/mediaSourceDB.ts';
+import { YouTubeImportService } from '../services/YouTubeImportService.ts';
+import { MediaSourceProgressService } from '../services/scanner/MediaSourceProgressService.ts';
+import { E_ALREADY_LOCKED } from 'async-mutex';
 import {
   YouTubeAdapter,
   YouTubeError,
@@ -201,10 +206,7 @@ async function newCollectionSource() {
     payload: { type: 'youtube', name: 'Ordered fixture', pathReplacements: [] },
   });
   expect(response.statusCode, response.body).toBe(201);
-  return response.json<{
-    id: MediaSourceId;
-    libraries: Array<{ id: string }>;
-  }>();
+  return response.json<{ id: MediaSourceId }>();
 }
 async function importLinks(sourceId: string, urls: string[], refresh = false) {
   const response = await app.inject({
@@ -479,4 +481,386 @@ test('canonical creator uploads retain identity across input aliases and expose 
       await page(source.id, collection.id, '?order=oldest&offset=2&limit=2')
     ).entries.map((entry) => entry.videoId),
   ).toEqual([a]);
+});
+
+async function savedVideoFixture() {
+  const source = await newCollectionSource();
+  const imported = await importLinks(source.id, [`https://youtu.be/${a}`]);
+  const collection = imported.imports[0]?.collection;
+  const library = await container
+    .get(MediaSourceDB)
+    .getLibrary(imported.libraryId);
+  if (!collection || !library) {
+    throw new Error('Missing Saved Videos fixture');
+  }
+  return { source, collection, library, imported };
+}
+
+test('library scan refreshes Saved Videos through the coordinator and API without replacing occurrence identities', async () => {
+  const { source, collection, library } = await savedVideoFixture();
+  const original = await page(source.id, collection.id);
+  const before = metadata.mock.calls.length;
+  metadata.mockImplementation((id) =>
+    Promise.resolve({
+      ...metadataFor(id),
+      title: 'Refreshed title',
+      durationSeconds: 90,
+    }),
+  );
+  const coordinator = container.get(MediaSourceScanCoordinator);
+  expect(
+    await coordinator.add({ libraryId: library.uuid, forceScan: true }),
+  ).toBe(true);
+  await coordinator.awaitAllFinished();
+  const refreshed = await page(source.id, collection.id);
+  expect(metadata.mock.calls.length - before).toBe(1);
+  expect(refreshed.entries.map((entry) => entry.id)).toEqual(
+    original.entries.map((entry) => entry.id),
+  );
+  expect(refreshed.entries[0]?.program).toMatchObject({
+    duration: 90000,
+    program: { title: 'Refreshed title' },
+  });
+  expect(refreshed.collection.revision).not.toBe(original.collection.revision);
+  expect(refreshed.collection.lastRefreshError).toBeNull();
+  expect(
+    container.get(MediaSourceProgressService).getScanProgress(library.uuid),
+  ).toEqual({ state: 'not_scanning' });
+});
+
+test.each([0, 51, 10000])(
+  'Saved Videos prepares all %i rows within the bound, independently of the HTTP 50-link limit',
+  async (count) => {
+    const { library, collection, imported } = await savedVideoFixture();
+    const repo = container.get(ExternalCollectionRepo);
+    const [template] = await repo.getOccurrencePage(collection.id, 0, 1, false);
+    if (!template) {
+      throw new Error('Missing saved occurrence');
+    }
+    const rows = Array.from({ length: count }, (_, index) => ({
+      ...template,
+      uuid: `entry-${index}`,
+      videoId: `v${index.toString().padStart(10, '0')}`,
+      program: null,
+    }));
+    const countSpy = vi
+      .spyOn(ExternalCollectionRepo.prototype, 'getOccurrenceCount')
+      .mockResolvedValue(count);
+    const rowsSpy = vi
+      .spyOn(ExternalCollectionRepo.prototype, 'getOccurrencePage')
+      .mockResolvedValue(rows);
+    const service = container.get(YouTubeImportService);
+    const importSpy = vi
+      .spyOn(service, 'importLinks')
+      .mockResolvedValue({ ...imported, imports: [] });
+    const progress = vi.fn();
+    try {
+      await service.refresh(library, new AbortController().signal, progress);
+      expect(rowsSpy).toHaveBeenCalledWith(collection.id, 0, 10001, false);
+      if (count === 0) {
+        expect(importSpy).not.toHaveBeenCalled();
+        expect(progress).toHaveBeenCalledWith(100);
+      } else {
+        expect(importSpy).toHaveBeenCalledOnce();
+        expect(importSpy.mock.calls[0]?.[1].map((input) => input.url)).toEqual(
+          rows.map((row) => `https://www.youtube.com/watch?v=${row.videoId}`),
+        );
+        expect(importSpy.mock.calls[0]?.[4]).toBe(true);
+      }
+    } finally {
+      countSpy.mockRestore();
+      rowsSpy.mockRestore();
+      importSpy.mockRestore();
+    }
+  },
+);
+
+test.each(['known oversized', 'grew after count'] as const)(
+  'Saved Videos %s fails before metadata work and retains the last complete snapshot',
+  async (scenario) => {
+    const { source, library, collection } = await savedVideoFixture();
+    const repo = container.get(ExternalCollectionRepo);
+    const [template] = await repo.getOccurrencePage(collection.id, 0, 1, false);
+    if (!template) {
+      throw new Error('Missing saved occurrence');
+    }
+    if (scenario === 'known oversized') {
+      repo.publishYouTubeSnapshot(
+        {
+          uuid: collection.id,
+          mediaSourceId: source.id,
+          libraryId: library.uuid,
+          externalKey: collection.externalKey,
+          sourceType: 'youtube',
+          kind: 'saved_videos',
+          title: collection.title,
+        },
+        Array.from({ length: 10001 }, (_, index) => ({
+          videoId: index === 0 ? a : `v${index.toString().padStart(10, '0')}`,
+          upstreamEntryId: null,
+          programId: null,
+          status: 'pending' as const,
+          message: 'Waiting for metadata.',
+        })),
+        new AbortController().signal,
+      );
+    }
+    const original = await page(source.id, collection.id);
+    const countSpy = vi.spyOn(
+      ExternalCollectionRepo.prototype,
+      'getOccurrenceCount',
+    );
+    if (scenario === 'grew after count') {
+      countSpy.mockResolvedValue(10000);
+    }
+    const rowsSpy = vi.spyOn(
+      ExternalCollectionRepo.prototype,
+      'getOccurrencePage',
+    );
+    if (scenario === 'grew after count') {
+      const grown = Array.from({ length: 10001 }, (_, index) => ({
+        ...template,
+        uuid: `grown-${index}`,
+        videoId: `v${index.toString().padStart(10, '0')}`,
+        program: null,
+      }));
+      rowsSpy.mockImplementation((_id, offset, limit) =>
+        Promise.resolve(grown.slice(offset, offset + limit)),
+      );
+    }
+    const before = metadata.mock.calls.length;
+    const importSpy = vi
+      .spyOn(container.get(YouTubeImportService), 'importLinks')
+      .mockResolvedValue({
+        sourceId: source.id,
+        libraryId: library.uuid,
+        imports: [],
+      });
+    try {
+      const coordinator = container.get(MediaSourceScanCoordinator);
+      expect(
+        await coordinator.add({ libraryId: library.uuid, forceScan: true }),
+      ).toBe(true);
+      await coordinator.awaitAllFinished();
+      expect(importSpy).not.toHaveBeenCalled();
+      expect(metadata.mock.calls).toHaveLength(before);
+      if (scenario === 'known oversized') {
+        expect(rowsSpy).not.toHaveBeenCalled();
+        expect(original.total).toBe(10001);
+      }
+      expect(
+        container.get(MediaSourceProgressService).getScanProgress(library.uuid),
+      ).toEqual({ state: 'not_scanning' });
+    } finally {
+      countSpy.mockRestore();
+      rowsSpy.mockRestore();
+      importSpy.mockRestore();
+    }
+    const retained = await page(source.id, collection.id);
+    expect(retained.collection.revision).toBe(original.collection.revision);
+    expect(retained.collection.lastSuccessfulRefreshAt).toBe(
+      original.collection.lastSuccessfulRefreshAt,
+    );
+    expect(retained.total).toBe(original.total);
+    expect(retained.entries).toEqual(original.entries);
+    expect(retained.collection.lastRefreshError).toMatch(
+      /10000-entry refresh limit/,
+    );
+    expect(
+      await container
+        .get(MediaSourceScanCoordinator)
+        .importYouTubeLinks(
+          source.id,
+          [{ url: `https://youtu.be/${a}`, order: 'newest' }],
+          new AbortController().signal,
+        ),
+    ).toMatchObject({ imports: [{ status: 'complete' }] });
+  },
+);
+
+test('cancelled refresh preparation neither starts imports nor records a safety failure', async () => {
+  const { library, collection } = await savedVideoFixture();
+  const owner = new AbortController();
+  const countSpy = vi
+    .spyOn(ExternalCollectionRepo.prototype, 'getOccurrenceCount')
+    .mockImplementation(async () => {
+      owner.abort();
+      return 10001;
+    });
+  const recordSpy = vi.spyOn(
+    ExternalCollectionRepo.prototype,
+    'recordYouTubeRefreshFailure',
+  );
+  const importSpy = vi.spyOn(
+    container.get(YouTubeImportService),
+    'importLinks',
+  );
+  try {
+    await expect(
+      container
+        .get(YouTubeImportService)
+        .refresh(library, owner.signal, vi.fn()),
+    ).rejects.toThrow();
+    expect(countSpy).toHaveBeenCalledWith(collection.id);
+    expect(recordSpy).not.toHaveBeenCalled();
+    expect(importSpy).not.toHaveBeenCalled();
+  } finally {
+    countSpy.mockRestore();
+    recordSpy.mockRestore();
+    importSpy.mockRestore();
+  }
+});
+
+test('mixed background refresh failures are not falsely classified as network errors', async () => {
+  const { library, imported } = await savedVideoFixture();
+  const failure = vi
+    .spyOn(container.get(YouTubeImportService), 'importLinks')
+    .mockResolvedValue({
+      ...imported,
+      imports: imported.imports.map((input) => ({
+        ...input,
+        status: 'failed',
+        message: 'Safety limit exceeded.',
+      })),
+    });
+  try {
+    await expect(
+      container
+        .get(YouTubeImportService)
+        .refresh(library, new AbortController().signal, vi.fn()),
+    ).rejects.toMatchObject({
+      name: 'Error',
+      message: expect.stringContaining('Some metadata refreshes failed'),
+    });
+  } finally {
+    failure.mockRestore();
+  }
+});
+
+test.each(['list', 'page', 'video', 'links'] as const)(
+  '%s API returns a safe string 500 for unexpected exceptions',
+  async (operation) => {
+    const service = container.get(YouTubeImportService);
+    const coordinator = container.get(MediaSourceScanCoordinator);
+    const failure =
+      operation === 'list'
+        ? vi.spyOn(service, 'listCollections')
+        : operation === 'page'
+          ? vi.spyOn(service, 'collectionPage')
+          : operation === 'video'
+            ? vi.spyOn(coordinator, 'importYouTubeVideo')
+            : vi.spyOn(coordinator, 'importYouTubeLinks');
+    failure.mockRejectedValueOnce(
+      new Error('Internal SQL details https://private.invalid/?token=secret'),
+    );
+    try {
+      const response = await app.inject({
+        method: operation === 'list' || operation === 'page' ? 'GET' : 'POST',
+        url: `/api/media-sources/missing/youtube/${operation === 'list' ? 'collections' : operation === 'page' ? 'collections/missing/entries' : operation === 'video' ? 'import' : 'imports'}`,
+        payload:
+          operation === 'video'
+            ? { url: `https://youtu.be/${a}` }
+            : operation === 'links'
+              ? { inputs: [{ url: `https://youtu.be/${a}` }] }
+              : undefined,
+      });
+      expect(response.statusCode, response.body).toBe(500);
+      expect(response.headers['content-type']).toContain('text/plain');
+      expect(response.body).not.toMatch(
+        /Internal SQL|private\.invalid|token=secret/,
+      );
+    } finally {
+      failure.mockRestore();
+    }
+  },
+);
+
+test.each(['import', 'imports'] as const)(
+  '%s API preserves expected dependency, busy, cancellation and unavailable-source failures',
+  async (route) => {
+    const coordinator = container.get(MediaSourceScanCoordinator);
+    const payload =
+      route === 'import'
+        ? { url: `https://youtu.be/${a}` }
+        : { inputs: [{ url: `https://youtu.be/${a}` }] };
+    const unavailable = await app.inject({
+      method: 'POST',
+      url: `/api/media-sources/missing/youtube/${route}`,
+      payload,
+    });
+    expect(unavailable.statusCode, unavailable.body).toBe(400);
+    for (const { error, status } of [
+      {
+        error: new YouTubeError(
+          'TOOL_UNAVAILABLE',
+          'Reinstall the companion tool.',
+        ),
+        status: 503,
+      },
+      {
+        error: new YouTubeError(
+          'VERSION_MISMATCH',
+          'Install the matching version.',
+        ),
+        status: 503,
+      },
+      {
+        error: new YouTubeError(
+          'RUNTIME_UNAVAILABLE',
+          'Check the JavaScript runtime.',
+        ),
+        status: 503,
+      },
+      {
+        error: new YouTubeError('CANCELLED', 'YouTube operation cancelled.'),
+        status: 400,
+      },
+      { error: E_ALREADY_LOCKED, status: 409 },
+    ]) {
+      const failure =
+        route === 'import'
+          ? vi.spyOn(coordinator, 'importYouTubeVideo')
+          : vi.spyOn(coordinator, 'importYouTubeLinks');
+      failure.mockRejectedValueOnce(error);
+      try {
+        const response = await app.inject({
+          method: 'POST',
+          url: `/api/media-sources/missing/youtube/${route}`,
+          payload,
+        });
+        expect(response.statusCode, response.body).toBe(status);
+        expect(response.body).toBe(
+          error === E_ALREADY_LOCKED
+            ? 'This library is busy. Wait for its current operation or cancel and retry.'
+            : error.message,
+        );
+      } finally {
+        failure.mockRestore();
+      }
+    }
+  },
+);
+
+test('library disappearance after queue admission remains a client error and releases the library', async () => {
+  const { source } = await savedVideoFixture();
+  const unavailable = vi
+    .spyOn(MediaSourceDB.prototype, 'getLibrary')
+    .mockResolvedValueOnce(undefined);
+  try {
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/media-sources/${source.id}/youtube/import`,
+      payload: { url: `https://youtu.be/${a}` },
+    });
+    expect(response.statusCode, response.body).toBe(400);
+    expect(response.body).toBe('YouTube library is unavailable.');
+  } finally {
+    unavailable.mockRestore();
+  }
+  const retried = await app.inject({
+    method: 'POST',
+    url: `/api/media-sources/${source.id}/youtube/import`,
+    payload: { url: `https://youtu.be/${a}` },
+  });
+  expect(retried.statusCode, retried.body).toBe(200);
 });

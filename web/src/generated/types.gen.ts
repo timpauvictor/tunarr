@@ -10076,6 +10076,10 @@ export type GetYouTubeCollectionsErrors = {
      * Default Response
      */
     400: string;
+    /**
+     * Default Response
+     */
+    500: string;
 };
 
 export type GetYouTubeCollectionsError = GetYouTubeCollectionsErrors[keyof GetYouTubeCollectionsErrors];
@@ -10122,6 +10126,10 @@ export type GetYouTubeCollectionEntriesErrors = {
      * Default Response
      */
     409: string;
+    /**
+     * Default Response
+     */
+    500: string;
 };
 
 export type GetYouTubeCollectionEntriesError = GetYouTubeCollectionEntriesErrors[keyof GetYouTubeCollectionEntriesErrors];
@@ -10189,6 +10197,10 @@ export type ImportYouTubeLinksErrors = {
      * Default Response
      */
     409: string;
+    /**
+     * Default Response
+     */
+    500: string;
     /**
      * Default Response
      */
@@ -10286,6 +10298,10 @@ export type ImportYouTubeVideoErrors = {
      * Default Response
      */
     409: string;
+    /**
+     * Default Response
+     */
+    500: string;
     /**
      * Default Response
      */

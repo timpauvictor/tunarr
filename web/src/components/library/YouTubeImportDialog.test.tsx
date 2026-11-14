@@ -5,6 +5,7 @@ import type {
   YouTubeLinksImportResponse,
 } from '@tunarr/types/schemas';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { AxiosError, AxiosHeaders } from 'axios';
 import type { ProgrammingSelectionContextType } from '../../context/ProgrammingSelectionContext.ts';
 import type * as Sdk from '../../generated/sdk.gen.ts';
 import { Imported } from '../../helpers/constants.ts';
@@ -126,6 +127,22 @@ function deferred() {
     resolve: (value: ReturnType<typeof response>) => settle(value),
   };
 }
+function apiFailure(status: number, data: unknown) {
+  return new AxiosError(
+    'Internal transport detail https://private.invalid/?token=secret',
+    'ERR_BAD_RESPONSE',
+    undefined,
+    undefined,
+    {
+      status,
+      statusText: 'Fixture failure',
+      data,
+      headers: {},
+      config: { headers: new AxiosHeaders() },
+    },
+  );
+}
+
 function programmingTarget() {
   return {
     entityType: 'channel',
@@ -143,6 +160,80 @@ describe('shared YouTube import and collection SDK boundary', () => {
     boundary.collections.mockReset().mockResolvedValue({ data: [] });
     boundary.page.mockReset();
     boundary.pathname = '/channels/channel-1/programming/add';
+  });
+
+  test('shows safe tool failure detail and retries the retained draft through the SDK boundary', async () => {
+    boundary.importLinks
+      .mockRejectedValueOnce(
+        apiFailure(503, 'Install the matching companion tool, then retry.'),
+      )
+      .mockResolvedValueOnce(response());
+    const target = programmingTarget();
+    const { user } = renderWithProviders(
+      <YouTubeImportDialog
+        open
+        source={source}
+        onClose={vi.fn()}
+        programming={target}
+      />,
+    );
+    await pasteLinks(user, url);
+    await user.click(screen.getByRole('button', { name: 'Import' }));
+    expect(
+      (
+        await screen.findByText(
+          'Install the matching companion tool, then retry.',
+        )
+      ).closest('[role="alert"]'),
+    ).toHaveFocus();
+    expect(screen.getByLabelText(label)).toHaveValue(url);
+    expect(
+      screen.queryByText(/Internal transport detail|token=secret/),
+    ).not.toBeInTheDocument();
+    expect(target.onAddSelectedMedia).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+    await screen.findByText('A finite video');
+    expect(boundary.importLinks).toHaveBeenCalledTimes(2);
+    expect(target.onAddSelectedMedia).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    apiFailure(500, 'Internal SQL details token=secret'),
+    apiFailure(400, { message: 'Internal SQL details token=secret' }),
+    apiFailure(409, '  '),
+    apiFailure(401, 'Internal SQL details token=secret'),
+    new AxiosError('Internal SQL details token=secret', 'ERR_NETWORK'),
+    new Error('Internal SQL details token=secret'),
+  ])(
+    'uses a safe fallback for unexpected or malformed failure %#',
+    async (error) => {
+      boundary.importLinks.mockRejectedValueOnce(error);
+      const { user } = renderWithProviders(
+        <YouTubeImportDialog open source={source} onClose={vi.fn()} />,
+      );
+      await pasteLinks(user, url);
+      await user.click(screen.getByRole('button', { name: 'Import' }));
+      await screen.findByText(/Could not finish\. Check the links/);
+      expect(
+        screen.queryByText(/Internal SQL|token=secret/),
+      ).not.toBeInTheDocument();
+      expect(screen.getByLabelText(label)).toHaveValue(url);
+    },
+  );
+
+  test('saved collections exposes the safe source failure and retains its existing retry action', async () => {
+    boundary.collections.mockRejectedValueOnce(
+      apiFailure(400, 'YouTube source or library is unavailable.'),
+    );
+    const { user } = renderWithProviders(
+      <YouTubeImportDialog open source={source} onClose={vi.fn()} />,
+    );
+    await user.click(screen.getByRole('tab', { name: 'Saved collections' }));
+    await screen.findByText('YouTube source or library is unavailable.');
+    boundary.collections.mockResolvedValue({ data: [collection] });
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+    await screen.findByRole('button', { name: 'Load collection' });
+    expect(boundary.importLinks).not.toHaveBeenCalled();
   });
 
   test('pastes and imports a URL without the secure-context randomUUID API', async () => {
@@ -511,7 +602,12 @@ describe('shared YouTube import and collection SDK boundary', () => {
           entries: [entry('one')],
         },
       })
-      .mockRejectedValueOnce(new Error('Collection changed while paging'));
+      .mockRejectedValueOnce(
+        apiFailure(
+          409,
+          'Collection changed while paging. Reload it before adding.',
+        ),
+      );
     const target = programmingTarget(),
       { user } = renderWithProviders(
         <YouTubeImportDialog
@@ -524,7 +620,9 @@ describe('shared YouTube import and collection SDK boundary', () => {
     await user.click(screen.getByRole('tab', { name: 'Saved collections' }));
     await screen.findByRole('button', { name: 'Load collection' });
     await user.click(screen.getByRole('button', { name: 'Load collection' }));
-    await screen.findByText(/Could not finish\. Check the links/);
+    await screen.findByText(
+      'Collection changed while paging. Reload it before adding.',
+    );
     await waitFor(() => expect(boundary.page).toHaveBeenCalledTimes(2));
     expect(
       screen.getByRole('button', { name: 'Add to programming' }),

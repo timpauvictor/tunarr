@@ -6,6 +6,7 @@ import type {
   YouTubeLinksImportResponse,
 } from '@tunarr/types/schemas';
 import { YouTubeImportService } from '../YouTubeImportService.ts';
+import { YouTubeError } from '../../external/youtube/YouTubeAdapter.ts';
 import type { MediaSourceLibrary } from '../../db/schema/MediaSourceLibrary.ts';
 import { PlexRatingsRefreshService } from './PlexRatingsRefreshService.ts';
 import { E_ALREADY_LOCKED, tryAcquire } from 'async-mutex';
@@ -278,7 +279,10 @@ export class MediaSourceScanCoordinator {
       !library.enabled ||
       library.unavailableSince
     ) {
-      throw new Error('YouTube source or Saved Videos library is unavailable.');
+      throw new YouTubeError(
+        'INVALID_URL',
+        'YouTube source or Saved Videos library is unavailable.',
+      );
     }
     const operation = await this.queueYouTubeOperation(
       library,
@@ -305,7 +309,10 @@ export class MediaSourceScanCoordinator {
       !library.enabled ||
       library.unavailableSince
     ) {
-      throw new Error('YouTube source or Saved Videos library is unavailable.');
+      throw new YouTubeError(
+        'INVALID_URL',
+        'YouTube source or Saved Videos library is unavailable.',
+      );
     }
     const operation = await this.queueYouTubeOperation(
       library,
@@ -385,7 +392,10 @@ export class MediaSourceScanCoordinator {
                 !current.enabled ||
                 current.unavailableSince
               ) {
-                throw new Error('YouTube library is unavailable.');
+                throw new YouTubeError(
+                  'INVALID_URL',
+                  'YouTube library is unavailable.',
+                );
               }
               controller.signal.throwIfAborted();
               this.progressService.scanStarted(library.uuid);

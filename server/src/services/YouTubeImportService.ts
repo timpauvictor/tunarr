@@ -34,6 +34,8 @@ import {
 import { KEYS } from '../types/inject.ts';
 import { MeilisearchService } from './MeilisearchService.ts';
 
+const MaxImportEntries = 10000;
+
 type VideoOutcome = Pick<
   YouTubeCollectionEntry,
   'status' | 'message' | 'program'
@@ -397,7 +399,7 @@ export class YouTubeImportService {
       try {
         if (input.kind === 'video') {
           totalEntries++;
-          if (totalEntries > 10000) {
+          if (totalEntries > MaxImportEntries) {
             throw new YouTubeError(
               'SAFETY_LIMIT',
               'Import exceeds the 10000-entry job limit. Import fewer collections together.',
@@ -445,7 +447,7 @@ export class YouTubeImportService {
           }
           seen.add(canonicalKey);
           totalEntries += listing.entries.length;
-          if (totalEntries > 10000) {
+          if (totalEntries > MaxImportEntries) {
             throw new YouTubeError(
               'SAFETY_LIMIT',
               'Import exceeds the 10000-entry job limit. Import fewer collections together.',
@@ -674,9 +676,36 @@ export class YouTubeImportService {
     signal: AbortSignal,
     progress: (percent: number) => void,
   ): Promise<void> {
+    signal.throwIfAborted();
     const collections = await this.collections.getByLibraryId(library.uuid);
+    const rejectOversizedSavedVideos = async (
+      collection: ExternalCollection,
+    ) => {
+      signal.throwIfAborted();
+      const message = `Saved Videos exceeds the ${MaxImportEntries}-entry refresh limit. Refresh individual videos or smaller collections instead. The last complete collection and saved programming were retained.`;
+      await this.collections.recordYouTubeRefreshFailure(
+        library.mediaSourceId,
+        collection.externalKey,
+        message,
+      );
+      throw new YouTubeError('SAFETY_LIMIT', message);
+    };
+    // Reject known oversized work before refreshing any input in this library.
+    for (const collection of collections) {
+      signal.throwIfAborted();
+      if (collection.kind === 'saved_videos') {
+        const count = await this.collections.getOccurrenceCount(
+          collection.uuid,
+        );
+        signal.throwIfAborted();
+        if (count > MaxImportEntries) {
+          await rejectOversizedSavedVideos(collection);
+        }
+      }
+    }
     const inputs: YouTubeLinkInput[] = [];
     for (const collection of collections) {
+      signal.throwIfAborted();
       if (collection.kind === 'playlist') {
         inputs.push({
           url: `https://www.youtube.com/playlist?list=${collection.externalKey.slice('playlist:'.length)}`,
@@ -691,9 +720,13 @@ export class YouTubeImportService {
         const rows = await this.collections.getOccurrencePage(
           collection.uuid,
           0,
-          10000,
+          MaxImportEntries + 1,
           false,
         );
+        signal.throwIfAborted();
+        if (rows.length > MaxImportEntries) {
+          await rejectOversizedSavedVideos(collection);
+        }
         for (const row of rows) {
           const id = row.videoId ?? row.program?.externalKey;
           if (id) {
@@ -717,8 +750,7 @@ export class YouTubeImportService {
       true,
     );
     if (result.imports.some((input) => input.status === 'failed')) {
-      throw new YouTubeError(
-        'NETWORK',
+      throw new Error(
         'Some metadata refreshes failed. Their last complete collection snapshots and all saved programming were retained.',
       );
     }

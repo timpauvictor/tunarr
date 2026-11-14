@@ -34,7 +34,7 @@ Choose how long (in seconds) the test transcode should run. The default is **30 
 Click **Run Troubleshooter**. The tool will:
 
 1. Gather system information (Tunarr version, FFmpeg version, platform, available hardware accelerators).
-2. Fetch media stream details from your media source (Plex, Jellyfin, Emby, or local files).
+2. Fetch media stream details from your media source (Plex, Jellyfin, Emby, YouTube, or local files).
 3. Evaluate stream selection rules to determine which audio and subtitle streams are chosen.
 4. Build the FFmpeg transcoding pipeline — the exact same pipeline used during real playback.
 5. Execute a short test transcode using a random segment of the media file.
@@ -45,6 +45,8 @@ Click **Run Troubleshooter**. The tool will:
 On a channel's Watch page, **Load Stream** starts playback when automatic playback is disabled. Changing channels does not carry that manual-start choice to the next channel. **Reload Stream** replaces the current player. Leaving the page releases the browser player and its requests; server transcoding stops according to the normal session cleanup rules, not necessarily immediately.
 
 If a troubleshooter preview reports a playback failure, **Retry playback** opens the same diagnostic session without running another test. If the session has expired, use **Run Troubleshooter** again. Starting another test or leaving the page releases the previous preview player. A successful test transcode does not guarantee that the browser preview will play.
+
+For YouTube, an explicit troubleshooter test can resolve stream inputs and temporarily read media. Metadata import, saved-collection browsing and **Test setup** do not verify playback. Check the channel's compatible transcoding profile and worker mode; see [YouTube recovery](../configure/library/index.md#recovery) for import, collection and playback failures. **Reload Stream** and **Retry playback** recover their browser players, not collection imports or refreshes.
 
 ## Understanding the Results
 

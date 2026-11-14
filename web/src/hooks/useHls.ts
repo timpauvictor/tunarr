@@ -1,18 +1,38 @@
 import type { HlsConfig } from 'hls.js';
 import Hls from 'hls.js';
-import { useCallback, useState } from 'react';
-
-const hlsSupported = Hls.isSupported();
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export const useHls = (userConfig?: Partial<HlsConfig>) => {
-  const [hls, setHls] = useState<Hls | null>(null);
+  const playerRef = useRef<Hls | null>(null);
+  const mountedRef = useRef(false);
+  const [fatalError, setFatalError] = useState(false);
 
-  const refreshHls = useCallback(() => {
-    if (!hlsSupported) {
-      return;
-    }
+  const destroyPlayer = useCallback(() => {
+    const player = playerRef.current;
+    playerRef.current = null;
+    player?.destroy();
+  }, []);
 
-    const newHls = new Hls({
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      destroyPlayer();
+    };
+  }, [destroyPlayer]);
+
+  const disposeHls = useCallback(() => {
+    destroyPlayer();
+    setFatalError(false);
+  }, [destroyPlayer]);
+
+  const resetHls = useCallback(() => {
+    // A late diagnostic response must not acquire a new player after unmount.
+    if (!mountedRef.current) return;
+    disposeHls();
+    if (!Hls.isSupported()) return;
+
+    const player = new Hls({
       progressive: true,
       fragLoadingTimeOut: 30000,
       manifestLoadPolicy: {
@@ -38,35 +58,18 @@ export const useHls = (userConfig?: Partial<HlsConfig>) => {
       debug: import.meta.env.DEV,
       ...(userConfig ?? {}),
     });
+    playerRef.current = player;
 
-    newHls.on(Hls.Events.MANIFEST_PARSED, function (_, data) {
-      console.debug(
-        'manifest loaded, found ' + data.levels.length + ' quality level',
-      );
+    player.on(Hls.Events.ERROR, (_, data) => {
+      // HLS owns nonfatal recovery. A terminal error needs an explicit retry,
+      // and an old player's late event must not stop its replacement.
+      if (playerRef.current !== player || !data.fatal) return;
+      destroyPlayer();
+      setFatalError(true);
     });
 
-    newHls.on(Hls.Events.ERROR, (_, data) => {
-      console.error('HLS error', data);
-    });
+    return player;
+  }, [userConfig, disposeHls, destroyPlayer]);
 
-    newHls.on(Hls.Events.MEDIA_ATTACHED, function () {
-      console.debug('video and hls.js are now bound together !');
-    });
-
-    setHls(newHls);
-    return newHls;
-  }, [userConfig]);
-
-  const resetHls = useCallback(() => {
-    setHls((prev) => {
-      prev?.destroy();
-      return null;
-    });
-    return refreshHls();
-  }, [refreshHls]);
-
-  return {
-    hls,
-    resetHls,
-  };
+  return { resetHls, disposeHls, fatalError };
 };

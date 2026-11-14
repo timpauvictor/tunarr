@@ -2966,6 +2966,7 @@ msgid "HLS Direct Output Format"
 msgstr "HLS Direct Output Format"
 
 #: src/components/Video.tsx
+#: src/pages/system/TroubleshootPage.tsx
 msgid "HLS not supported in this browser!"
 msgstr "HLS not supported in this browser!"
 
@@ -6733,3 +6734,15 @@ msgstr "YouTube URLs (one per line)"
 #: src/components/settings/media_source/YouTubeMediaSourceDialog.tsx
 msgid "yt-dlp version: {0}"
 msgstr "yt-dlp version: {0}"
+
+#: src/pages/system/TroubleshootPage.tsx
+msgid "Retry playback"
+msgstr "Retry playback"
+
+#: src/components/Video.tsx
+msgid "Stream playback failed. Reload the stream to try again."
+msgstr "Stream playback failed. Reload the stream to try again."
+
+#: src/pages/system/TroubleshootPage.tsx
+msgid "Stream playback failed. Retry playback or run the test again."
+msgstr "Stream playback failed. Retry playback or run the test again."

@@ -40,6 +40,12 @@ Click **Run Troubleshooter**. The tool will:
 5. Execute a short test transcode using a random segment of the media file.
 6. If the transcode succeeds, play back the result in the browser as a preview.
 
+## Browser Playback
+
+On a channel's Watch page, **Load Stream** starts playback when automatic playback is disabled. Changing channels does not carry that manual-start choice to the next channel. **Reload Stream** replaces the current player. Leaving the page releases the browser player and its requests; server transcoding stops according to the normal session cleanup rules, not necessarily immediately.
+
+If a troubleshooter preview reports a playback failure, **Retry playback** opens the same diagnostic session without running another test. If the session has expired, use **Run Troubleshooter** again. Starting another test or leaving the page releases the previous preview player. A successful test transcode does not guarantee that the browser preview will play.
+
 ## Understanding the Results
 
 After the troubleshooter finishes, the results are displayed in expandable sections:

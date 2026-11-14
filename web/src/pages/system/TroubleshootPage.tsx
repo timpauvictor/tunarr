@@ -210,25 +210,18 @@ export const TroubleshootPage = ({
 
   const result = troubleshootMutation.data?.data;
 
-  const { resetHls } = useHls({ startPosition: 0 });
+  const { resetHls, disposeHls, fatalError } = useHls({ startPosition: 0 });
 
   const startPlayback = useCallback(
     (sessionId: string) => {
-      if (!Hls.isSupported()) return;
-
-      const hls = resetHls();
-
-      hls!.on(Hls.Events.ERROR, (_, data) => {
-        console.error('HLS error', data);
-      });
+      const video = videoRef.current;
+      if (!video) return;
+      const player = resetHls();
+      if (!player) return;
 
       const url = `${backendUri}/api/troubleshoot/stream/${sessionId}/live.m3u8`;
-      hls!.loadSource(url);
-
-      if (videoRef.current) {
-        hls!.attachMedia(videoRef.current);
-      }
-      // TODO: snackbar?
+      player.loadSource(url);
+      player.attachMedia(video);
     },
     [backendUri, resetHls],
   );
@@ -236,6 +229,7 @@ export const TroubleshootPage = ({
   const handleRun = () => {
     if (!selectedProgram || !selectedChannelId) return;
 
+    disposeHls();
     troubleshootMutation.mutate({
       programId: selectedProgram.uuid,
       channelId: selectedChannelId,
@@ -411,6 +405,26 @@ export const TroubleshootPage = ({
           <Typography variant="h6" sx={{ mb: 1 }}>
             <Trans>Test Playback</Trans>
           </Typography>
+          {!Hls.isSupported() && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              <Trans>HLS not supported in this browser!</Trans>
+            </Alert>
+          )}
+          {fatalError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              <Trans>
+                Stream playback failed. Retry playback or run the test again.
+              </Trans>
+              <Button
+                onClick={() => {
+                  const sessionId = result?.testTranscode?.hlsSessionId;
+                  if (sessionId) startPlayback(sessionId);
+                }}
+              >
+                <Trans>Retry playback</Trans>
+              </Button>
+            </Alert>
+          )}
           <Box
             sx={{
               width: '100%',

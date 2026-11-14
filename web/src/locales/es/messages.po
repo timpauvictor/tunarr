@@ -581,7 +581,7 @@ msgstr ""
 msgid "Add to programming"
 msgstr ""
 
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "Add to the current draft, then use normal Save to persist programming."
 msgstr ""
 
@@ -606,7 +606,7 @@ msgstr ""
 
 #. placeholder {0}: input.changes.added
 #. placeholder {1}: input.changes.removed
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "Added: {0}; removed: {1}"
 msgstr ""
 
@@ -1349,7 +1349,7 @@ msgstr ""
 msgid "Clear Schedule"
 msgstr ""
 
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "Clear selection"
 msgstr ""
 
@@ -1379,11 +1379,11 @@ msgstr ""
 msgid "Codec"
 msgstr ""
 
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "Collection pages"
 msgstr ""
 
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "Collection view"
 msgstr ""
 
@@ -1597,7 +1597,7 @@ msgstr ""
 msgid "Could not cancel emptying the trash."
 msgstr ""
 
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/hooks/media-sources/useYouTubeImport.ts
 msgid "Could not finish. Check the links and Test setup in Media Sources, then retry. Last complete collections and saved programming were retained."
 msgstr ""
 
@@ -2088,8 +2088,8 @@ msgid "Duration must be numeric"
 msgstr ""
 
 #. placeholder {0}: Math.floor(entry.program.duration / 60000)
-#. placeholder {1}: Math.floor( (entry.program.duration % 60000) / 1000, )
-#: src/components/library/YouTubeImportDialog.tsx
+#. placeholder {1}: Math.floor((entry.program.duration % 60000) / 1000)
+#: src/components/library/YouTubeImportReview.tsx
 msgid "Duration: {0} min {1} sec"
 msgstr ""
 
@@ -2203,7 +2203,7 @@ msgid "Editing Smart Collection \"{0}\""
 msgstr ""
 
 #. placeholder {0}: available.length
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "Eligible: {0}; pending: {pendingCount}; unavailable: {unavailableCount}"
 msgstr ""
 
@@ -2886,7 +2886,7 @@ msgid "Go to previous page"
 msgstr ""
 
 #: src/components/base/ProgramViewToggleButton.tsx
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "Grid"
 msgstr ""
 
@@ -2998,7 +2998,7 @@ msgstr ""
 msgid "HW Acceleration"
 msgstr ""
 
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "I understand that excluded entries will not be added"
 msgstr ""
 
@@ -3063,11 +3063,11 @@ msgstr ""
 msgid "Import at most 50 URLs per request."
 msgstr ""
 
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "Import details"
 msgstr ""
 
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "Import failed. Retry when the source is available."
 msgstr ""
 
@@ -3082,7 +3082,7 @@ msgstr ""
 msgid "Import YouTube links"
 msgstr ""
 
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "Imported into the library. Playback has not been verified."
 msgstr ""
 
@@ -3314,7 +3314,7 @@ msgstr ""
 
 #: src/components/base/ProgramViewToggleButton.tsx
 #: src/components/channel_config/ChannelProgrammingConfig.tsx
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "List"
 msgstr ""
 
@@ -3832,7 +3832,7 @@ msgstr ""
 #~ msgid "No active sessions"
 #~ msgstr ""
 
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "No artwork available"
 msgstr ""
 
@@ -3852,7 +3852,7 @@ msgstr ""
 msgid "No condition"
 msgstr ""
 
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "No entries to add. Saved programming was not changed."
 msgstr ""
 
@@ -3876,7 +3876,7 @@ msgstr ""
 msgid "No Media Sources detected."
 msgstr ""
 
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "No new metadata was imported. Saved programming was not changed."
 msgstr ""
 
@@ -4085,7 +4085,7 @@ msgstr ""
 msgid "Open in Troubleshoot"
 msgstr ""
 
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "Open video on YouTube"
 msgstr ""
 
@@ -4098,7 +4098,7 @@ msgstr ""
 #~ msgid "Operation"
 #~ msgstr ""
 
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/hooks/media-sources/useYouTubeImport.ts
 msgid "Operation cancelled. Your inputs and saved programming were kept. You can retry."
 msgstr ""
 
@@ -4244,7 +4244,7 @@ msgstr ""
 msgid "Path Replacements"
 msgstr ""
 
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "Pending metadata"
 msgstr ""
 
@@ -4819,7 +4819,7 @@ msgstr ""
 msgid "Renders a channel icon (also known as bug or Digital On-screen Graphic) on top of the channel's stream."
 msgstr ""
 
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "Repeated input was not imported twice."
 msgstr ""
 
@@ -5199,7 +5199,7 @@ msgstr ""
 msgid "Select All"
 msgstr ""
 
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "Select all eligible"
 msgstr ""
 
@@ -5211,8 +5211,8 @@ msgstr ""
 msgid "Select Artists to Remove"
 msgstr ""
 
-#. placeholder {0}: (page - 1) * 50 + index + 1
-#: src/components/library/YouTubeImportDialog.tsx
+#. placeholder {0}: row.ordinal
+#: src/components/library/YouTubeImportReview.tsx
 msgid "Select occurrence {0}"
 msgstr ""
 
@@ -5244,7 +5244,7 @@ msgstr ""
 msgid "Selection"
 msgstr ""
 
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "Separate audio/video inputs require transcoding. ErsatzTV playback requires dynamic playout; static windows are not supported. Change incompatible profiles explicitly. Normal channels advance while unwatched; pause-on-idle is a separate channel setting."
 msgstr ""
 
@@ -6349,13 +6349,13 @@ msgstr ""
 msgid "Type"
 msgstr ""
 
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 #: src/components/UnavailableLibraryIndicator.tsx
 #: src/components/UnavailableLibraryIndicator.tsx
 msgid "Unavailable"
 msgstr ""
 
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "Unavailable entry"
 msgstr ""
 
@@ -6501,7 +6501,7 @@ msgstr ""
 msgid "Video Format"
 msgstr ""
 
-#: src/components/library/YouTubeImportDialog.tsx
+#: src/components/library/YouTubeImportReview.tsx
 msgid "Video import"
 msgstr ""
 
